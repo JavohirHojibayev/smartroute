@@ -1,0 +1,12 @@
+{
+    "name": "smartroute-root",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "npm run build --prefix frontend",
+        "start": "npm run start:dev --prefix backend & npm run dev --prefix frontend"
+    },
+    "engines": {
+        "node": ">=20"
+    }
+}

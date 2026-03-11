@@ -1,0 +1,11 @@
+{
+  "AcsEventCond": {
+    "searchID": "smartroute-1",
+    "searchResultPosition": 0,
+    "maxResults": 5,
+    "major": 5,
+    "minor": 0,
+    "startTime": "2026-03-10T00:00:00+05:00",
+    "endTime": "2026-03-10T23:59:59+05:00"
+  }
+}
