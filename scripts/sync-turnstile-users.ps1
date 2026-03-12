@@ -51,6 +51,45 @@ function Name-Score {
     return $score
 }
 
+function Upsert-BestIdentity {
+    param(
+        [hashtable]$Map,
+        [string]$ExternalId,
+        [string]$FullName,
+        [string]$SourceIp
+    )
+
+    $normalizedId = Normalize-ExternalId -Value $ExternalId
+    $normalizedName = Normalize-Name -Value $FullName
+    if ([string]::IsNullOrWhiteSpace($normalizedId) -or [string]::IsNullOrWhiteSpace($normalizedName)) {
+        return $false
+    }
+
+    $candidateScore = Name-Score -Value $normalizedName
+    if (-not $Map.ContainsKey($normalizedId)) {
+        $Map[$normalizedId] = @{
+            externalId = $normalizedId
+            fullName = $normalizedName
+            sourceIp = $SourceIp
+            score = $candidateScore
+        }
+        return $true
+    }
+
+    $existing = $Map[$normalizedId]
+    if ($candidateScore -ge [int]$existing.score) {
+        $Map[$normalizedId] = @{
+            externalId = $normalizedId
+            fullName = $normalizedName
+            sourceIp = $SourceIp
+            score = $candidateScore
+        }
+        return $true
+    }
+
+    return $false
+}
+
 function Get-DeviceUsers {
     param(
         [string]$Ip,
@@ -108,13 +147,72 @@ function Get-DeviceUsers {
     return @($users)
 }
 
+function Get-DeviceCards {
+    param(
+        [string]$Ip,
+        [int]$PageSize,
+        [int]$MaxPages
+    )
+
+    $cards = @()
+    $position = 0
+    $pages = 0
+    $totalMatches = $null
+
+    while ($pages -lt $MaxPages) {
+        $payloadObj = @{
+            CardInfoSearchCond = @{
+                searchID = "smartroute-card-sync-$Ip"
+                searchResultPosition = $position
+                maxResults = $PageSize
+            }
+        }
+        $payload = $payloadObj | ConvertTo-Json -Depth 8 -Compress
+
+        $tmpReq = Join-Path $env:TEMP "smartroute-card-search-$($Ip.Replace('.', '-')).json"
+        $tmpRes = Join-Path $env:TEMP "smartroute-card-search-res-$($Ip.Replace('.', '-')).json"
+        Set-Content -Path $tmpReq -Value $payload -Encoding ascii
+
+        & curl.exe -sS --digest -u "${Username}:${Password}" `
+            -H "Content-Type: application/json" `
+            -X POST `
+            --data-binary "@$tmpReq" `
+            --output $tmpRes `
+            "http://${Ip}/ISAPI/AccessControl/CardInfo/Search?format=json" | Out-Null
+
+        $response = Get-Content -Path $tmpRes -Raw -Encoding utf8
+        if ([string]::IsNullOrWhiteSpace($response)) { break }
+
+        $parsed = $response | ConvertFrom-Json
+        $search = $parsed.CardInfoSearch
+        if (-not $search) { break }
+
+        if ($null -eq $totalMatches) {
+            $totalMatches = [int]($search.totalMatches)
+        }
+
+        $pageCards = @($search.CardInfo)
+        if ($pageCards.Count -eq 0) { break }
+        $cards += $pageCards
+
+        $position += $pageCards.Count
+        $pages += 1
+
+        if ($totalMatches -gt 0 -and $position -ge $totalMatches) { break }
+    }
+
+    return @($cards)
+}
+
 $bestByExternalId = @{}
 $summary = @()
 
 foreach ($device in $devices) {
     $ip = $device.Ip
     $name = $device.Name
-    $count = 0
+    $usersRead = 0
+    $cardsRead = 0
+    $cardsMapped = 0
     $status = "OK"
 
     try {
@@ -124,37 +222,55 @@ foreach ($device in $devices) {
             $fullName = Normalize-Name -Value $user.name
             if ([string]::IsNullOrWhiteSpace($externalId) -or [string]::IsNullOrWhiteSpace($fullName)) { continue }
 
-            $count += 1
-            if (-not $bestByExternalId.ContainsKey($externalId)) {
-                $bestByExternalId[$externalId] = @{
-                    externalId = $externalId
-                    fullName = $fullName
-                    sourceIp = $ip
-                    score = Name-Score -Value $fullName
-                }
+            $usersRead += 1
+            Upsert-BestIdentity -Map $bestByExternalId -ExternalId $externalId -FullName $fullName -SourceIp $ip | Out-Null
+        }
+    }
+    catch {
+        $status = "USER_ERROR"
+    }
+
+    try {
+        $cards = Get-DeviceCards -Ip $ip -PageSize $PageSize -MaxPages $MaxPages
+        foreach ($card in $cards) {
+            $cardsRead += 1
+
+            $cardExternalId = Normalize-ExternalId -Value $card.cardNo
+            $employeeExternalId = Normalize-ExternalId -Value $card.employeeNo
+            if ([string]::IsNullOrWhiteSpace($cardExternalId) -or [string]::IsNullOrWhiteSpace($employeeExternalId)) {
                 continue
             }
 
-            $existing = $bestByExternalId[$externalId]
-            $candidateScore = Name-Score -Value $fullName
-            if ($candidateScore -ge [int]$existing.score) {
-                $bestByExternalId[$externalId] = @{
-                    externalId = $externalId
-                    fullName = $fullName
-                    sourceIp = $ip
-                    score = $candidateScore
-                }
+            if (-not $bestByExternalId.ContainsKey($employeeExternalId)) {
+                continue
+            }
+
+            $employeeIdentity = $bestByExternalId[$employeeExternalId]
+            $updated = Upsert-BestIdentity `
+                -Map $bestByExternalId `
+                -ExternalId $cardExternalId `
+                -FullName $employeeIdentity.fullName `
+                -SourceIp $ip
+            if ($updated) {
+                $cardsMapped += 1
             }
         }
     }
     catch {
-        $status = "ERROR"
+        if ($status -eq "OK") {
+            $status = "CARD_ERROR"
+        }
+        else {
+            $status = "USER_CARD_ERROR"
+        }
     }
 
     $summary += [pscustomobject]@{
         Device = $name
         Ip = $ip
-        UsersRead = $count
+        UsersRead = $usersRead
+        CardsRead = $cardsRead
+        CardsMapped = $cardsMapped
         Status = $status
     }
 }

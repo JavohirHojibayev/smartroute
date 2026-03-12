@@ -4,6 +4,7 @@ import { Shield, LogIn, ArrowLeftToLine, RefreshCw, Search, CalendarDays, Downlo
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
+import { useI18n } from '../i18n';
 
 type AccessLogRow = {
     id: number;
@@ -57,8 +58,16 @@ const TURNSTILE_OFFLINE_MINUTES = Math.max(
     5,
 );
 const TURNSTILE_OFFLINE_AFTER_MS = TURNSTILE_OFFLINE_MINUTES * 60 * 1000;
+const ID_ONLY_NAME_REGEX = /^ID-\d+$/i;
+
+const toDisplayName = (value: string | null | undefined, unknownEmployeeLabel: string) => {
+    const raw = String(value ?? '').trim();
+    if (!raw || ID_ONLY_NAME_REGEX.test(raw)) return unknownEmployeeLabel;
+    return raw;
+};
 
 export const AccessControlManager = () => {
+    const { t } = useI18n();
     const [logs, setLogs] = useState<AccessLogRow[]>([]);
     const [summary, setSummary] = useState<AccessSummary>({ totalToday: 0, flaggedToday: 0, exitsToday: 0, systemStatus: 'online' });
     const [loading, setLoading] = useState(false);
@@ -101,16 +110,22 @@ export const AccessControlManager = () => {
             });
 
             if (Array.isArray(logsData)) {
-                setLogs(logsData);
+                setLogs(logsData.map((row: AccessLogRow) => ({
+                    ...row,
+                    name: toDisplayName(row?.name, t('unknownEmployee')),
+                })));
             } else {
                 const apiItems = Array.isArray(logsData?.items) ? logsData.items : [];
-                setLogs(apiItems);
+                setLogs(apiItems.map((row: AccessLogRow) => ({
+                    ...row,
+                    name: toDisplayName(row?.name, t('unknownEmployee')),
+                })));
             }
 
             setError(null);
             setIsLive(true);
         } catch (_e) {
-            setError("Serverdan ma'lumot olishda xatolik");
+            setError(t('serverDataError'));
             setIsLive(false);
         } finally {
             if (showLoading) setLoading(false);
@@ -182,7 +197,11 @@ export const AccessControlManager = () => {
         input.focus();
     };
 
-    const toDisplayTurnstileLabel = (key: TurnstileKey) => key.charAt(0).toUpperCase() + key.slice(1);
+    const toDisplayTurnstileLabel = (key: TurnstileKey) => {
+        const [group, number] = key.split('-');
+        const prefix = group === 'kirish' ? t('turnstileLabelEntry') : t('turnstileLabelExit');
+        return `${prefix}-${number}`;
+    };
 
     const resolveTurnstileKey = (device?: string, deviceIp?: string | null): TurnstileKey | null => {
         const normalizedIp = String(deviceIp ?? '').trim();
@@ -245,9 +264,9 @@ export const AccessControlManager = () => {
         return inputLogs.map((log) => {
             const isEntrance = (log.type || 'entrance') === 'entrance';
             return {
-                name: String(log.name ?? ''),
+                name: toDisplayName(log.name, t('unknownEmployee')),
                 time: formatDateTime(String(log.time ?? '')),
-                action: String(log.device || (isEntrance ? 'Kirish' : 'Chiqish')),
+                action: String(log.device || (isEntrance ? t('entrance') : t('exit'))),
                 deviceIp: String(log.deviceIp || '-'),
             };
         });
@@ -324,11 +343,11 @@ export const AccessControlManager = () => {
             const exportRows = mapLogsToExportRows(sourceLogs);
             if (exportRows.length === 0) return;
 
-            const headers = ['Xodim / Haydovchi', 'Vaqt', 'Harakat', 'Qurilma'];
+            const headers = [t('employeeDriver'), t('time'), t('action'), t('device')];
             const dataRows = exportRows.map((row) => [row.name, row.time, row.action, row.deviceIp]);
             downloadXls(headers, dataRows, buildExportFileName('xls'));
         } catch (_error) {
-            setError("Export uchun ma'lumotlarni olishda xatolik");
+            setError(t('exportDataError'));
         } finally {
             setExportingXls(false);
         }
@@ -360,15 +379,15 @@ export const AccessControlManager = () => {
             }
 
             doc.setFontSize(16);
-            doc.text('Turniket Jurnali', 14, 18);
+            doc.text(t('turnstileJournalTitle'), 14, 18);
             doc.setFontSize(10);
             doc.setTextColor(100);
-            doc.text(`Yaratilgan vaqt: ${new Date().toLocaleString()}`, 14, 25);
+            doc.text(`${t('createdAt')}: ${new Date().toLocaleString()}`, 14, 25);
 
             const tableData = exportRows.map((row) => [row.name, row.time, row.action, row.deviceIp]);
 
             autoTable(doc, {
-                head: [['Xodim / Haydovchi', 'Vaqt', 'Harakat', 'Qurilma']],
+                head: [[t('employeeDriver'), t('time'), t('action'), t('device')]],
                 body: tableData,
                 startY: 30,
                 theme: 'grid',
@@ -379,7 +398,7 @@ export const AccessControlManager = () => {
 
             doc.save(buildExportFileName('pdf'));
         } catch (_error) {
-            setError("PDF export qilishda xatolik");
+            setError(t('pdfExportError'));
         } finally {
             setExportingPdf(false);
         }
@@ -391,15 +410,15 @@ export const AccessControlManager = () => {
                 <div className="glass-panel p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500">
                     <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl"><LogIn size={24} /></div>
                     <div>
-                        <p className="text-xs text-slate-500 font-bold uppercase">Bugungi kirishlar</p>
-                        <p className="text-2xl font-bold">{summary.totalToday} ta</p>
+                        <p className="text-xs text-slate-500 font-bold uppercase">{t('todayEntrances')}</p>
+                        <p className="text-2xl font-bold">{summary.totalToday}</p>
                     </div>
                 </div>
                 <div className="glass-panel p-6 rounded-2xl flex items-center gap-4 border-l-4 border-l-orange-500">
                     <div className="p-3 bg-orange-500/10 text-orange-400 rounded-xl"><ArrowLeftToLine size={24} /></div>
                     <div>
-                        <p className="text-xs text-slate-500 font-bold uppercase">Bugungi chiqishlar</p>
-                        <p className="text-2xl font-bold">{summary.exitsToday} ta</p>
+                        <p className="text-xs text-slate-500 font-bold uppercase">{t('todayExits')}</p>
+                        <p className="text-2xl font-bold">{summary.exitsToday}</p>
                     </div>
                 </div>
                 <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 border-l-4 border-l-slate-500">
@@ -429,7 +448,7 @@ export const AccessControlManager = () => {
                 <div className="p-6 border-b border-slate-700/50 flex justify-between items-center gap-4 bg-slate-800/20">
                     <div className="flex items-center gap-4 min-w-0 flex-1 flex-wrap">
                         <h3 className="font-bold text-2xl md:text-[30px] leading-none shrink-0 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                            Turniket Jurnali
+                            {t('turnstileJournalTitle')}
                         </h3>
                         <div className="relative w-full max-w-md min-w-[260px] ml-2 md:ml-auto">
                             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -440,7 +459,7 @@ export const AccessControlManager = () => {
                                     setSearchQuery(e.target.value);
                                     setCurrentPage(1);
                                 }}
-                                placeholder="Xodimni qidiring..."
+                                placeholder={t('searchEmployee')}
                                 className="w-full bg-slate-900/50 border border-slate-700/60 rounded-lg pl-11 pr-4 py-3 text-base text-slate-200 placeholder:text-slate-500 outline-none focus:border-blue-500/60"
                             />
                         </div>
@@ -457,13 +476,13 @@ export const AccessControlManager = () => {
                                             setCurrentPage(1);
                                         }}
                                         className="date-input-system bg-slate-900/50 border border-slate-700/60 rounded-lg pl-3 pr-11 py-3 text-sm text-slate-200 outline-none focus:border-blue-500/60"
-                                        aria-label="Boshlanish sanasi"
+                                        aria-label={t('startDate')}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => openDatePicker(dateFromRef)}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200 hover:text-white transition-colors"
-                                        aria-label="Boshlanish sanasini tanlash"
+                                        aria-label={t('selectStartDate')}
                                     >
                                         <CalendarDays size={16} />
                                     </button>
@@ -480,13 +499,13 @@ export const AccessControlManager = () => {
                                             setCurrentPage(1);
                                         }}
                                         className="date-input-system bg-slate-900/50 border border-slate-700/60 rounded-lg pl-3 pr-11 py-3 text-sm text-slate-200 outline-none focus:border-blue-500/60"
-                                        aria-label="Tugash sanasi"
+                                        aria-label={t('endDate')}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => openDatePicker(dateToRef)}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200 hover:text-white transition-colors"
-                                        aria-label="Tugash sanasini tanlash"
+                                        aria-label={t('selectEndDate')}
                                     >
                                         <CalendarDays size={16} />
                                     </button>
@@ -499,20 +518,20 @@ export const AccessControlManager = () => {
                             type="button"
                             onClick={handleExportExcel}
                             disabled={totalRows === 0 || exportingXls || exportingPdf}
-                            className="inline-flex items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <Download size={16} />
-                            {exportingXls ? 'Export XLS...' : 'Export XLS'}
-                        </button>
-                        <button
+                        className="inline-flex items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <Download size={16} />
+                        {exportingXls ? t('exportingXls') : t('exportXls')}
+                    </button>
+                    <button
                             type="button"
                             onClick={handleExportPdf}
                             disabled={totalRows === 0 || exportingPdf || exportingXls}
-                            className="inline-flex items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <FileDown size={16} />
-                            {exportingPdf ? 'Export PDF...' : 'Export PDF'}
-                        </button>
+                        className="inline-flex items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <FileDown size={16} />
+                        {exportingPdf ? t('exportingPdf') : t('exportPdf')}
+                    </button>
                         {loading && <RefreshCw size={14} className="animate-spin text-blue-400" />}
                     </div>
                 </div>
@@ -532,18 +551,18 @@ export const AccessControlManager = () => {
                             <col className="w-[17%]" />
                         </colgroup>
                         <thead>
-                            <tr className="bg-slate-900/50 text-slate-300 text-xs font-bold uppercase tracking-wide">
-                                <th className="px-6 py-4">xodimlar</th>
-                                <th className="px-6 py-4 text-center">Vaqt</th>
-                                <th className="px-6 py-4 text-center">Harakat</th>
-                                <th className="px-6 py-4 text-center">Qurilma</th>
+                            <tr className="bg-slate-900/50 text-slate-300 text-xs uppercase tracking-wide">
+                                <th className="px-6 py-4 !font-normal">{t('employees')}</th>
+                                <th className="px-6 py-4 text-center">{t('time')}</th>
+                                <th className="px-6 py-4 text-center">{t('action')}</th>
+                                <th className="px-6 py-4 text-center">{t('device')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
                             {effectiveLogs.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-10 text-center text-slate-500 text-sm">
-                                        {(searchQuery.trim() || dateFrom || dateTo) ? "Tanlangan filter bo'yicha event topilmadi" : "Hozircha eventlar yo'q"}
+                                        {(searchQuery.trim() || dateFrom || dateTo) ? t('noEventsForFilter') : t('noEventsYet')}
                                     </td>
                                 </tr>
                             ) : (
@@ -555,16 +574,16 @@ export const AccessControlManager = () => {
                                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                             className="hover:bg-slate-800/40 transition-all text-sm group"
                                         >
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors">{log.name}</div>
+                                            <td className="px-6 py-4 !font-normal">
+                                                <div className="!font-normal text-slate-300 group-hover:text-blue-400 transition-colors break-words whitespace-normal leading-6">{log.name}</div>
                                             </td>
                                             <td className="px-6 py-4 text-center font-mono text-sm text-slate-300">{formatDateTime(log.time)}</td>
                                             <td className="px-6 py-4">
                                                 <div className="flex justify-center">
                                                     {isEntrance ? (
-                                                        <span className="text-emerald-400 font-semibold inline-flex items-center gap-1.5"><LogIn size={15} /> {log.device || 'Kirish'}</span>
+                                                        <span className="text-emerald-400 font-semibold inline-flex items-center gap-1.5"><LogIn size={15} /> {log.device || t('entrance')}</span>
                                                     ) : (
-                                                        <span className="text-amber-400 font-semibold inline-flex items-center gap-1.5"><ArrowLeftToLine size={15} /> {log.device || 'Chiqish'}</span>
+                                                        <span className="text-amber-400 font-semibold inline-flex items-center gap-1.5"><ArrowLeftToLine size={15} /> {log.device || t('exit')}</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -585,7 +604,7 @@ export const AccessControlManager = () => {
                             : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min((currentPage - 1) * rowsPerPage + pagedLogs.length, totalRows)} / ${totalRows}`}
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
-                        <label className="text-sm text-slate-400">Rows/page:</label>
+                        <label className="text-sm text-slate-400">{t('rowsPerPage')}:</label>
                         <select
                             value={rowsPerPage}
                             onChange={(e) => {
@@ -606,7 +625,7 @@ export const AccessControlManager = () => {
                             disabled={currentPage === 1}
                             className="px-3 py-1.5 text-sm rounded-lg border border-slate-700/70 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:border-blue-500/50 hover:text-blue-300 transition-colors"
                         >
-                            Oldingi
+                            {t('previous')}
                         </button>
                         <span className="text-sm text-slate-300 min-w-[80px] text-center">
                             {currentPage} / {totalPages}
@@ -617,7 +636,7 @@ export const AccessControlManager = () => {
                             disabled={currentPage >= totalPages}
                             className="px-3 py-1.5 text-sm rounded-lg border border-slate-700/70 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:border-blue-500/50 hover:text-blue-300 transition-colors"
                         >
-                            Keyingi
+                            {t('next')}
                         </button>
                     </div>
                 </div>

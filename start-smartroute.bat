@@ -6,7 +6,7 @@ echo Initializing Frontend Server (Vite)...
 start cmd /k "cd frontend && npm run dev"
 
 echo Initializing Backend NestJS Server (SQLite)...
-start cmd /k "cd backend && npm run start:dev"
+start cmd /k "cd backend && set \"ESMO_ENABLED=true\" && set \"ESMO_BASE_URL=https://192.168.8.10/cab/\" && set \"ESMO_USER=admin\" && set \"ESMO_PASS=QW1665gety\" && set \"ESMO_SYNC_MAX_PAGES=2\" && set \"ESMO_RECENT_BACKFILL_PAGES=2\" && npm run start:dev"
 
 echo Startup Complete!
 echo Frontend: http://localhost:5173

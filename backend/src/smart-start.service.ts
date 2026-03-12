@@ -30,8 +30,8 @@ export class SmartStartService {
     const medicalCheck = await this.medicalRepo.createQueryBuilder('med')
       .where('med.driver_id = :driverId', { driverId })
       .andWhere('med.status = :status', { status: CheckStatus.PASSED })
-      .andWhere('med.check_time >= :today', { today })
-      .orderBy('med.check_time', 'DESC')
+      .andWhere('COALESCE(med.exam_time, med.check_time) >= :today', { today })
+      .orderBy('COALESCE(med.exam_time, med.check_time)', 'DESC')
       .getOne();
 
     if (!medicalCheck) {

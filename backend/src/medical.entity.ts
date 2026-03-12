@@ -13,6 +13,9 @@ export class MedicalCheck {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'int', nullable: true, unique: true })
+  esmo_id: number | null;
+
   @ManyToOne(() => Driver, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'driver_id' })
   driver: Driver;
@@ -33,6 +36,18 @@ export class MedicalCheck {
   @Column('decimal', { precision: 4, scale: 3, nullable: true })
   alcohol_test_result: number;
 
+  @Column({ length: 128, nullable: true })
+  terminal_name: string | null;
+
+  @Column({ length: 64, nullable: true })
+  terminal_ip: string | null;
+
+  @Column({ length: 32, nullable: true })
+  esmo_result: string | null;
+
+  @Column({ type: 'simple-json', nullable: true })
+  source_payload: any;
+
   @Column({
     type: 'simple-enum',
     enum: CheckStatus,
@@ -42,4 +57,7 @@ export class MedicalCheck {
 
   @CreateDateColumn()
   check_time: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  exam_time: Date | null;
 }

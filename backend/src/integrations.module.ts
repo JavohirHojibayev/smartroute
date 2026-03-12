@@ -92,8 +92,9 @@ export class TurnstileIdentity {
 @Controller('integrations/hikvision')
 export class HikvisionController {
   private readonly logger = new Logger(HikvisionController.name);
-  private readonly dedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_DEDUP_SECONDS ?? '20', 10) || 20, 1);
+  private readonly dedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_DEDUP_SECONDS ?? '30', 10) || 30, 1);
   private readonly pairDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_PAIR_DEDUP_SECONDS ?? '12', 10) || 12, 1);
+  private readonly crossDeviceDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_CROSS_DEVICE_DEDUP_SECONDS ?? '90', 10) || 90, 1);
   private readonly strictSourceIp = String(process.env.HIKVISION_STRICT_SOURCE_IP ?? 'true').toLowerCase() === 'true';
   private readonly maxEventAgeMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_EVENT_AGE_MINUTES ?? '180', 10) || 180, 1);
   private readonly maxFutureSkewMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_FUTURE_SKEW_MINUTES ?? '5', 10) || 5, 1);
@@ -133,10 +134,23 @@ export class HikvisionController {
       .trim();
   }
 
+  private looksLikeMojibake(value: string | null | undefined): boolean {
+    const name = this.normalizePersonName(value);
+    if (!name) return false;
+
+    // Typical UTF-8/CP1251 corruption markers seen in turnstile payloads.
+    if (/[�]/.test(name)) return true;
+    if (/(Ð|Ñ|Ã|Â)/.test(name)) return true;
+    if (/(?:Р.|С.){3,}/.test(name)) return true;
+
+    return false;
+  }
+
   private isLikelyValidPersonName(value: string | null | undefined): boolean {
     const name = this.normalizePersonName(value);
     if (!name) return false;
     if (this.isFallbackIdName(name)) return false;
+    if (this.looksLikeMojibake(name)) return false;
 
     const tokens = name.split(' ').filter(Boolean);
     if (tokens.length < 2) return false;
@@ -146,11 +160,13 @@ export class HikvisionController {
   private scorePersonName(value: string | null | undefined): number {
     const name = this.normalizePersonName(value);
     if (!name) return 0;
+    if (this.isFallbackIdName(name)) return -1000;
 
     const tokens = name.split(' ').filter(Boolean).length;
     const hasCyrillic = /[\u0400-\u04FF]/.test(name) ? 1 : 0;
     const hasLatin = /[A-Za-z]/.test(name) ? 1 : 0;
     const badChars = /[?]{2,}|UNKNOWN|TEST|DRIVER/i.test(name) ? 1 : 0;
+    const mojibake = this.looksLikeMojibake(name) ? 1 : 0;
 
     let score = 0;
     score += Math.min(tokens, 4) * 10;
@@ -158,6 +174,7 @@ export class HikvisionController {
     score += hasCyrillic * 8;
     score += hasLatin * 2;
     score -= badChars * 25;
+    score -= mojibake * 40;
 
     return score;
   }
@@ -296,7 +313,7 @@ export class HikvisionController {
 
     const result: AccessLog[] = [];
     const recentByIdentity = new Map<string, AccessLog[]>();
-    const maxWindowSeconds = Math.max(this.dedupSeconds, this.pairDedupSeconds);
+    const maxWindowSeconds = Math.max(this.dedupSeconds, this.pairDedupSeconds, this.crossDeviceDedupSeconds);
 
     for (const row of rows) {
       const identityKey = this.buildIdentityKey({
@@ -317,6 +334,7 @@ export class HikvisionController {
       }
 
       const rowLane = this.extractLaneKey(row.device_id, row.device_name);
+      const rowTurnstile = this.normalizeWhitespace(row.device_id || row.device_name).toUpperCase();
       const recentRows = recentByIdentity.get(identityKey) ?? [];
       let duplicate = false;
 
@@ -324,6 +342,16 @@ export class HikvisionController {
         const recentSeconds = this.toUnixSeconds(recentRow.access_time);
         if (recentSeconds == null) continue;
         const diff = Math.abs(rowSeconds - recentSeconds);
+        const recentLane = this.extractLaneKey(recentRow.device_id, recentRow.device_name);
+        const recentTurnstile = this.normalizeWhitespace(recentRow.device_id || recentRow.device_name).toUpperCase();
+        const differentTurnstile =
+          (!!rowTurnstile && !!recentTurnstile && rowTurnstile !== recentTurnstile) ||
+          (!!rowLane && !!recentLane && rowLane !== recentLane);
+
+        if (differentTurnstile && diff <= this.crossDeviceDedupSeconds) {
+          duplicate = true;
+          break;
+        }
 
         if (row.event_type === recentRow.event_type && diff <= this.dedupSeconds) {
           duplicate = true;
@@ -504,6 +532,31 @@ export class HikvisionController {
     return this.normalizeWhitespace(value).toLowerCase();
   }
 
+  private extractBestExternalIdFromRawPayload(rawPayload: any): string {
+    const parsed = this.parseRawPayload(rawPayload);
+    if (!parsed) return '';
+
+    const accessEvent = parsed?.rawObject?.AccessControllerEvent ?? parsed?.AccessControllerEvent ?? null;
+    const candidates = [
+      parsed?.employeeNoString,
+      accessEvent?.employeeNoString,
+      accessEvent?.employeeNo,
+      parsed?.employeeNo,
+      parsed?.personId,
+      parsed?.faceId,
+      parsed?.face_id,
+      parsed?.cardNo,
+      accessEvent?.cardNo,
+    ];
+
+    for (const value of candidates) {
+      const normalized = this.normalizeExternalId(value);
+      if (normalized) return normalized;
+    }
+
+    return '';
+  }
+
   private tryExtractJsonFromMultipart(body: string): any | null {
     const text = body.trim();
     if (!text) return null;
@@ -652,37 +705,54 @@ export class HikvisionController {
     return null;
   }
 
-  private findFirstByKeys(obj: any, keys: string[]): string | number | boolean | null {
-    const keySet = new Set(keys.map((key) => key.toLowerCase()));
+  private findFirstByKey(obj: any, targetKey: string): string | number | boolean | null {
+    const target = targetKey.toLowerCase();
     let found: string | number | boolean | null = null;
 
     const walk = (node: any) => {
       if (found != null || node == null) return;
+
       if (Array.isArray(node)) {
-        for (const item of node) walk(item);
+        for (const item of node) {
+          walk(item);
+          if (found != null) return;
+        }
         return;
       }
+
       if (typeof node !== 'object') return;
 
+      // First pass: direct key match only (preserves key priority).
       for (const [key, rawValue] of Object.entries(node)) {
-        if (found != null) break;
-
-        if (keySet.has(key.toLowerCase())) {
-          const extracted = this.extractPrimitive(rawValue);
-          if (extracted != null && String(extracted).trim() !== '') {
-            found = extracted;
-            break;
-          }
+        if (key.toLowerCase() !== target) continue;
+        const extracted = this.extractPrimitive(rawValue);
+        if (extracted != null && String(extracted).trim() !== '') {
+          found = extracted;
+          return;
         }
+      }
 
+      // Second pass: deep traversal.
+      for (const rawValue of Object.values(node)) {
         if (rawValue && typeof rawValue === 'object') {
           walk(rawValue);
+          if (found != null) return;
         }
       }
     };
 
     walk(obj);
     return found;
+  }
+
+  private findFirstByKeys(obj: any, keys: string[]): string | number | boolean | null {
+    for (const key of keys) {
+      const value = this.findFirstByKey(obj, key);
+      if (value != null && String(value).trim() !== '') {
+        return value;
+      }
+    }
+    return null;
   }
 
   private fromObjectPayload(payloadObj: any): any {
@@ -815,7 +885,11 @@ export class HikvisionController {
     const parsed = this.parseRawPayload(rawPayload);
     if (!parsed) return null;
 
+    const accessEvent = parsed?.rawObject?.AccessControllerEvent ?? parsed?.AccessControllerEvent ?? null;
     const name = this.normalizeWhitespace(
+      accessEvent?.name ??
+      accessEvent?.employeeName ??
+      accessEvent?.personName ??
       parsed?.name ??
       parsed?.personName ??
       parsed?.employeeName ??
@@ -876,7 +950,17 @@ export class HikvisionController {
       normalizedPayload?.host,
     );
     const declaredKnownDevice = this.findKnownDeviceByIdOrName(deviceIdQuery, deviceNameQuery);
-    const knownDevice = this.mapKnownDevice(payloadIp, requestIp) ?? declaredKnownDevice;
+    const ipMappedKnownDevice = this.mapKnownDevice(payloadIp, requestIp);
+    if (
+      declaredKnownDevice &&
+      ipMappedKnownDevice &&
+      declaredKnownDevice.deviceId !== ipMappedKnownDevice.deviceId
+    ) {
+      this.logger.warn(
+        `Device source mismatch: declared=${declaredKnownDevice.deviceId} ipMapped=${ipMappedKnownDevice.deviceId} requestIp=${requestIp ?? 'none'} payloadIp=${payloadIp ?? 'none'}. Using declared device.`,
+      );
+    }
+    const knownDevice = declaredKnownDevice ?? ipMappedKnownDevice;
 
     if (this.strictSourceIp && !knownDevice) {
       this.logger.warn(`Ignoring webhook from unknown source ip: request=${requestIp ?? 'none'} payload=${payloadIp ?? 'none'}`);
@@ -912,8 +996,8 @@ export class HikvisionController {
     }
 
     const identityName = await this.resolveIdentityName(normalizedExternalId);
-    if (identityName) {
-      personName = this.pickPreferredPersonName(personName, identityName);
+    if (identityName && !this.isLikelyValidPersonName(personName)) {
+      personName = identityName;
     }
 
     if (!personName && (faceIdHash || employeeNo)) {
@@ -1047,49 +1131,30 @@ export class HikvisionController {
         }
       }
 
-      // Cross-device noise: same person and same action in a tiny window should be a single event.
-      const duplicateByIdentityAnyDeviceQuery = this.accessRepo
-        .createQueryBuilder('log')
-        .where('log.event_type = :eventType', { eventType })
-        .andWhere(`ABS(strftime('%s', log.access_time) - strftime('%s', :eventIso)) <= :dedupSeconds`, {
-          eventIso,
-          dedupSeconds: this.dedupSeconds,
-        });
-      this.applyIdentityMatch(duplicateByIdentityAnyDeviceQuery, 'log', { faceIdHash, personName });
+      // Opposite-direction bounce is only deduped within the same physical turnstile.
+      if (deviceId) {
+        const pairByIdentityQuery = this.accessRepo
+          .createQueryBuilder('log')
+          .where('log.device_id = :deviceId', { deviceId })
+          .andWhere('log.event_type <> :eventType', { eventType })
+          .andWhere(`ABS(strftime('%s', log.access_time) - strftime('%s', :eventIso)) <= :pairDedupSeconds`, {
+            eventIso,
+            pairDedupSeconds: this.pairDedupSeconds,
+          });
 
-      const duplicateByIdentityAnyDevice = await duplicateByIdentityAnyDeviceQuery.orderBy('log.id', 'DESC').getOne();
-      if (duplicateByIdentityAnyDevice) {
-        return respond({
-          ok: true,
-          duplicate: true,
-          id: duplicateByIdentityAnyDevice.id,
-          status: this.mapStatus(duplicateByIdentityAnyDevice.status),
-          eventType: duplicateByIdentityAnyDevice.event_type,
-          accessTime: duplicateByIdentityAnyDevice.access_time,
-        });
-      }
+        this.applyIdentityMatch(pairByIdentityQuery, 'log', { faceIdHash, personName });
 
-      // Opposite-direction bounce in a short window is treated as duplicate to avoid double logs.
-      const pairByIdentityQuery = this.accessRepo
-        .createQueryBuilder('log')
-        .where('log.event_type <> :eventType', { eventType })
-        .andWhere(`ABS(strftime('%s', log.access_time) - strftime('%s', :eventIso)) <= :pairDedupSeconds`, {
-          eventIso,
-          pairDedupSeconds: this.pairDedupSeconds,
-        });
-
-      this.applyIdentityMatch(pairByIdentityQuery, 'log', { faceIdHash, personName });
-
-      const pairByIdentity = await pairByIdentityQuery.orderBy('log.id', 'DESC').getOne();
-      if (pairByIdentity) {
-        return respond({
-          ok: true,
-          duplicate: true,
-          id: pairByIdentity.id,
-          status: this.mapStatus(pairByIdentity.status),
-          eventType: pairByIdentity.event_type,
-          accessTime: pairByIdentity.access_time,
-        });
+        const pairByIdentity = await pairByIdentityQuery.orderBy('log.id', 'DESC').getOne();
+        if (pairByIdentity) {
+          return respond({
+            ok: true,
+            duplicate: true,
+            id: pairByIdentity.id,
+            status: this.mapStatus(pairByIdentity.status),
+            eventType: pairByIdentity.event_type,
+            accessTime: pairByIdentity.access_time,
+          });
+        }
       }
     }
 
@@ -1115,8 +1180,7 @@ export class HikvisionController {
     const resolvedPersonName =
       personName ||
       driver?.full_name ||
-      (employeeNo ? `ID-${employeeNo}` : null) ||
-      (faceIdHash ? `ID-${faceIdHash}` : null);
+      null;
 
     const log = this.accessRepo.create({
       driver: driver || null,
@@ -1134,6 +1198,9 @@ export class HikvisionController {
         sourceRequestIp: requestIp,
         sourcePayloadIp: payloadIp,
         sourceDeviceMapped: knownDevice ? true : false,
+        sourceDeviceQueryId: this.normalizeWhitespace(deviceIdQuery) || null,
+        sourceDeviceQueryName: this.normalizeWhitespace(deviceNameQuery) || null,
+        sourceEventTypeQuery: this.normalizeWhitespace(eventTypeQuery) || null,
       },
     });
 
@@ -1245,7 +1312,9 @@ export class HikvisionController {
     const dedupedRows = this.dedupeRows(rows);
 
     const rowIds = dedupedRows.map((row) => (
-      row.face_id_hash || this.extractIdFromFallbackName(row.person_name)
+      this.extractBestExternalIdFromRawPayload(row.raw_payload) ||
+      row.face_id_hash ||
+      this.extractIdFromFallbackName(row.person_name)
     ));
     const identityCandidates = this.buildIdentityCandidates(rowIds);
 
@@ -1278,19 +1347,28 @@ export class HikvisionController {
     }
 
     const mappedRows = dedupedRows.map((row) => {
-      const fallbackId = row.face_id_hash || this.extractIdFromFallbackName(row.person_name);
+      const fallbackId =
+        this.extractBestExternalIdFromRawPayload(row.raw_payload) ||
+        this.normalizeExternalId(row.face_id_hash) ||
+        this.normalizeExternalId(this.extractIdFromFallbackName(row.person_name));
       const normalizedId = this.normalizeExternalId(fallbackId);
       const canonicalName = normalizedId ? knownNameByNormalizedId.get(normalizedId) : undefined;
       const rawPayloadName = this.normalizePersonName(this.getNameFromRawPayload(row.raw_payload));
+      const nameFromDriver = this.normalizePersonName(row.driver?.full_name);
+      const nameFromRow = row.person_name && !this.isFallbackIdName(row.person_name)
+        ? this.normalizePersonName(row.person_name)
+        : '';
+
+      const resolvedName =
+        (this.isLikelyValidPersonName(nameFromDriver) ? nameFromDriver : '') ||
+        (this.isLikelyValidPersonName(rawPayloadName) ? rawPayloadName : '') ||
+        (this.isLikelyValidPersonName(canonicalName) ? this.normalizePersonName(canonicalName) : '') ||
+        (this.isLikelyValidPersonName(nameFromRow) ? nameFromRow : '') ||
+        '';
 
       return {
         id: row.id,
-        name:
-          this.normalizePersonName(row.driver?.full_name) ||
-          canonicalName ||
-          (row.person_name && !this.isFallbackIdName(row.person_name) ? this.normalizePersonName(row.person_name) : null) ||
-          rawPayloadName ||
-          (fallbackId ? `ID-${fallbackId}` : 'Unknown'),
+        name: resolvedName || "Noma'lum xodim",
         time: row.access_time,
         type: row.event_type || 'entrance',
         temp: row.temperature || 'N/A',
@@ -1304,7 +1382,7 @@ export class HikvisionController {
 
     const finalRows: typeof mappedRows = [];
     const recentByName = new Map<string, typeof mappedRows>();
-    const maxWindowSeconds = Math.max(this.dedupSeconds, this.pairDedupSeconds);
+    const maxWindowSeconds = Math.max(this.dedupSeconds, this.pairDedupSeconds, this.crossDeviceDedupSeconds);
 
     for (const row of mappedRows) {
       const normalizedName = this.normalizeWhitespace(row.name).toLowerCase();
@@ -1321,11 +1399,19 @@ export class HikvisionController {
 
       const recentRows = recentByName.get(normalizedName) ?? [];
       let duplicate = false;
+      const rowTurnstile = this.normalizeWhitespace(row.deviceIp || row.device).toUpperCase();
 
       for (const recentRow of recentRows) {
         const recentSeconds = this.toUnixSeconds(recentRow.time);
         if (recentSeconds == null) continue;
         const diff = Math.abs(rowSeconds - recentSeconds);
+        const recentTurnstile = this.normalizeWhitespace(recentRow.deviceIp || recentRow.device).toUpperCase();
+        const differentTurnstile = !!rowTurnstile && !!recentTurnstile && rowTurnstile !== recentTurnstile;
+
+        if (differentTurnstile && diff <= this.crossDeviceDedupSeconds) {
+          duplicate = true;
+          break;
+        }
 
         if (row.type === recentRow.type && diff <= this.dedupSeconds) {
           duplicate = true;
@@ -1379,13 +1465,28 @@ export class HikvisionController {
 
   @Get('summary')
   async getSummary() {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
     const todayRows = await this.accessRepo
       .createQueryBuilder('log')
-      .where(`DATE(log.access_time, 'localtime') = DATE('now', 'localtime')`)
+      .where(`datetime(log.access_time) >= datetime(:startOfToday)`, {
+        startOfToday: startOfToday.toISOString(),
+      })
+      .andWhere(`datetime(log.access_time) < datetime(:startOfTomorrow)`, {
+        startOfTomorrow: startOfTomorrow.toISOString(),
+      })
       .orderBy('log.access_time', 'DESC')
       .getMany();
 
-    const dedupedTodayRows = this.dedupeRows(todayRows);
+    const strictlyTodayRows = todayRows.filter((row) => {
+      const rowMs = new Date(row.access_time).getTime();
+      return !Number.isNaN(rowMs) && rowMs >= startOfToday.getTime() && rowMs < startOfTomorrow.getTime();
+    });
+
+    const dedupedTodayRows = this.dedupeRows(strictlyTodayRows);
     const total = dedupedTodayRows.filter((row) => row.event_type === 'entrance').length;
     const exits = dedupedTodayRows.filter((row) => row.event_type === 'exit').length;
     const flagged = dedupedTodayRows.filter((row) => row.status === CheckStatus.FAILED).length;
