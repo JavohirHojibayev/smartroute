@@ -17,10 +17,7 @@ import {
   Weight,
   Box,
   Settings,
-  ArrowUpRight,
-  ArrowDownRight,
   Gauge,
-  AlertTriangle,
   CheckCircle2,
   Clock3,
   Truck,
@@ -301,97 +298,6 @@ function App() {
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-                  <h3 className="font-semibold text-base">{t('cargoStats')} TOP reyslar</h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 rounded-full">
-                    24 soat
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-900/50 text-[10px] uppercase tracking-wider text-slate-400">
-                      <tr>
-                        <th className="px-5 py-3 text-left">Transport</th>
-                        <th className="px-5 py-3 text-left">Yo'nalish</th>
-                        <th className="px-5 py-3 text-right">{t('weight')}</th>
-                        <th className="px-5 py-3 text-right">{t('volume')}</th>
-                        <th className="px-5 py-3 text-right">{t('utilization')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/40">
-                      {cargoFlowRows.map((row) => (
-                        <tr key={row.plate} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="px-5 py-3.5 font-semibold text-slate-200">{row.plate}</td>
-                          <td className="px-5 py-3.5 text-slate-400">{row.route}</td>
-                          <td className="px-5 py-3.5 text-right text-slate-200">{row.weight} t</td>
-                          <td className="px-5 py-3.5 text-right text-slate-300">{row.volume} m3</td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex justify-end items-center gap-1.5">
-                              <span className={`font-semibold ${row.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {row.efficiency}%
-                              </span>
-                              {row.trend === 'up'
-                                ? <ArrowUpRight size={14} className="text-emerald-400" />
-                                : <ArrowDownRight size={14} className="text-red-400" />}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-                  <h3 className="font-semibold text-base">{t('vehicleInspections')} holati</h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full">
-                    Bugun
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-900/50 text-[10px] uppercase tracking-wider text-slate-400">
-                      <tr>
-                        <th className="px-5 py-3 text-left">Transport</th>
-                        <th className="px-5 py-3 text-left">{t('time')}</th>
-                        <th className="px-5 py-3 text-right">Health score</th>
-                        <th className="px-5 py-3 text-left">Holat</th>
-                        <th className="px-5 py-3 text-left">Keyingi servis</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-700/40">
-                      {technicalCheckRows.map((row) => (
-                        <tr key={row.plate} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="px-5 py-3.5 font-semibold text-slate-200">{row.plate}</td>
-                          <td className="px-5 py-3.5 text-slate-400">{row.checkedAt}</td>
-                          <td className="px-5 py-3.5 text-right">
-                            <span className={`font-semibold ${row.score >= 85 ? 'text-emerald-400' : row.score >= 60 ? 'text-amber-300' : 'text-red-400'}`}>
-                              {row.score}%
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase ${row.status === 'passed'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : row.status === 'warning'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                                : 'bg-red-500/10 text-red-400 border-red-500/20'
-                              }`}>
-                              {row.status === 'failed' ? <AlertTriangle size={11} /> : <CheckCircle2 size={11} />}
-                              {row.status === 'passed' ? 'Soz' : row.status === 'warning' ? 'Nazorat' : 'Nosoz'}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5 text-slate-300">{row.nextService}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </div>
