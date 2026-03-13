@@ -5,9 +5,10 @@ import { WorkflowsModule } from './workflows.module';
 import { IntegrationsModule } from './integrations.module';
 import { ReportingModule } from './reporting.module';
 import { EsmoModule } from './esmo.module';
+import { DashboardModule } from './dashboard.module';
 
 @Module({
-  imports: [DatabaseModule, WorkflowsModule, IntegrationsModule, ReportingModule, EsmoModule],
+  imports: [DatabaseModule, WorkflowsModule, IntegrationsModule, ReportingModule, EsmoModule, DashboardModule],
   controllers: [AppController],
   providers: [],
 })

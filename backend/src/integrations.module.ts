@@ -335,6 +335,7 @@ export class HikvisionController {
 
       const rowLane = this.extractLaneKey(row.device_id, row.device_name);
       const rowTurnstile = this.normalizeWhitespace(row.device_id || row.device_name).toUpperCase();
+      const rowEventType = this.resolveNormalizedEventType(row.event_type, row.device_id, row.device_name, row.raw_payload);
       const recentRows = recentByIdentity.get(identityKey) ?? [];
       let duplicate = false;
 
@@ -344,6 +345,12 @@ export class HikvisionController {
         const diff = Math.abs(rowSeconds - recentSeconds);
         const recentLane = this.extractLaneKey(recentRow.device_id, recentRow.device_name);
         const recentTurnstile = this.normalizeWhitespace(recentRow.device_id || recentRow.device_name).toUpperCase();
+        const recentEventType = this.resolveNormalizedEventType(
+          recentRow.event_type,
+          recentRow.device_id,
+          recentRow.device_name,
+          recentRow.raw_payload,
+        );
         const differentTurnstile =
           (!!rowTurnstile && !!recentTurnstile && rowTurnstile !== recentTurnstile) ||
           (!!rowLane && !!recentLane && rowLane !== recentLane);
@@ -353,12 +360,12 @@ export class HikvisionController {
           break;
         }
 
-        if (row.event_type === recentRow.event_type && diff <= this.dedupSeconds) {
+        if (rowEventType === recentEventType && diff <= this.dedupSeconds) {
           duplicate = true;
           break;
         }
 
-        if (row.event_type !== recentRow.event_type && diff <= this.pairDedupSeconds) {
+        if (rowEventType !== recentEventType && diff <= this.pairDedupSeconds) {
           duplicate = true;
           break;
         }
@@ -470,6 +477,21 @@ export class HikvisionController {
       const mappedName = this.normalizeWhitespace(mapped.deviceName).toUpperCase();
       if ((id && mappedId === id) || (name && mappedName === name)) {
         return mapped;
+      }
+    }
+
+    const laneKey = this.extractLaneKey(id, name);
+    const source = `${id} ${name}`;
+    const isExitHint = /\b(CHIQ|CHIQISH|EXIT|OUT|ВЫХОД)\b/i.test(source);
+    const isEntryHint = /\b(KIRISH|ENTRY|ENTRANCE|IN|ВХОД)\b/i.test(source);
+
+    if (laneKey && (isExitHint || isEntryHint)) {
+      const expectedType: HikvisionEventType = isExitHint ? 'exit' : 'entrance';
+      for (const mapped of Object.values(DEVICE_IP_MAP)) {
+        const mappedLane = this.extractLaneKey(mapped.deviceId, mapped.deviceName);
+        if (mappedLane === laneKey && mapped.eventType === expectedType) {
+          return mapped;
+        }
       }
     }
 
@@ -590,27 +612,68 @@ export class HikvisionController {
     return null;
   }
 
+  private detectEventTypeFromSourceText(value: string | null | undefined): HikvisionEventType | null {
+    const source = String(value || '').trim().toLowerCase();
+    if (!source) return null;
+
+    if (/\b(exit|leave|out|chiq|chiqish|vyhod|выход)\b/i.test(source)) return 'exit';
+    if (/\b(entrance|entry|in|kirish|vhod|вход)\b/i.test(source)) return 'entrance';
+    return null;
+  }
+
   private normalizeEventType(payload: any, forcedType?: string, mappedType?: HikvisionEventType): HikvisionEventType {
     if (mappedType) return mappedType;
 
+    const payloadTypeSource = [
+      payload?.eventType,
+      payload?.event_type,
+      payload?.accessType,
+      payload?.type,
+      payload?.eventDescription,
+      payload?.majorEventTypeName,
+      payload?.subEventTypeName,
+    ].filter(Boolean).join(' ');
+
+    const payloadDeviceSource = [
+      payload?.deviceName,
+      payload?.device_name,
+      payload?.terminalName,
+      payload?.doorName,
+      payload?.deviceId,
+      payload?.device_id,
+      payload?.terminalId,
+      payload?.doorNo,
+    ].filter(Boolean).join(' ');
+
+    const payloadDetected =
+      this.detectEventTypeFromSourceText(payloadTypeSource) ??
+      this.detectEventTypeFromSourceText(payloadDeviceSource);
+
+    if (payloadDetected) return payloadDetected;
+
     if (forcedType) {
-      const normalizedForced = String(forcedType).toLowerCase();
-      if (['exit', 'out', 'chiqish'].includes(normalizedForced)) return 'exit';
-      if (['entrance', 'in', 'kirish'].includes(normalizedForced)) return 'entrance';
+      const forcedDetected = this.detectEventTypeFromSourceText(forcedType);
+      if (forcedDetected) return forcedDetected;
     }
 
-    const source = String(
-      payload?.eventType ??
-      payload?.event_type ??
-      payload?.accessType ??
-      payload?.type ??
-      payload?.eventDescription ??
-      '',
-    ).toLowerCase();
+    return 'entrance';
+  }
 
-    if (source.includes('exit') || source.includes('leave') || source.includes('out') || source.includes('chiq')) {
-      return 'exit';
-    }
+  private resolveNormalizedEventType(
+    eventType: string | null | undefined,
+    deviceId: string | null | undefined,
+    deviceName: string | null | undefined,
+    rawPayload: any,
+  ): HikvisionEventType {
+    const explicit = this.detectEventTypeFromSourceText(eventType);
+    if (explicit) return explicit;
+
+    const deviceHint = this.detectEventTypeFromSourceText(`${this.normalizeWhitespace(deviceId)} ${this.normalizeWhitespace(deviceName)}`);
+    if (deviceHint) return deviceHint;
+
+    const ip = this.resolveDeviceIp(deviceId, deviceName, rawPayload);
+    const ipMapped = ip ? DEVICE_IP_MAP[ip]?.eventType : null;
+    if (ipMapped) return ipMapped;
 
     return 'entrance';
   }
@@ -950,6 +1013,16 @@ export class HikvisionController {
       normalizedPayload?.host,
     );
     const declaredKnownDevice = this.findKnownDeviceByIdOrName(deviceIdQuery, deviceNameQuery);
+    const payloadKnownDevice = this.findKnownDeviceByIdOrName(
+      normalizedPayload?.deviceId ??
+      normalizedPayload?.device_id ??
+      normalizedPayload?.terminalId ??
+      normalizedPayload?.doorNo,
+      normalizedPayload?.deviceName ??
+      normalizedPayload?.device_name ??
+      normalizedPayload?.terminalName ??
+      normalizedPayload?.doorName,
+    );
     const ipMappedKnownDevice = this.mapKnownDevice(payloadIp, requestIp);
     if (
       declaredKnownDevice &&
@@ -960,7 +1033,16 @@ export class HikvisionController {
         `Device source mismatch: declared=${declaredKnownDevice.deviceId} ipMapped=${ipMappedKnownDevice.deviceId} requestIp=${requestIp ?? 'none'} payloadIp=${payloadIp ?? 'none'}. Using declared device.`,
       );
     }
-    const knownDevice = declaredKnownDevice ?? ipMappedKnownDevice;
+    if (
+      payloadKnownDevice &&
+      ipMappedKnownDevice &&
+      payloadKnownDevice.deviceId !== ipMappedKnownDevice.deviceId
+    ) {
+      this.logger.warn(
+        `Device source mismatch: payload=${payloadKnownDevice.deviceId} ipMapped=${ipMappedKnownDevice.deviceId} requestIp=${requestIp ?? 'none'} payloadIp=${payloadIp ?? 'none'}. Using payload device.`,
+      );
+    }
+    const knownDevice = declaredKnownDevice ?? payloadKnownDevice ?? ipMappedKnownDevice;
 
     if (this.strictSourceIp && !knownDevice) {
       this.logger.warn(`Ignoring webhook from unknown source ip: request=${requestIp ?? 'none'} payload=${payloadIp ?? 'none'}`);
@@ -1365,14 +1447,20 @@ export class HikvisionController {
         (this.isLikelyValidPersonName(canonicalName) ? this.normalizePersonName(canonicalName) : '') ||
         (this.isLikelyValidPersonName(nameFromRow) ? nameFromRow : '') ||
         '';
+      const resolvedEventType = this.resolveNormalizedEventType(
+        row.event_type,
+        row.device_id,
+        row.device_name,
+        row.raw_payload,
+      );
 
       return {
         id: row.id,
         name: resolvedName || "Noma'lum xodim",
         time: row.access_time,
-        type: row.event_type || 'entrance',
+        type: resolvedEventType,
         temp: row.temperature || 'N/A',
-        status: row.event_type === 'exit' ? 'exited' : 'entered',
+        status: resolvedEventType === 'exit' ? 'exited' : 'entered',
         verificationStatus: this.mapStatus(row.status),
         device: row.device_name || row.device_id || 'Unknown Device',
         deviceIp: this.resolveDeviceIp(row.device_id, row.device_name, row.raw_payload),
@@ -1487,8 +1575,12 @@ export class HikvisionController {
     });
 
     const dedupedTodayRows = this.dedupeRows(strictlyTodayRows);
-    const total = dedupedTodayRows.filter((row) => row.event_type === 'entrance').length;
-    const exits = dedupedTodayRows.filter((row) => row.event_type === 'exit').length;
+    const total = dedupedTodayRows.filter((row) => (
+      this.resolveNormalizedEventType(row.event_type, row.device_id, row.device_name, row.raw_payload) === 'entrance'
+    )).length;
+    const exits = dedupedTodayRows.filter((row) => (
+      this.resolveNormalizedEventType(row.event_type, row.device_id, row.device_name, row.raw_payload) === 'exit'
+    )).length;
     const flagged = dedupedTodayRows.filter((row) => row.status === CheckStatus.FAILED).length;
 
     return {

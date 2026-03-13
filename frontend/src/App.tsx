@@ -59,71 +59,85 @@ const performanceData = [
   { time: '20:00', fuel: 3490, efficiency: 4300 },
 ];
 
-type CargoFlowRow = {
-  plate: string;
-  route: string;
-  weight: number;
-  volume: number;
-  efficiency: number;
-  trend: 'up' | 'down';
-};
-
-type TechnicalCheckRow = {
-  plate: string;
-  checkedAt: string;
-  score: number;
-  status: 'passed' | 'warning' | 'failed';
-  nextService: string;
-};
-
-type FleetStateRow = {
-  label: string;
-  count: number;
-  percent: number;
-  tone: 'emerald' | 'blue' | 'amber' | 'red';
-};
-
-type ServiceQueueRow = {
+type DashboardServiceQueueRow = {
   plate: string;
   issue: string;
   eta: string;
   priority: 'high' | 'medium';
 };
 
-const cargoFlowRows: CargoFlowRow[] = [
-  { plate: '10 O 001 OO', route: 'Toshkent - Angren', weight: 52, volume: 210, efficiency: 96, trend: 'up' },
-  { plate: '01 A 777 AA', route: 'Toshkent - Farg\'ona', weight: 45, volume: 180, efficiency: 94, trend: 'up' },
-  { plate: '40 L 444 LL', route: 'Toshkent - Samarqand', weight: 38, volume: 165, efficiency: 91, trend: 'up' },
-  { plate: '01 Z 123 BB', route: 'Toshkent - Buxoro', weight: 34, volume: 152, efficiency: 88, trend: 'down' },
-  { plate: '01 F 555 FF', route: 'Toshkent - Guliston', weight: 19, volume: 84, efficiency: 83, trend: 'up' },
-];
+type DashboardOverview = {
+  generatedAt: string;
+  kpis: {
+    totalVehicles: number;
+    activeTrips: number;
+    totalMovementToday: number;
+    utilizationPercent: number;
+  };
+  pulse: {
+    fleetReadinessPercent: number;
+    flowToday: number;
+    checksPassed: number;
+    checksTotal: number;
+    serviceQueue: DashboardServiceQueueRow[];
+  };
+  fleetMatrix: Array<{
+    label: string;
+    count: number;
+    percent: number;
+    tone: 'emerald' | 'blue' | 'amber' | 'red';
+  }>;
+  insight: {
+    efficiencyPercent: number;
+    activeVehicles: number;
+    criticalRisk: number;
+    nextRefreshSeconds: number;
+  };
+  telemetrySeries: Array<{
+    time: string;
+    fuel: number;
+    efficiency: number;
+  }>;
+};
 
-const technicalCheckRows: TechnicalCheckRow[] = [
-  { plate: '01 A 777 AA', checkedAt: '09:12', score: 95, status: 'passed', nextService: '14.03 08:00' },
-  { plate: '01 Z 123 BB', checkedAt: '08:54', score: 86, status: 'passed', nextService: '13.03 07:30' },
-  { plate: '10 O 001 OO', checkedAt: '08:33', score: 63, status: 'warning', nextService: 'Bugun 18:30' },
-  { plate: '01 K 888 KK', checkedAt: '08:20', score: 58, status: 'warning', nextService: 'Bugun 16:10' },
-  { plate: '40 L 444 LL', checkedAt: '07:58', score: 34, status: 'failed', nextService: 'Zudlik bilan' },
-];
-
-const fleetStateRows: FleetStateRow[] = [
-  { label: 'Yo\'lda', count: 108, percent: 76, tone: 'emerald' },
-  { label: 'Navbatda', count: 21, percent: 15, tone: 'blue' },
-  { label: 'Ko\'rikda', count: 9, percent: 6, tone: 'amber' },
-  { label: 'Ta\'mirda', count: 4, percent: 3, tone: 'red' },
-];
-
-const serviceQueueRows: ServiceQueueRow[] = [
-  { plate: '10 O 001 OO', issue: 'Dvigatel moy sizishi', eta: '2 soat', priority: 'high' },
-  { plate: '40 L 444 LL', issue: 'Old tormoz diski', eta: '4 soat', priority: 'high' },
-  { plate: '01 K 888 KK', issue: 'Shina bosimi kalibrovka', eta: 'Bugun', priority: 'medium' },
-];
+const EMPTY_DASHBOARD_OVERVIEW: DashboardOverview = {
+  generatedAt: '',
+  kpis: {
+    totalVehicles: 0,
+    activeTrips: 0,
+    totalMovementToday: 0,
+    utilizationPercent: 0,
+  },
+  pulse: {
+    fleetReadinessPercent: 0,
+    flowToday: 0,
+    checksPassed: 0,
+    checksTotal: 0,
+    serviceQueue: [],
+  },
+  fleetMatrix: [
+    { label: "Yo'lda", count: 0, percent: 0, tone: 'emerald' },
+    { label: 'Navbatda', count: 0, percent: 0, tone: 'blue' },
+    { label: "Ko'rikda", count: 0, percent: 0, tone: 'amber' },
+    { label: "Ta'mirda", count: 0, percent: 0, tone: 'red' },
+  ],
+  insight: {
+    efficiencyPercent: 0,
+    activeVehicles: 0,
+    criticalRisk: 0,
+    nextRefreshSeconds: 30,
+  },
+  telemetrySeries: performanceData.map((point) => ({ ...point })),
+};
 
 function App() {
   const { t, lang, setLang } = useI18n();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [liveStats, setLiveStats] = useState({ trips: 87, fuel: 94 });
+  const [dashboardOverview, setDashboardOverview] = useState<DashboardOverview>(EMPTY_DASHBOARD_OVERVIEW);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const userRole: 'admin' | 'dispatcher' | 'manager' = 'admin';
+  const fallbackHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/$/, '') || `http://${fallbackHost}:3000`;
 
   // Role-based permissions mapping
   const rolePermissions: Record<string, string[]> = {
@@ -132,15 +146,63 @@ function App() {
     manager: ['dashboard', 'fleet', 'fuel', 'cargo', 'reports'],
   };
 
+  const loadDashboardOverview = async (showLoading = false) => {
+    if (showLoading) setDashboardLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/dashboard/overview`);
+      if (!response.ok) throw new Error('Dashboard API request failed');
+      const payload = await response.json();
+
+      setDashboardOverview({
+        generatedAt: String(payload?.generatedAt || ''),
+        kpis: {
+          totalVehicles: Number(payload?.kpis?.totalVehicles ?? 0),
+          activeTrips: Number(payload?.kpis?.activeTrips ?? 0),
+          totalMovementToday: Number(payload?.kpis?.totalMovementToday ?? 0),
+          utilizationPercent: Number(payload?.kpis?.utilizationPercent ?? 0),
+        },
+        pulse: {
+          fleetReadinessPercent: Number(payload?.pulse?.fleetReadinessPercent ?? 0),
+          flowToday: Number(payload?.pulse?.flowToday ?? 0),
+          checksPassed: Number(payload?.pulse?.checksPassed ?? 0),
+          checksTotal: Number(payload?.pulse?.checksTotal ?? 0),
+          serviceQueue: Array.isArray(payload?.pulse?.serviceQueue) ? payload.pulse.serviceQueue : [],
+        },
+        fleetMatrix: Array.isArray(payload?.fleetMatrix) && payload.fleetMatrix.length > 0
+          ? payload.fleetMatrix.map((row: any) => ({
+            label: String(row?.label || ''),
+            count: Number(row?.count ?? 0),
+            percent: Number(row?.percent ?? 0),
+            tone: (row?.tone === 'emerald' || row?.tone === 'blue' || row?.tone === 'amber' || row?.tone === 'red') ? row.tone : 'blue',
+          }))
+          : EMPTY_DASHBOARD_OVERVIEW.fleetMatrix,
+        insight: {
+          efficiencyPercent: Number(payload?.insight?.efficiencyPercent ?? 0),
+          activeVehicles: Number(payload?.insight?.activeVehicles ?? 0),
+          criticalRisk: Number(payload?.insight?.criticalRisk ?? 0),
+          nextRefreshSeconds: Number(payload?.insight?.nextRefreshSeconds ?? 30),
+        },
+        telemetrySeries: Array.isArray(payload?.telemetrySeries) && payload.telemetrySeries.length > 0
+          ? payload.telemetrySeries.map((row: any) => ({
+            time: String(row?.time || ''),
+            fuel: Number(row?.fuel ?? 0),
+            efficiency: Number(row?.efficiency ?? 0),
+          }))
+          : EMPTY_DASHBOARD_OVERVIEW.telemetrySeries,
+      });
+    } catch {
+      // Keep last successful snapshot on network errors.
+    } finally {
+      if (showLoading) setDashboardLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveStats(prev => ({
-        trips: Math.max(80, Math.min(100, prev.trips + (Math.random() > 0.5 ? 1 : -1))),
-        fuel: Math.max(90, Math.min(98, prev.fuel + (Math.random() > 0.5 ? 0.2 : -0.2)))
-      }));
-    }, 5000);
+    if (activeTab !== 'dashboard') return;
+    loadDashboardOverview(true);
+    const interval = setInterval(() => loadDashboardOverview(false), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
   const toggleLang = () => {
     setLang(lang === 'uz' ? 'ru' : lang === 'ru' ? 'en' : 'uz');
@@ -163,17 +225,11 @@ function App() {
   ].filter(item => rolePermissions[userRole].includes(item.id));
 
   const statCards = [
-    { id: 'fleet', title: t('totalVehicles'), value: '142', color: 'from-blue-500 to-cyan-400', icon: <Car /> },
-    { id: 'waybills', title: t('activeTrips'), value: liveStats.trips.toString(), color: 'from-emerald-500 to-teal-400', icon: <Map /> },
-    { id: 'reports', title: t('totalWeight'), value: '1,240 t', color: 'from-orange-500 to-amber-400', icon: <Weight /> },
-    { id: 'fuel', title: t('utilization'), value: `${liveStats.fuel.toFixed(1)}%`, color: 'from-purple-500 to-pink-400', icon: <Activity /> },
+    { id: 'fleet', title: t('totalVehicles'), value: dashboardOverview.kpis.totalVehicles.toString(), color: 'from-blue-500 to-cyan-400', icon: <Car /> },
+    { id: 'waybills', title: t('activeTrips'), value: dashboardOverview.kpis.activeTrips.toString(), color: 'from-emerald-500 to-teal-400', icon: <Map /> },
+    { id: 'reports', title: "Bugungi oqim", value: dashboardOverview.kpis.totalMovementToday.toString(), color: 'from-orange-500 to-amber-400', icon: <Weight /> },
+    { id: 'fuel', title: t('utilization'), value: `${Number(dashboardOverview.kpis.utilizationPercent || 0).toFixed(1)}%`, color: 'from-purple-500 to-pink-400', icon: <Activity /> },
   ];
-
-  const cargoWeightTotal = cargoFlowRows.reduce((acc, row) => acc + row.weight, 0);
-  const cargoEfficiencyAvg = Math.round(cargoFlowRows.reduce((acc, row) => acc + row.efficiency, 0) / cargoFlowRows.length);
-  const passedChecks = technicalCheckRows.filter((row) => row.status === 'passed').length;
-  const criticalChecks = technicalCheckRows.filter((row) => row.status === 'failed').length;
-  const fleetReadiness = Math.round((fleetStateRows[0].count / 142) * 100);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -222,7 +278,7 @@ function App() {
                 </div>
                 <div className="h-[360px] w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={performanceData}>
+                    <AreaChart data={dashboardOverview.telemetrySeries}>
                       <defs>
                         <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.32} />
@@ -252,7 +308,7 @@ function App() {
                     <p className="text-xs text-slate-500 mt-1">Kritik KPI holati (real vaqt)</p>
                   </div>
                   <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-cyan-400/30 text-cyan-300 bg-cyan-500/10">
-                    LIVE
+                    {dashboardLoading ? 'Yuklanmoqda...' : 'LIVE'}
                   </span>
                 </div>
 
@@ -262,28 +318,28 @@ function App() {
                       <Gauge size={15} className="text-emerald-400" />
                       <span>Fleet readiness</span>
                     </div>
-                    <span className="text-emerald-300 font-bold">{fleetReadiness}%</span>
+                    <span className="text-emerald-300 font-bold">{dashboardOverview.pulse.fleetReadinessPercent}%</span>
                   </div>
                   <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-200">
                       <Truck size={15} className="text-blue-300" />
                       <span>Yuk oqimi (24h)</span>
                     </div>
-                    <span className="text-blue-300 font-bold">{cargoWeightTotal} t</span>
+                    <span className="text-blue-300 font-bold">{dashboardOverview.pulse.flowToday}</span>
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-slate-200">
                       <CheckCircle2 size={15} className="text-amber-300" />
                       <span>Ko'rikdan o'tgan</span>
                     </div>
-                    <span className="text-amber-300 font-bold">{passedChecks}/{technicalCheckRows.length}</span>
+                    <span className="text-amber-300 font-bold">{dashboardOverview.pulse.checksPassed}/{dashboardOverview.pulse.checksTotal}</span>
                   </div>
                 </div>
 
                 <div className="mt-6 border-t border-slate-700/50 pt-4">
                   <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Kritik servis navbati</h4>
                   <div className="space-y-2.5">
-                    {serviceQueueRows.map((row) => (
+                    {dashboardOverview.pulse.serviceQueue.map((row) => (
                       <div key={row.plate} className="rounded-lg bg-slate-900/60 border border-slate-700/50 px-3 py-2.5 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-200 truncate">{row.plate}</p>
@@ -297,6 +353,11 @@ function App() {
                         </div>
                       </div>
                     ))}
+                    {dashboardOverview.pulse.serviceQueue.length === 0 && (
+                      <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 px-3 py-3 text-xs text-slate-500">
+                        Kritik servis navbatida yozuv topilmadi
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -309,12 +370,12 @@ function App() {
                   Transport holati matritsasi
                 </h3>
                 <span className="text-[10px] uppercase tracking-wide font-bold px-2.5 py-1 rounded-full border border-blue-500/20 text-blue-300 bg-blue-500/10">
-                  Fleet readiness {fleetReadiness}%
+                  Fleet readiness {dashboardOverview.pulse.fleetReadinessPercent}%
                 </span>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2 space-y-4">
-                  {fleetStateRows.map((state) => (
+                  {dashboardOverview.fleetMatrix.map((state) => (
                     <div key={state.label} className="rounded-xl border border-slate-700/50 bg-slate-900/30 px-4 py-3">
                       <div className="flex items-center justify-between text-sm mb-2">
                         <span className="text-slate-300">{state.label}</span>
@@ -341,17 +402,17 @@ function App() {
                 <div className="space-y-3">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
                     <p className="text-xs text-emerald-300 uppercase tracking-wide font-bold mb-1">Samaradorlik</p>
-                    <p className="text-2xl font-bold text-emerald-200">{cargoEfficiencyAvg}%</p>
+                    <p className="text-2xl font-bold text-emerald-200">{dashboardOverview.insight.efficiencyPercent}%</p>
                     <p className="text-xs text-slate-400 mt-1">Yuk tashish bo'yicha o'rtacha KPI</p>
                   </div>
                   <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
                     <p className="text-xs text-blue-300 uppercase tracking-wide font-bold mb-1">Faol transport</p>
-                    <p className="text-2xl font-bold text-blue-200">{fleetStateRows[0].count}</p>
+                    <p className="text-2xl font-bold text-blue-200">{dashboardOverview.insight.activeVehicles}</p>
                     <p className="text-xs text-slate-400 mt-1">Hozir marshrutda ishlayapti</p>
                   </div>
                   <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
                     <p className="text-xs text-red-300 uppercase tracking-wide font-bold mb-1">Kritik risk</p>
-                    <p className="text-2xl font-bold text-red-200">{criticalChecks}</p>
+                    <p className="text-2xl font-bold text-red-200">{dashboardOverview.insight.criticalRisk}</p>
                     <p className="text-xs text-slate-400 mt-1">Zudlik bilan texnik aralashuv kerak</p>
                   </div>
                   <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4 flex items-center justify-between">
@@ -359,7 +420,9 @@ function App() {
                       <Clock3 size={14} className="text-cyan-300" />
                       Keyingi yangilanish
                     </div>
-                    <span className="text-cyan-300 text-sm font-semibold">00:30</span>
+                    <span className="text-cyan-300 text-sm font-semibold">
+                      00:{String(Math.max(0, Math.min(59, dashboardOverview.insight.nextRefreshSeconds || 30))).padStart(2, '0')}
+                    </span>
                   </div>
                 </div>
               </div>
