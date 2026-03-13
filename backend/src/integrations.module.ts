@@ -10,18 +10,19 @@ import { Response } from 'express';
 
 type HikvisionEventType = 'entrance' | 'exit';
 type DeviceMapEntry = {
+  key: string;
   deviceId: string;
   deviceName: string;
   eventType: HikvisionEventType;
 };
 
 const DEVICE_IP_MAP: Record<string, DeviceMapEntry> = {
-  '192.168.0.223': { deviceId: 'IN-1', deviceName: 'Kirish-1', eventType: 'entrance' },
-  '192.168.0.221': { deviceId: 'IN-2', deviceName: 'Kirish-2', eventType: 'entrance' },
-  '192.168.0.219': { deviceId: 'IN-3', deviceName: 'Kirish-3', eventType: 'entrance' },
-  '192.168.0.224': { deviceId: 'OUT-1', deviceName: 'Chiqish-1', eventType: 'exit' },
-  '192.168.0.222': { deviceId: 'OUT-2', deviceName: 'Chiqish-2', eventType: 'exit' },
-  '192.168.0.220': { deviceId: 'OUT-3', deviceName: 'Chiqish-3', eventType: 'exit' },
+  '192.168.0.223': { key: 'kirish-1', deviceId: 'IN-1', deviceName: 'Kirish-1', eventType: 'entrance' },
+  '192.168.0.221': { key: 'kirish-2', deviceId: 'IN-2', deviceName: 'Kirish-2', eventType: 'entrance' },
+  '192.168.0.219': { key: 'kirish-3', deviceId: 'IN-3', deviceName: 'Kirish-3', eventType: 'entrance' },
+  '192.168.0.224': { key: 'chiqish-1', deviceId: 'OUT-1', deviceName: 'Chiqish-1', eventType: 'exit' },
+  '192.168.0.222': { key: 'chiqish-2', deviceId: 'OUT-2', deviceName: 'Chiqish-2', eventType: 'exit' },
+  '192.168.0.220': { key: 'chiqish-3', deviceId: 'OUT-3', deviceName: 'Chiqish-3', eventType: 'exit' },
 };
 
 @Entity('access_logs')
@@ -98,6 +99,7 @@ export class HikvisionController {
   private readonly strictSourceIp = String(process.env.HIKVISION_STRICT_SOURCE_IP ?? 'true').toLowerCase() === 'true';
   private readonly maxEventAgeMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_EVENT_AGE_MINUTES ?? '180', 10) || 180, 1);
   private readonly maxFutureSkewMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_FUTURE_SKEW_MINUTES ?? '5', 10) || 5, 1);
+  private readonly turnstileOfflineMinutes = Math.max(Number.parseInt(process.env.HIKVISION_DEVICE_OFFLINE_MINUTES ?? '480', 10) || 480, 5);
 
   constructor(
     @InjectRepository(AccessLog)
@@ -523,6 +525,38 @@ export class HikvisionController {
       const mappedName = this.normalizeWhitespace(mapped.deviceName).toUpperCase();
       if ((normalizedId && mappedId === normalizedId) || (normalizedName && mappedName === normalizedName)) {
         return ip;
+      }
+    }
+
+    return null;
+  }
+
+  private parseTimestampMs(value: Date | string | null | undefined): number | null {
+    if (!value) return null;
+    const ms = new Date(value).getTime();
+    if (!Number.isFinite(ms)) return null;
+    return ms;
+  }
+
+  private resolveTurnstileKey(
+    deviceId: string | null | undefined,
+    deviceName: string | null | undefined,
+    ip: string | null | undefined,
+  ): string | null {
+    const normalizedIp = this.normalizeIp(ip);
+    if (normalizedIp && DEVICE_IP_MAP[normalizedIp]) {
+      return DEVICE_IP_MAP[normalizedIp].key;
+    }
+
+    const normalizedDeviceId = this.normalizeWhitespace(deviceId).toUpperCase();
+    const normalizedDeviceName = this.normalizeWhitespace(deviceName).toUpperCase();
+    if (!normalizedDeviceId && !normalizedDeviceName) return null;
+
+    for (const mapped of Object.values(DEVICE_IP_MAP)) {
+      const mappedId = this.normalizeWhitespace(mapped.deviceId).toUpperCase();
+      const mappedName = this.normalizeWhitespace(mapped.deviceName).toUpperCase();
+      if ((normalizedDeviceId && mappedId === normalizedDeviceId) || (normalizedDeviceName && mappedName === normalizedDeviceName)) {
+        return mapped.key;
       }
     }
 
@@ -1583,11 +1617,74 @@ export class HikvisionController {
     )).length;
     const flagged = dedupedTodayRows.filter((row) => row.status === CheckStatus.FAILED).length;
 
+    const knownTurnstiles = Object.entries(DEVICE_IP_MAP).map(([ip, mapped]) => ({
+      ip,
+      ...mapped,
+    }));
+    const knownDeviceIds = Array.from(new Set(knownTurnstiles.map((device) => device.deviceId)));
+    const knownDeviceNames = Array.from(new Set(knownTurnstiles.map((device) => device.deviceName)));
+
+    const lastSeenByDeviceId = new Map<string, number>();
+    if (knownDeviceIds.length > 0) {
+      const lastSeenRowsById = await this.accessRepo
+        .createQueryBuilder('log')
+        .select('log.device_id', 'device_id')
+        .addSelect('MAX(log.access_time)', 'last_seen')
+        .where('log.device_id IN (:...ids)', { ids: knownDeviceIds })
+        .groupBy('log.device_id')
+        .getRawMany();
+
+      for (const row of lastSeenRowsById) {
+        const normalizedDeviceId = this.normalizeWhitespace(row?.device_id).toUpperCase();
+        const seenMs = this.parseTimestampMs(row?.last_seen);
+        if (!normalizedDeviceId || seenMs == null) continue;
+        lastSeenByDeviceId.set(normalizedDeviceId, seenMs);
+      }
+    }
+
+    const lastSeenByDeviceName = new Map<string, number>();
+    if (knownDeviceNames.length > 0) {
+      const lastSeenRowsByName = await this.accessRepo
+        .createQueryBuilder('log')
+        .select('log.device_name', 'device_name')
+        .addSelect('MAX(log.access_time)', 'last_seen')
+        .where('log.device_name IN (:...names)', { names: knownDeviceNames })
+        .groupBy('log.device_name')
+        .getRawMany();
+
+      for (const row of lastSeenRowsByName) {
+        const normalizedDeviceName = this.normalizeWhitespace(row?.device_name).toUpperCase();
+        const seenMs = this.parseTimestampMs(row?.last_seen);
+        if (!normalizedDeviceName || seenMs == null) continue;
+        lastSeenByDeviceName.set(normalizedDeviceName, seenMs);
+      }
+    }
+
+    const offlineAfterMs = this.turnstileOfflineMinutes * 60 * 1000;
+    const nowMs = Date.now();
+    const turnstiles = knownTurnstiles.map((device) => {
+      const byDeviceId = lastSeenByDeviceId.get(this.normalizeWhitespace(device.deviceId).toUpperCase());
+      const byDeviceName = lastSeenByDeviceName.get(this.normalizeWhitespace(device.deviceName).toUpperCase());
+      const lastSeenMs = byDeviceId ?? byDeviceName ?? null;
+
+      return {
+        key: this.resolveTurnstileKey(device.deviceId, device.deviceName, device.ip) || device.key,
+        deviceId: device.deviceId,
+        deviceName: device.deviceName,
+        ip: device.ip,
+        eventType: device.eventType,
+        lastSeen: lastSeenMs == null ? null : new Date(lastSeenMs).toISOString(),
+        status: lastSeenMs != null && nowMs - lastSeenMs <= offlineAfterMs ? 'online' : 'offline',
+      };
+    });
+    const systemStatus = turnstiles.some((device) => device.status === 'online') ? 'online' : 'offline';
+
     return {
       totalToday: total,
       flaggedToday: flagged,
       exitsToday: exits,
-      systemStatus: 'online',
+      systemStatus,
+      turnstiles,
     };
   }
 }

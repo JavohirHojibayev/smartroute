@@ -51,3 +51,32 @@
 .date-input-system::-webkit-datetime-edit {
   color: #e2e8f0;
 }
+
+.dark-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #070b14;
+}
+
+.dark-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #070b14;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 2px solid #070b14;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark-scrollbar::-webkit-scrollbar-corner {
+  background: #070b14;
+}

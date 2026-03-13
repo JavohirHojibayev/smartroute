@@ -927,6 +927,56 @@ export class EsmoController {
     return raw.toLowerCase();
   }
 
+  private normalizeSummaryPersonName(value: unknown): string {
+    const raw = this.normalizeWhitespace(value).toLowerCase();
+    if (!raw) return '';
+    return raw
+      .replace(/^проверка\s+сотрудника\s+/i, '')
+      .replace(/^proverka\s+sotrudnika\s+/i, '')
+      .replace(/^employee\s+check\s+/i, '')
+      .replace(/^xodim\s+tekshiruvi\s+/i, '')
+      .trim();
+  }
+
+  private resolveSummaryPersonKeys(row: MedicalCheck): string[] {
+    const payload = (row.source_payload as any) || {};
+    const keys: string[] = [];
+    const pushKey = (key: string) => {
+      if (!key || keys.includes(key)) return;
+      keys.push(key);
+    };
+
+    const passCandidates = [
+      payload?.employeePassId,
+      payload?.employeeNo,
+      payload?.employeeNoString,
+      (row.driver as any)?.license_number,
+    ];
+    for (const candidate of passCandidates) {
+      const passId = this.normalizeDriverKey(candidate);
+      if (passId) pushKey(`id:${passId}`);
+    }
+
+    const nameCandidates = [
+      payload?.employeeName,
+      (row.driver as any)?.full_name,
+    ];
+    for (const candidate of nameCandidates) {
+      const normalizedName = this.normalizeSummaryPersonName(candidate);
+      if (normalizedName) pushKey(`name:${normalizedName}`);
+    }
+
+    const driverId = Number((row.driver as any)?.id);
+    if (Number.isFinite(driverId) && driverId > 0) {
+      pushKey(`driver:${driverId}`);
+    }
+
+    if (keys.length === 0) {
+      pushKey(`row:${row.id}`);
+    }
+    return keys;
+  }
+
   private normalizeResult(value: string | null | undefined): string {
     const normalized = this.normalizeWhitespace(value).toLowerCase();
     if (!normalized) return 'pending';
@@ -1501,23 +1551,53 @@ export class EsmoController {
 
     const rows = await this.medicalRepo
       .createQueryBuilder('med')
+      .leftJoinAndSelect('med.driver', 'driver')
       .where('med.terminal_name IN (:...names)', { names: SMARTROUTE_ESMO_TERMINALS.map((t) => t.name) })
       .andWhere('COALESCE(med.exam_time, med.check_time) >= :start', { start: effectiveStart.toISOString() })
       .andWhere('COALESCE(med.exam_time, med.check_time) < :end', { end: effectiveEnd.toISOString() })
       .orderBy('COALESCE(med.exam_time, med.check_time)', 'DESC')
+      .addOrderBy('med.esmo_id', 'DESC')
       .addOrderBy('med.id', 'DESC')
       .getMany();
 
     let passedToday = 0;
     let reviewToday = 0;
     let failedToday = 0;
+    const canonicalByAlias = new Map<string, string>();
+    const bestResultByCanonical = new Map<string, string>();
 
-    // Summary must reflect today's actual ESMO journal entries in SmartRoute for the selected day.
+    // Summary rule: count each employee once by their best outcome in selected range.
+    // Priority: passed > review > failed/annulled.
+    // Journal still keeps all events as-is.
     for (const row of rows) {
+      const personKeys = this.resolveSummaryPersonKeys(row);
+      let canonicalKey: string | null = null;
+
+      for (const key of personKeys) {
+        const existingCanonical = canonicalByAlias.get(key);
+        if (existingCanonical) {
+          canonicalKey = existingCanonical;
+          break;
+        }
+      }
+
+      if (!canonicalKey) canonicalKey = personKeys[0];
+
+      for (const key of personKeys) {
+        canonicalByAlias.set(key, canonicalKey);
+      }
+
       const result = this.normalizeResult(row.esmo_result || row.status);
-      if (result === 'passed') {
+      const previousBest = bestResultByCanonical.get(canonicalKey);
+      if (!previousBest || this.resultRank(result) > this.resultRank(previousBest)) {
+        bestResultByCanonical.set(canonicalKey, result);
+      }
+    }
+
+    for (const bestResult of bestResultByCanonical.values()) {
+      if (bestResult === 'passed') {
         passedToday += 1;
-      } else if (result === 'review') {
+      } else if (bestResult === 'review') {
         reviewToday += 1;
       } else {
         failedToday += 1;

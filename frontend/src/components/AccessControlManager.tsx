@@ -22,6 +22,16 @@ type AccessSummary = {
     flaggedToday: number;
     exitsToday: number;
     systemStatus: 'online' | 'offline' | string;
+    turnstiles?: AccessSummaryTurnstile[];
+};
+
+type AccessSummaryTurnstile = {
+    key?: string;
+    deviceId?: string;
+    deviceName?: string;
+    ip?: string;
+    lastSeen?: string | null;
+    status?: 'online' | 'offline' | string;
 };
 
 type LogsApiResponse = AccessLogRow[] | {
@@ -50,6 +60,14 @@ const TURNSTILE_KEY_BY_IP: Record<string, TurnstileKey> = {
     '192.168.0.222': 'chiqish-2',
     '192.168.0.220': 'chiqish-3',
 };
+const TURNSTILE_KEY_BY_DEVICE_ID: Record<string, TurnstileKey> = {
+    'IN-1': 'kirish-1',
+    'IN-2': 'kirish-2',
+    'IN-3': 'kirish-3',
+    'OUT-1': 'chiqish-1',
+    'OUT-2': 'chiqish-2',
+    'OUT-3': 'chiqish-3',
+};
 
 const fallbackHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/$/, '') || `http://${fallbackHost}:3000`;
@@ -69,7 +87,13 @@ const toDisplayName = (value: string | null | undefined, unknownEmployeeLabel: s
 export const AccessControlManager = () => {
     const { t } = useI18n();
     const [logs, setLogs] = useState<AccessLogRow[]>([]);
-    const [summary, setSummary] = useState<AccessSummary>({ totalToday: 0, flaggedToday: 0, exitsToday: 0, systemStatus: 'online' });
+    const [summary, setSummary] = useState<AccessSummary>({
+        totalToday: 0,
+        flaggedToday: 0,
+        exitsToday: 0,
+        systemStatus: 'online',
+        turnstiles: [],
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isLive, setIsLive] = useState(true);
@@ -107,6 +131,7 @@ export const AccessControlManager = () => {
                 flaggedToday: Number(summaryData?.flaggedToday ?? 0),
                 exitsToday: Number(summaryData?.exitsToday ?? 0),
                 systemStatus: String(summaryData?.systemStatus ?? 'offline'),
+                turnstiles: Array.isArray(summaryData?.turnstiles) ? summaryData.turnstiles : [],
             });
 
             if (Array.isArray(logsData)) {
@@ -220,6 +245,32 @@ export const AccessControlManager = () => {
         return key;
     };
 
+    const resolveTurnstileKeyFromSummary = (row: AccessSummaryTurnstile): TurnstileKey | null => {
+        const fromKey = String(row?.key ?? '').trim().toLowerCase();
+        if (fromKey === 'kirish-1' || fromKey === 'kirish-2' || fromKey === 'kirish-3' || fromKey === 'chiqish-1' || fromKey === 'chiqish-2' || fromKey === 'chiqish-3') {
+            return fromKey as TurnstileKey;
+        }
+
+        const normalizedIp = String(row?.ip ?? '').trim();
+        if (normalizedIp && TURNSTILE_KEY_BY_IP[normalizedIp]) {
+            return TURNSTILE_KEY_BY_IP[normalizedIp];
+        }
+
+        const normalizedDeviceId = String(row?.deviceId ?? '').trim().toUpperCase();
+        if (normalizedDeviceId && TURNSTILE_KEY_BY_DEVICE_ID[normalizedDeviceId]) {
+            return TURNSTILE_KEY_BY_DEVICE_ID[normalizedDeviceId];
+        }
+
+        const normalizedDeviceName = String(row?.deviceName ?? '')
+            .toLowerCase()
+            .replace(/\s+/g, '')
+            .replace(/_/g, '-');
+
+        const match = normalizedDeviceName.match(/(kirish|chiqish)-?([123])/);
+        if (!match) return null;
+        return `${match[1]}-${match[2]}` as TurnstileKey;
+    };
+
     const turnstileStatuses = useMemo(() => {
         const allTurnstiles: TurnstileKey[] = [...TOP_ROW_TURNSTILES, ...BOTTOM_ROW_TURNSTILES];
         const statusMap = allTurnstiles.reduce<Record<TurnstileKey, 'online' | 'offline'>>((acc, key) => {
@@ -228,6 +279,16 @@ export const AccessControlManager = () => {
         }, {} as Record<TurnstileKey, 'online' | 'offline'>);
 
         if (!isLive) return statusMap;
+
+        const summaryTurnstiles = Array.isArray(summary.turnstiles) ? summary.turnstiles : [];
+        if (summaryTurnstiles.length > 0) {
+            for (const turnstileRow of summaryTurnstiles) {
+                const key = resolveTurnstileKeyFromSummary(turnstileRow);
+                if (!key) continue;
+                statusMap[key] = String(turnstileRow?.status || '').toLowerCase() === 'online' ? 'online' : 'offline';
+            }
+            return statusMap;
+        }
 
         const latestSeenMs: Partial<Record<TurnstileKey, number>> = {};
         for (const row of logs) {
@@ -258,7 +319,7 @@ export const AccessControlManager = () => {
         }
 
         return statusMap;
-    }, [isLive, logs, summary.systemStatus]);
+    }, [isLive, logs, summary.systemStatus, summary.turnstiles]);
 
     const mapLogsToExportRows = (inputLogs: AccessLogRow[]) => {
         return inputLogs.map((log) => {

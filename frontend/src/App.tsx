@@ -12,6 +12,7 @@ import {
   Navigation,
   ScanFace,
   Stethoscope,
+  CalendarDays,
   ClipboardList,
   Smartphone,
   Weight,
@@ -44,6 +45,7 @@ import { ReportsManager } from './components/ReportsManager';
 import { LiveTracker } from './components/LiveTracker';
 import { AccessControlManager } from './components/AccessControlManager';
 import { MedicalManager } from './components/MedicalManager';
+import { ShiftScheduleManager } from './components/ShiftScheduleManager';
 import { MechanicManager } from './components/MechanicManager';
 import { MobileAppSimulation } from './components/MobileAppSimulation';
 import { CargoManager } from './components/CargoManager';
@@ -141,8 +143,8 @@ function App() {
 
   // Role-based permissions mapping
   const rolePermissions: Record<string, string[]> = {
-    admin: ['dashboard', 'fleet', 'tracking', 'drivers', 'access', 'medical', 'mechanic', 'waybills', 'fuel', 'cargo', 'settings', 'reports', 'mobile'],
-    dispatcher: ['dashboard', 'fleet', 'tracking', 'drivers', 'access', 'waybills', 'cargo', 'mobile'],
+    admin: ['dashboard', 'fleet', 'tracking', 'drivers', 'access', 'medical', 'shiftSchedule', 'waybills', 'mechanic', 'fuel', 'cargo', 'settings', 'reports', 'mobile'],
+    dispatcher: ['dashboard', 'fleet', 'tracking', 'drivers', 'access', 'medical', 'shiftSchedule', 'waybills', 'cargo', 'mobile'],
     manager: ['dashboard', 'fleet', 'fuel', 'cargo', 'reports'],
   };
 
@@ -212,11 +214,12 @@ function App() {
     { id: 'dashboard', icon: <Activity />, label: t('dashboard') },
     { id: 'access', icon: <ScanFace />, label: t('accessControl') },
     { id: 'medical', icon: <Stethoscope />, label: t('medicalChecks') },
+    { id: 'shiftSchedule', icon: <CalendarDays />, label: t('shiftSchedule') },
+    { id: 'waybills', icon: <FileText />, label: t('waybills') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'tracking', icon: <Navigation />, label: t('liveTracking') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
-    { id: 'waybills', icon: <FileText />, label: t('waybills') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'cargo', icon: <Box />, label: t('cargoStats') },
     { id: 'settings', icon: <Settings />, label: t('settings') },
@@ -492,6 +495,12 @@ function App() {
             <MedicalManager />
           </motion.div>
         );
+      case 'shiftSchedule':
+        return (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+            <ShiftScheduleManager />
+          </motion.div>
+        );
       case 'mechanic':
         return (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -607,7 +616,7 @@ function App() {
 
         {/* Top Header */}
         <header className="h-20 glass-panel px-8 flex items-center justify-between z-10">
-          <h2 className="text-2xl font-semibold">{t(activeTab as any)}</h2>
+          {(activeTab === 'waybills' || activeTab === 'shiftSchedule') ? <div /> : <h2 className="text-2xl font-semibold">{t(activeTab as any)}</h2>}
 
           <div className="flex items-center gap-6">
             <button

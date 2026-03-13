@@ -42,6 +42,8 @@ type EsmoDevice = {
     lastSeen: string | null;
 };
 
+type SummaryStatusFilter = 'all' | 'passed' | 'review' | 'failed';
+
 const fallbackHost = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/$/, '') || `http://${fallbackHost}:3000`;
 
@@ -126,6 +128,7 @@ export const MedicalManager = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [statusFilter, setStatusFilter] = useState<SummaryStatusFilter>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const dateFromRef = useRef<HTMLInputElement | null>(null);
@@ -230,13 +233,20 @@ export const MedicalManager = () => {
 
     const filteredRows = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return rows;
 
         return rows.filter((row) => {
-            const haystack = `${row.name} ${row.passId || ''} ${row.device || ''} ${row.deviceIp || ''}`.toLowerCase();
-            return haystack.includes(query);
+            if (query) {
+                const haystack = `${row.name} ${row.passId || ''} ${row.device || ''} ${row.deviceIp || ''}`.toLowerCase();
+                if (!haystack.includes(query)) return false;
+            }
+
+            const normalizedStatus = normalizeStatus(row.status);
+            if (statusFilter === 'passed') return normalizedStatus === 'passed';
+            if (statusFilter === 'review') return normalizedStatus === 'review';
+            if (statusFilter === 'failed') return normalizedStatus === 'failed' || normalizedStatus === 'annulled';
+            return true;
         });
-    }, [rows, searchQuery]);
+    }, [rows, searchQuery, statusFilter]);
 
     const totalRows = filteredRows.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
@@ -248,7 +258,7 @@ export const MedicalManager = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [dateFrom, dateTo, searchQuery]);
+    }, [dateFrom, dateTo, searchQuery, statusFilter]);
 
     useEffect(() => {
         setCurrentPage((prev) => Math.min(prev, totalPages));
@@ -365,6 +375,9 @@ export const MedicalManager = () => {
     };
 
     const summaryTitle = dateFrom || dateTo ? t('selectedPeriodSummary') : t('todaySummary');
+    const toggleStatusFilter = (value: Exclude<SummaryStatusFilter, 'all'>) => {
+        setStatusFilter((prev) => (prev === value ? 'all' : value));
+    };
 
     return (
         <div className="space-y-6">
@@ -476,9 +489,39 @@ export const MedicalManager = () => {
                             {t('esmoJournalTitle')}
                         </h3>
                         <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                            <span className="bg-emerald-500/10 text-emerald-400 px-4 py-1.5 text-sm font-semibold rounded-full border border-emerald-500/20">{summary.passedToday} {t('passed')}</span>
-                            <span className="bg-orange-500/10 text-orange-400 px-4 py-1.5 text-sm font-semibold rounded-full border border-orange-500/20">{summary.reviewToday} {t('review')}</span>
-                            <span className="bg-red-500/10 text-red-400 px-4 py-1.5 text-sm font-semibold rounded-full border border-red-500/20">{summary.failedToday} {t('failed')}</span>
+                            <button
+                                type="button"
+                                onClick={() => toggleStatusFilter('passed')}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-full border transition-colors ${
+                                    statusFilter === 'passed'
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/60'
+                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15'
+                                }`}
+                            >
+                                {summary.passedToday} {t('allowed')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => toggleStatusFilter('review')}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-full border transition-colors ${
+                                    statusFilter === 'review'
+                                        ? 'bg-orange-500/20 text-orange-300 border-orange-400/60'
+                                        : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/15'
+                                }`}
+                            >
+                                {summary.reviewToday} {t('review')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => toggleStatusFilter('failed')}
+                                className={`px-4 py-1.5 text-sm font-semibold rounded-full border transition-colors ${
+                                    statusFilter === 'failed'
+                                        ? 'bg-red-500/20 text-red-300 border-red-400/60'
+                                        : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/15'
+                                }`}
+                            >
+                                {summary.failedToday} {t('rejected')}
+                            </button>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
@@ -589,9 +632,9 @@ export const MedicalManager = () => {
                         </h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between"><span className="text-slate-400">{t('total')}</span><span className="font-bold">{summary.totalToday}</span></div>
-                            <div className="flex justify-between"><span className="text-emerald-400">{t('passed')}</span><span className="font-bold">{summary.passedToday}</span></div>
+                            <div className="flex justify-between"><span className="text-emerald-400">{t('allowed')}</span><span className="font-bold">{summary.passedToday}</span></div>
                             <div className="flex justify-between"><span className="text-orange-400">{t('review')}</span><span className="font-bold">{summary.reviewToday}</span></div>
-                            <div className="flex justify-between"><span className="text-red-400">{t('failed')}</span><span className="font-bold">{summary.failedToday}</span></div>
+                            <div className="flex justify-between"><span className="text-red-400">{t('rejected')}</span><span className="font-bold">{summary.failedToday}</span></div>
                             <div className="pt-2 mt-2 border-t border-slate-700/50 flex justify-between">
                                 <span className="text-slate-400">{t('smartRouteStatus')}</span>
                                 <span className={`${smartRouteStatus === 'online' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'} inline-flex items-center gap-1.5`}>
