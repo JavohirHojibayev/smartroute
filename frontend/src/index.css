@@ -1,0 +1,754 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --app-bg: #0f172a;
+  --app-text: #f8fafc;
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --content-bg: radial-gradient(ellipse at top right, rgba(51, 65, 85, 0.4) 0%, #0f172a 50%, #0f172a 100%);
+  /* Turniket journal + device labels (dark UI: readable green; light theme overrides below). */
+  --export-green-text: #10b981;
+  /* Transportlar jadvali: tanlangan qator (dark) */
+  --fleet-row-selected-bg: rgba(16, 142, 93, 0.18);
+  --fleet-row-hover-bg: rgba(16, 142, 93, 0.14);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --app-bg: #f2f7f4;
+  --app-text: #1f2d27;
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(232, 247, 240, 0.93));
+  --glass-border: rgba(30, 132, 91, 0.2);
+  --glass-shadow: 0 8px 16px rgba(15, 61, 43, 0.08), 0 1px 2px rgba(15, 61, 43, 0.03);
+  --content-bg: radial-gradient(ellipse at 16% -10%, #f7fcf9 0%, #edf8f2 52%, #e8f2ec 100%);
+  /* Same family as .theme-light export buttons (linear-gradient end stop #0b7f51). */
+  --export-green-text: #0b7f51;
+  /* Tanlangan qator: och yashil (asos #108E5D, past shaffoflik) */
+  --fleet-row-selected-bg: rgba(16, 142, 93, 0.16);
+  /* Hover: tanlanganidan biroz yumshoq och yashil */
+  --fleet-row-hover-bg: rgba(16, 142, 93, 0.12);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 220ms ease, color 220ms ease;
+  }
+}
+
+.app-shell {
+  position: relative;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+.theme-light.app-shell {
+  background-image:
+    radial-gradient(circle at 8% 3%, rgba(16, 142, 93, 0.07), transparent 33%),
+    radial-gradient(circle at 89% -1%, rgba(40, 173, 126, 0.08), transparent 34%),
+    linear-gradient(180deg, #f8fcfa 0%, #f0f9f4 46%, #eaf4ee 100%);
+}
+
+.app-content-surface {
+  background-image: var(--content-bg) !important;
+}
+
+.brand-title {
+  color: #60a5fa;
+  background-image: linear-gradient(90deg, #60a5fa, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.theme-light .brand-title {
+  color: #0e7f52;
+  background-image: linear-gradient(90deg, #0e8f5b, #16a06b);
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.theme-light .glass-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(228, 244, 236, 0.92));
+  border-color: rgba(36, 141, 99, 0.2);
+  box-shadow: 0 8px 18px rgba(20, 73, 51, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.theme-light .glass-panel:hover {
+  border-color: rgba(28, 136, 93, 0.3);
+  box-shadow: 0 10px 20px rgba(20, 73, 51, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.theme-light .dashboard-stat-icon[data-stat="fleet"] {
+  border: 1px solid rgba(71, 112, 182, 0.24);
+  background-image: linear-gradient(135deg, rgba(74, 116, 194, 0.18), rgba(6, 167, 215, 0.14)) !important;
+  box-shadow: 0 6px 14px rgba(42, 84, 156, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+.theme-light .dashboard-stat-icon[data-stat="fleet"] > svg {
+  color: #2f4f73;
+}
+
+.theme-light aside.glass-panel {
+  background: linear-gradient(180deg, rgba(252, 255, 253, 0.99), rgba(222, 241, 232, 0.94));
+  border-right-color: rgba(31, 138, 96, 0.22) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.82);
+}
+
+.theme-light header.glass-panel {
+  background-color: var(--app-bg) !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(30, 132, 91, 0.2);
+  box-shadow: none;
+}
+
+.theme-light [class~="bg-slate-950/70"],
+.theme-light [class~="bg-slate-900/95"],
+.theme-light [class~="bg-slate-900/80"],
+.theme-light [class~="bg-slate-900/70"],
+.theme-light [class~="bg-slate-900/60"] {
+  background-color: rgba(16, 142, 93, 0.15) !important;
+}
+
+.theme-light [class~="bg-slate-900/50"],
+.theme-light [class~="bg-slate-900/40"],
+.theme-light [class~="bg-slate-900/30"],
+.theme-light [class~="bg-slate-900/20"] {
+  background-color: var(--fleet-row-hover-bg) !important;
+}
+
+.theme-light [class~="bg-slate-900"] {
+  background-color: rgba(16, 142, 93, 0.18) !important;
+}
+
+.theme-light [class~="bg-slate-800/80"],
+.theme-light [class~="bg-slate-800/50"],
+.theme-light [class~="bg-slate-800/40"],
+.theme-light [class~="bg-slate-800/30"],
+.theme-light [class~="bg-slate-800/20"] {
+  background-color: var(--fleet-row-hover-bg) !important;
+}
+
+.theme-light [class~="bg-slate-800"] {
+  background-color: rgba(16, 142, 93, 0.16) !important;
+}
+
+.theme-light [class~="bg-slate-700/50"] {
+  background-color: rgba(16, 142, 93, 0.11) !important;
+}
+
+.theme-light [class~="bg-slate-700"] {
+  background-color: rgba(16, 142, 93, 0.14) !important;
+}
+
+.theme-light [class~="bg-slate-600"] {
+  background-color: rgba(16, 142, 93, 0.16) !important;
+}
+
+.theme-light [class~="bg-slate-500/10"] {
+  background-color: rgba(16, 142, 93, 0.06) !important;
+}
+
+.theme-light [class~="bg-slate-500"] {
+  background-color: rgba(16, 142, 93, 0.11) !important;
+}
+
+.theme-light [class*="text-slate-100"],
+.theme-light [class*="text-slate-200"] {
+  color: #1f2d27 !important;
+}
+
+.theme-light [class*="text-slate-300"] {
+  color: #31453c !important;
+}
+
+.theme-light [class*="text-slate-400"] {
+  color: #4f665b !important;
+}
+
+.theme-light [class*="text-slate-500"],
+.theme-light [class*="text-slate-600"] {
+  color: #6b8377 !important;
+}
+
+.theme-light .app-content-surface [class*="text-white"],
+.theme-light .glass-panel [class*="text-white"] {
+  color: #2f2b26 !important;
+}
+
+.theme-light [class*="bg-blue-"][class*="text-white"],
+.theme-light [class*="bg-emerald-"][class*="text-white"],
+.theme-light [class*="bg-red-"][class*="text-white"],
+.theme-light [class*="bg-amber-"][class*="text-white"],
+.theme-light [class*="bg-gradient-to"][class*="text-white"] {
+  color: #f8fbff !important;
+}
+
+.theme-light [class*="bg-blue-"] [class*="text-white"],
+.theme-light [class*="bg-emerald-"] [class*="text-white"],
+.theme-light [class*="bg-red-"] [class*="text-white"],
+.theme-light [class*="bg-amber-"] [class*="text-white"],
+.theme-light [class*="bg-gradient-to"] [class*="text-white"] {
+  color: #f8fbff !important;
+}
+
+/*
+ * glass-panel stat kartalar (Transport / Haydovchi): badge `bg-gradient-to-br` + `text-white`.
+ * `.glass-panel [class*="text-white"]` bilan specificity teng bo‘lgani uchun yuqoridagi qatorlar
+ * iconni och rangga majburlaydi — bu yerda ikki klass + ikki atribut bilan qayta aniqlaymiz.
+ */
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="text-white"] {
+  color: #ffffff !important;
+}
+
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="text-white"] svg {
+  color: #ffffff !important;
+}
+
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="from-blue-500"][class*="to-cyan"] {
+  background-image: linear-gradient(135deg, #0b6b48 0%, #129f6a 100%) !important;
+}
+
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="from-violet-500"][class*="to-fuchsia-400"] {
+  background-image: linear-gradient(135deg, #6d28d9 0%, #c026d3 100%) !important;
+}
+
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="from-sky-500"][class*="to-blue-400"] {
+  background-image: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%) !important;
+}
+
+.theme-light .glass-panel [class*="bg-gradient-to-br"][class*="from-emerald-500"][class*="to-teal-400"] {
+  background-image: linear-gradient(135deg, #047857 0%, #0d9488 100%) !important;
+}
+
+.theme-light [class*="border-slate-900"],
+.theme-light [class*="border-slate-800"],
+.theme-light [class*="border-slate-700"],
+.theme-light [class*="border-slate-600"],
+.theme-light [class*="border-slate-500"] {
+  border-color: rgba(146, 161, 183, 0.3) !important;
+}
+
+.theme-light [class~="bg-blue-500"],
+.theme-light [class~="bg-blue-600"] {
+  background-image: linear-gradient(135deg, #0f965f, #0b7f51) !important;
+  box-shadow: 0 4px 10px rgba(12, 93, 62, 0.2);
+}
+
+.theme-light [class*="shadow-blue-500/30"] {
+  box-shadow: 0 5px 12px rgba(74, 113, 185, 0.14) !important;
+}
+
+.theme-light [class*="text-blue-400"] {
+  color: #0e8f5b !important;
+}
+
+.theme-light [class~="bg-blue-500/10"],
+.theme-light [class~="bg-blue-500/20"],
+.theme-light [class~="bg-blue-600/10"] {
+  background-color: rgba(16, 142, 93, 0.12) !important;
+}
+
+/* Light theme: active sidebar/menu item should be green (not blue). */
+.theme-light aside button[class*="bg-blue-500/20"] {
+  background-image: linear-gradient(135deg, #0f925d, #0b7f51) !important;
+  border-color: rgba(11, 117, 75, 0.34) !important;
+  color: #f5fffa !important;
+}
+
+.theme-light aside button[class*="bg-blue-500/20"] svg,
+.theme-light aside button[class*="bg-blue-500/20"] [class*="text-blue-400"] {
+  color: #f5fffa !important;
+}
+
+/* Light theme: sidebar menu label colors should be green. */
+.theme-light aside nav button span {
+  color: #1b7b54 !important;
+}
+
+.theme-light aside nav button svg {
+  color: #2f7f61 !important;
+}
+
+.theme-light aside nav button[class*="bg-blue-500/20"] span,
+.theme-light aside nav button[class*="bg-blue-500/20"] svg {
+  color: #f5fffa !important;
+}
+
+.theme-light [class*="border-blue-500/20"],
+.theme-light [class*="border-blue-500/30"] {
+  border-color: rgba(16, 142, 93, 0.26) !important;
+}
+
+.theme-light .from-blue-400 {
+  --tw-gradient-from: #0e8f5b var(--tw-gradient-from-position) !important;
+}
+
+.theme-light .to-cyan-300 {
+  --tw-gradient-to: #15b87b var(--tw-gradient-to-position) !important;
+}
+
+.theme-light .from-blue-500 {
+  --tw-gradient-from: #0c8a58 var(--tw-gradient-from-position) !important;
+}
+
+.theme-light .to-cyan-400 {
+  --tw-gradient-to: #11b374 var(--tw-gradient-to-position) !important;
+}
+
+.theme-light [class*="ring-blue-"] {
+  --tw-ring-color: rgba(80, 114, 188, 0.22) !important;
+}
+
+.theme-light .from-white {
+  --tw-gradient-from: #243a56 var(--tw-gradient-from-position) !important;
+}
+
+.theme-light .to-slate-400 {
+  --tw-gradient-to: #5f7695 var(--tw-gradient-to-position) !important;
+}
+
+/* Keep gradient text visible in light mode across browsers/components. */
+.theme-light .bg-clip-text.text-transparent {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+.theme-light .bg-gradient-to-r.from-white.to-slate-400 {
+  background-image: linear-gradient(90deg, #0f5137 0%, #208961 100%) !important;
+}
+
+.theme-light .bg-gradient-to-r.from-blue-400.to-cyan-300 {
+  background-image: linear-gradient(90deg, #0f925d 0%, #15b87b 100%) !important;
+}
+
+.theme-light .bg-gradient-to-r.from-blue-300.via-cyan-300.to-teal-300 {
+  background-image: linear-gradient(90deg, #0f925d 0%, #16b67a 52%, #1ea46f 100%) !important;
+}
+
+.theme-light .bg-gradient-to-r.from-blue-500.to-cyan-400 {
+  background-image: linear-gradient(90deg, #0c8a58 0%, #11b374 100%) !important;
+}
+
+.theme-light .bg-clip-text.text-transparent[class*="bg-gradient-to-r"] {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.theme-light button[class*="px-4 py-3 rounded-xl"][class*="bg-blue-500/20"] {
+  background-image: linear-gradient(135deg, #0f925d, #0b7f51) !important;
+  color: #f8fbff !important;
+  border-color: rgba(11, 117, 75, 0.34) !important;
+  box-shadow: 0 6px 12px rgba(10, 104, 67, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.theme-light button[class*="px-4 py-3 rounded-xl"][class*="bg-blue-500/20"] .text-blue-400 {
+  color: #eef4ff !important;
+}
+
+.theme-light button[class*="px-4 py-3 rounded-xl"][class*="text-slate-400"]:hover {
+  background-color: rgba(16, 142, 93, 0.12) !important;
+  color: #0b5c3d !important;
+}
+
+.theme-light .login-toolbar-toggle {
+  background-color: rgba(16, 142, 93, 0.16) !important;
+  border-color: rgba(21, 128, 83, 0.34) !important;
+  color: #1f5a46 !important;
+}
+
+.theme-light .login-toolbar-toggle:hover {
+  background-color: rgba(16, 142, 93, 0.22) !important;
+  border-color: rgba(12, 120, 75, 0.44) !important;
+}
+
+.theme-light .login-toolbar-toggle svg {
+  color: #0f8d59 !important;
+}
+
+.login-submit-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes login-btn-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.theme-light .login-submit-btn {
+  color: #f8fcff !important;
+  border: 1px solid rgba(12, 130, 85, 0.34);
+  background-image: linear-gradient(132deg, #0f965f 0%, #11b374 46%, #0f7a52 100%) !important;
+  background-size: 170% 170%;
+  box-shadow: 0 12px 24px rgba(12, 99, 65, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.32) !important;
+  animation: login-btn-shift 7s ease-in-out infinite;
+}
+
+.theme-light .login-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(10, 93, 60, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.38) !important;
+}
+
+.theme-light .login-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-auth-input {
+  background: transparent;
+  -webkit-text-fill-color: #f1f5f9;
+  caret-color: #f1f5f9;
+}
+
+.login-auth-input::placeholder {
+  color: rgba(148, 163, 184, 0.62) !important;
+  -webkit-text-fill-color: rgba(148, 163, 184, 0.62) !important;
+  opacity: 1;
+}
+
+.login-auth-input:-webkit-autofill,
+.login-auth-input:-webkit-autofill:hover,
+.login-auth-input:-webkit-autofill:focus,
+.login-auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f1f5f9;
+  caret-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  background-color: transparent !important;
+  transition: background-color 999999s ease-in-out 0s;
+}
+
+.theme-light .login-auth-input,
+.theme-light .login-auth-input:-webkit-autofill,
+.theme-light .login-auth-input:-webkit-autofill:hover,
+.theme-light .login-auth-input:-webkit-autofill:focus,
+.theme-light .login-auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #1f2f45;
+  caret-color: #1f2f45;
+}
+
+.theme-light .login-auth-input::placeholder {
+  color: rgba(71, 85, 105, 0.6) !important;
+  -webkit-text-fill-color: rgba(71, 85, 105, 0.6) !important;
+  opacity: 1;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-20px) rotate(1deg);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delay-minus3 {
+  animation: float 6s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+.theme-light .fuel-preset-active {
+  background-color: rgba(16, 142, 93, 0.22) !important;
+  color: #0f6b47 !important;
+}
+
+/* Kirish — yashil; chiqish — dark rejimda sariq (light rejimda ikkalasi ham --export-green-text) */
+.turnstile-action-text--entrance,
+.turnstile-action-text--entrance svg {
+  color: var(--export-green-text);
+}
+
+.turnstile-action-text--exit,
+.turnstile-action-text--exit svg {
+  color: var(--export-green-text);
+}
+
+.theme-dark .turnstile-action-text--exit,
+.theme-dark .turnstile-action-text--exit svg {
+  color: #facc15 !important;
+}
+
+.theme-light .waybill-esmo-tooltip {
+  background-color: rgba(232, 247, 240, 0.98) !important;
+  border-color: rgba(21, 128, 83, 0.32) !important;
+  color: #1f2d27 !important;
+  box-shadow: 0 8px 24px rgba(12, 80, 53, 0.16) !important;
+}
+
+.theme-light .waybill-esmo-tooltip .text-slate-400 {
+  color: #4f665b !important;
+}
+
+.theme-light .fuel-calendar-control {
+  background-color: rgba(16, 142, 93, 0.14) !important;
+  border-color: rgba(21, 128, 83, 0.35) !important;
+}
+
+.theme-light input[type="date"].fuel-calendar-control {
+  background-color: rgba(16, 142, 93, 0.14) !important;
+}
+
+/* Barcha modul sarlavhalari — qorong‘ida ko‘k→cyan gradient, yorug‘da yashil matn. */
+.app-module-heading {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+  display: inline-block;
+  max-width: 100%;
+  color: transparent;
+  background-image: linear-gradient(90deg, #60a5fa, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.theme-dark .app-module-heading {
+  color: transparent !important;
+  background-image: linear-gradient(90deg, #60a5fa, #22d3ee) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+@media (min-width: 768px) {
+  .app-module-heading {
+    font-size: 30px;
+  }
+}
+
+.theme-light .app-module-heading {
+  color: var(--export-green-text) !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.fleet-row-selected {
+  background-color: var(--fleet-row-selected-bg) !important;
+}
+
+/* Light: barcha jadval qatorlari — sichqoncha hoverda och yashil (Tailwind hover:bg-slate-* dan ustun) */
+.theme-light tbody tr:hover {
+  background-color: var(--fleet-row-hover-bg) !important;
+}
+
+.theme-light tbody tr.fleet-row-selected:hover {
+  background-color: var(--fleet-row-selected-bg) !important;
+}
+
+/* Light: jadval ostidagi pagination / sahifalash paneli — qator hover bilan bir xil och yashil */
+.theme-light .table-pagination-bar {
+  background-color: var(--fleet-row-hover-bg) !important;
+  border-top-color: rgba(16, 142, 93, 0.22) !important;
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+.date-input-system {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] .date-input-system {
+  color-scheme: light;
+}
+
+/* Light: barcha sahifalarda sana filtrlari — oq fon */
+.theme-light input[type="date"],
+.theme-light input.date-input-system {
+  background-color: #ffffff !important;
+}
+
+/*
+ * Light: toolbar qidiruv — oq fon.
+ * `bg-slate-900/50` + rounded-lg|xl (Fleet, Driver, Turniket, Yo'l varaqasi, Tibbiy, Yuk, Mexanik).
+ * Modal va jadval katakchalari odatda `bg-slate-950/70` yoki `bg-slate-900/40` — ularga tegmaydi.
+ */
+.theme-light input[type="text"][class*="bg-slate-900/50"][class*="rounded-lg"],
+.theme-light input[type="text"][class*="bg-slate-900/50"][class*="rounded-xl"] {
+  background-color: #ffffff !important;
+}
+
+.date-input-system::-webkit-calendar-picker-indicator {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.date-input-system::-webkit-datetime-edit {
+  color: #e2e8f0;
+}
+
+:root[data-theme='light'] .date-input-system::-webkit-datetime-edit {
+  color: #0f172a;
+}
+
+/* Scrollbar: WebKit qoidalari (Chrome, Safari, Edge); Firefox — tizim standarti (compat-api: scrollbar-* ogohlantirishlari) */
+
+.dark-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: #070b14;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 2px solid #070b14;
+  border-radius: 9999px;
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark-scrollbar::-webkit-scrollbar-corner {
+  background: #070b14;
+}
+
+:root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-track {
+  background: #e2f4eb;
+}
+
+:root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 142, 93, 0.35);
+  border-color: #e2f4eb;
+}
+
+:root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 142, 93, 0.48);
+}
+
+:root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-corner {
+  background: #e2f4eb;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.42) transparent;
+  scrollbar-gutter: stable;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.72), rgba(14, 165, 233, 0.42));
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(147, 197, 253, 0.85), rgba(56, 189, 248, 0.58));
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+:root[data-theme='light'] .custom-scrollbar {
+  scrollbar-color: rgba(16, 142, 93, 0.42) transparent;
+}
+
+:root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(226, 244, 235, 0.7);
+}
+
+:root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(16, 142, 93, 0.58), rgba(13, 148, 136, 0.38));
+}
+
+:root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(16, 142, 93, 0.72), rgba(13, 148, 136, 0.52));
+}
+
+.permission-readonly button,
+.permission-readonly input,
+.permission-readonly select,
+.permission-readonly textarea {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.permission-readonly [contenteditable='true'] {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.test-mode-inline-track {
+  position: relative;
+  width: 100%;
+  height: 42px;
+  overflow: hidden;
+}
+
+.test-mode-inline-track span {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  display: inline-block;
+  white-space: nowrap;
+  color: #facc15;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-shadow: none;
+  will-change: transform;
+  transform: translateY(-50%);
+  animation: test-mode-inline-scroll 22s linear infinite;
+}
+
+@keyframes test-mode-inline-scroll {
+  0% {
+    left: 100%;
+  }
+  100% {
+    left: -320%;
+  }
+}
+
+:root[data-theme='light'] .test-mode-inline-track span {
+  color: #166534;
+}
