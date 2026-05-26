@@ -269,6 +269,16 @@
   background-color: rgba(16, 142, 93, 0.12) !important;
 }
 
+.theme-light .smartroute-profile-badge-ring {
+  background-image: linear-gradient(135deg, #0f925d, #15b87b) !important;
+  box-shadow: 0 6px 14px rgba(10, 104, 67, 0.18);
+}
+
+.theme-light .smartroute-profile-badge-core {
+  background-color: #e8f7f0 !important;
+  color: #0b5c3d !important;
+}
+
 /* Light theme: active sidebar/menu item should be green (not blue). */
 .theme-light aside button[class*="bg-blue-500/20"] {
   background-image: linear-gradient(135deg, #0f925d, #0b7f51) !important;

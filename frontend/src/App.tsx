@@ -1183,8 +1183,8 @@ function App() {
               className="hidden lg:flex items-center gap-3 pl-6 border-l border-slate-700 text-left hover:opacity-90 transition-opacity"
               title="Rollar va huquqlar sahifasiga o'tish"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-[2px]">
-                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-bold">
+              <div className="smartroute-profile-badge-ring w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-[2px]">
+                <div className="smartroute-profile-badge-core w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-bold">
                   {currentUserInitial}
                 </div>
               </div>

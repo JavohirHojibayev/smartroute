@@ -134,7 +134,8 @@ export class HikvisionController implements OnModuleInit {
     this.dedupSeconds,
   );
   private readonly pairDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_PAIR_DEDUP_SECONDS ?? '12', 10) || 12, 1);
-  private readonly crossDeviceDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_CROSS_DEVICE_DEDUP_SECONDS ?? '90', 10) || 90, 1);
+  private readonly crossDeviceDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_CROSS_DEVICE_DEDUP_SECONDS ?? '12', 10) || 12, 1);
+  private readonly mineFactoryDedupSeconds = Math.max(Number.parseInt(process.env.HIKVISION_MINE_FACTORY_DEDUP_SECONDS ?? '120', 10) || 120, 10);
   private readonly strictSourceIp = String(process.env.HIKVISION_STRICT_SOURCE_IP ?? 'true').toLowerCase() === 'true';
   private readonly maxEventAgeMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_EVENT_AGE_MINUTES ?? '180', 10) || 180, 1);
   private readonly maxFutureSkewMinutes = Math.max(Number.parseInt(process.env.HIKVISION_MAX_FUTURE_SKEW_MINUTES ?? '5', 10) || 5, 1);
@@ -450,6 +451,9 @@ export class HikvisionController implements OnModuleInit {
     const nextValid = this.isLikelyValidPersonName(next);
     if (currentValid && !nextValid) return current;
     if (nextValid && !currentValid) return next;
+    if (currentValid && nextValid && !this.personNamesCompatibleForDedupe(current, next)) {
+      return next;
+    }
 
     return this.scorePersonName(next) >= this.scorePersonName(current) ? next : current;
   }
@@ -729,6 +733,8 @@ export class HikvisionController implements OnModuleInit {
     mirroredExitOnly: boolean;
     /** true: qurilmaga bog'lamasdan barcha loglar ichidan qidiradi. */
     acrossAnyDevice?: boolean;
+    /** true: shaxta/mine device rows are ignored while looking for a duplicate. */
+    excludeMineDevices?: boolean;
     excludeDeviceId: string | null;
     centerTime: Date;
     windowSeconds: number;
@@ -799,8 +805,27 @@ export class HikvisionController implements OnModuleInit {
         if (!this.accessTimeWithinSeconds(row.access_time, params.centerTime, params.windowSeconds)) {
           return false;
         }
+        if (params.excludeMineDevices && this.isMineShahtaAccessLogRow(row)) {
+          return false;
+        }
         return this.logMatchesIdentityForDedupe(row, params.identity);
       }) ?? null
+    );
+  }
+
+  private isMineShahtaAccessLogRow(row: AccessLog): boolean {
+    const parsed = this.parseRawPayload(row.raw_payload);
+    const rowIp = this.resolveDeviceIp(row.device_id, row.device_name, row.raw_payload);
+    const mapped = this.mapKnownDevice(this.normalizeIp(rowIp), null);
+    if (this.isMineShahtaMappedDevice(mapped)) return true;
+    return isMineShahtaDeviceEntry({
+      key: this.resolveTurnstileKey(row.device_id, row.device_name, rowIp) ?? '',
+      deviceId: row.device_id ?? '',
+      deviceName: row.device_name ?? '',
+      eventType: row.event_type === 'exit' ? 'exit' : 'entrance',
+    }) || isMineShahtaFromStoredDevices(
+      row.device_id,
+      row.device_name ?? this.normalizeWhitespace(parsed?.deviceName ?? parsed?.device_name),
     );
   }
 
@@ -1150,6 +1175,15 @@ export class HikvisionController implements OnModuleInit {
   private shouldIgnoreStoredLogRow(row: AccessLog): boolean {
     if (this.recordAllEvents) return false;
     const payload = this.parseRawPayload(row.raw_payload);
+    const rawPayloadName =
+      payload && typeof payload === 'object'
+        ? this.resolveBestPersonNameFromNormalizedPayload(payload)
+        : this.normalizePersonName(this.getNameFromRawPayload(row.raw_payload));
+    const hasValidName =
+      this.isLikelyValidPersonName(row.person_name) ||
+      this.isLikelyValidPersonName(rawPayloadName) ||
+      this.isLikelyValidPersonName(row.driver?.full_name);
+    if (!hasValidName) return true;
     if (!payload) return false;
     const isMine = isMineShahtaFromStoredDevices(row.device_id, row.device_name);
     return shouldIgnoreHikvisionTurnstilePayload(payload, isMine, this.turnstileNoiseEnv).ignore;
@@ -1742,8 +1776,12 @@ export class HikvisionController implements OnModuleInit {
     const identityDepartment = await this.resolveIdentityDepartment(normalizedExternalId);
     if (identityName && !this.isLikelyValidPersonName(personName)) {
       personName = identityName;
-    } else if (identityName) {
+    } else if (identityName && personName && this.personNamesCompatibleForDedupe(personName, identityName)) {
       personName = this.pickRicherPersonName(personName, identityName);
+    } else if (identityName && personName) {
+      this.logger.warn(
+        `Turniket identity mismatch ignored: externalId=${normalizedExternalId || 'none'} payloadName="${personName}" cachedName="${identityName}"`,
+      );
     }
 
     if (!personName && (faceIdHash || employeeNo)) {
@@ -1873,7 +1911,8 @@ export class HikvisionController implements OnModuleInit {
         }
       }
 
-      // Cross-device same-direction protection (shaxta segmentida o‘chiriladi — zavod yozuvlarini bloklamaslik uchun).
+      // Cross-device same-direction protection.
+      // Factory rows ignore mine rows so a noisy mine panel cannot hide a real factory pass.
       if (this.crossDeviceDedupSeconds > 0 && !isMineShahtaDevice) {
         const duplicateAcrossDevices = await this.findRecentDuplicateByDeviceAndIdentity({
           deviceId: null,
@@ -1882,6 +1921,7 @@ export class HikvisionController implements OnModuleInit {
           oppositeEventType: false,
           mirroredExitOnly: false,
           acrossAnyDevice: true,
+          excludeMineDevices: true,
           excludeDeviceId: deviceId,
           centerTime: dedupTime,
           windowSeconds: this.crossDeviceDedupSeconds,
@@ -1897,6 +1937,37 @@ export class HikvisionController implements OnModuleInit {
             status: this.mapStatus(duplicateAcrossDevices.status),
             eventType: duplicateAcrossDevices.event_type,
             accessTime: duplicateAcrossDevices.access_time,
+          });
+        }
+      }
+
+      // Mine panels can occasionally replay or mirror factory identities. If the same identity was just
+      // accepted by a factory turnstile, keep the factory row and suppress the mine copy.
+      if (this.mineFactoryDedupSeconds > 0 && isMineShahtaDevice) {
+        const duplicateFactory = await this.findRecentDuplicateByDeviceAndIdentity({
+          deviceId: null,
+          deviceName: null,
+          eventType,
+          oppositeEventType: false,
+          mirroredExitOnly: false,
+          acrossAnyDevice: true,
+          excludeMineDevices: true,
+          excludeDeviceId: deviceId,
+          centerTime: dedupTime,
+          windowSeconds: this.mineFactoryDedupSeconds,
+          identity: { faceIdHash, personName },
+          fetchLimit: 300,
+        });
+
+        if (duplicateFactory) {
+          return respond({
+            ok: true,
+            duplicate: true,
+            id: duplicateFactory.id,
+            status: this.mapStatus(duplicateFactory.status),
+            eventType: duplicateFactory.event_type,
+            accessTime: duplicateFactory.access_time,
+            reason: 'mine_duplicate_of_factory',
           });
         }
       }
@@ -1979,6 +2050,10 @@ export class HikvisionController implements OnModuleInit {
       driver?.full_name ||
       null;
     const resolvedDepartment = departmentFromPayload ?? driver?.department ?? identityDepartment ?? null;
+
+    if (!this.recordAllEvents && !this.isLikelyValidPersonName(resolvedPersonName)) {
+      return respond({ ok: true, ignored: true, reason: 'invalid_person_name' });
+    }
 
     const log = this.accessRepo.create({
       driver: driver || null,
@@ -2206,7 +2281,7 @@ export class HikvisionController implements OnModuleInit {
         ? this.normalizePersonName(row.person_name)
         : '';
 
-      const merged = this.pickRicherPersonName(this.pickRicherPersonName(nameFromRow || null, rawPayloadName), nameFromDriver);
+      const merged = this.pickPreferredPersonName(this.pickPreferredPersonName(nameFromRow || null, rawPayloadName), nameFromDriver);
       const resolvedName =
         (merged && this.isLikelyValidPersonName(merged) ? merged : '') ||
         (this.isLikelyValidPersonName(rawPayloadName) ? rawPayloadName : '') ||

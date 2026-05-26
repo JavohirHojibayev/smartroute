@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       // Cursor / VS Code Dev Tunnels va telefon brauzeri uchun Host tekshiruvi
-      allowedHosts: ['.devtunnels.ms', '.cursor.sh', 'localhost'],
+      allowedHosts: ['.devtunnels.ms', '.cursor.sh', 'localhost', '192.168.0.3'],
       proxy: {
         '/api': {
           target: devApiTarget,

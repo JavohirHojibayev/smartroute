@@ -15,7 +15,6 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
   private running = false;
   private readonly recentPostedEventKeys = new Map<string, number>();
   private readonly initializedDeviceIps = new Set<string>();
-  private readonly initializedDeviceAt = new Map<string, number>();
 
   private get enabled(): boolean {
     return String(process.env.HIKVISION_POLLER_ENABLED ?? '').toLowerCase() === 'true';
@@ -81,11 +80,6 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
 
   private get importEvents(): boolean {
     return String(process.env.HIKVISION_POLLER_IMPORT_EVENTS ?? 'false').toLowerCase() === 'true';
-  }
-
-  private get realtimeWarmupMs(): number {
-    const seconds = Number.parseInt(process.env.HIKVISION_POLLER_REALTIME_WARMUP_SECONDS ?? '30', 10) || 30;
-    return Math.max(0, seconds) * 1000;
   }
 
   private get maxEventAgeMs(): number {
@@ -253,27 +247,11 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
         });
 
         if (!this.initializedDeviceIps.has(ip)) {
-          this.initializedDeviceAt.set(ip, Date.now());
-          for (const row of rows) {
-            const eventKey = this.buildEventKey(ip, row);
-            if (eventKey) this.rememberEventKey(eventKey);
-          }
           this.initializedDeviceIps.add(ip);
-          skipped += rows.length;
-          await this.pushHeartbeatToWebhook(ip, mapped);
-          return { posted, dup, skipped, errors };
         }
 
         for (const row of rows) {
-          const initializedAt = this.initializedDeviceAt.get(ip);
           const rowTimeMs = this.parseRowTimeMs(row);
-          if (initializedAt && rowTimeMs != null && rowTimeMs <= initializedAt + this.realtimeWarmupMs) {
-            const eventKey = this.buildEventKey(ip, row);
-            if (eventKey) this.rememberEventKey(eventKey);
-            skipped += 1;
-            continue;
-          }
-
           if (rowTimeMs != null) {
             const now = Date.now();
             if (rowTimeMs < now - this.maxEventAgeMs || rowTimeMs > now + 2 * 60 * 1000) {
