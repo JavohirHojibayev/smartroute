@@ -602,19 +602,19 @@ export const AccessControlManager = () => {
                         <p className="text-2xl sm:text-3xl font-bold tabular-nums">{summary.exitsToday}</p>
                     </div>
                 </div>
-                <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-max max-w-full min-w-0 shrink-0">
+                <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-full md:w-max max-w-full min-w-0 shrink-0">
                     <div className="p-2.5 bg-slate-500/10 text-slate-400 rounded-xl shrink-0"><Shield size={24} /></div>
-                    <div className="min-w-0 overflow-x-auto [scrollbar-width:thin]">
-                        <div className="grid w-max gap-x-3 sm:gap-x-4 gap-y-2.5 text-sm sm:text-base leading-snug text-slate-200 font-semibold [grid-template-columns:repeat(4,max-content)]">
+                    <div className="min-w-0 flex-1 md:flex-none md:overflow-x-auto [scrollbar-width:thin]">
+                        <div className="turnstile-device-grid grid w-full md:w-max gap-x-3 sm:gap-x-4 gap-y-2.5 text-sm sm:text-base leading-snug text-slate-200 font-semibold [grid-auto-flow:column] md:[grid-auto-flow:row] [grid-template-columns:repeat(2,minmax(0,1fr))] md:[grid-template-columns:repeat(4,max-content)] [grid-template-rows:repeat(4,auto)] md:[grid-template-rows:none]">
                             {[...TOP_ROW_TURNSTILES, ...BOTTOM_ROW_TURNSTILES].map((turnstileKey) => {
                                 const isOnline = turnstileStatuses[turnstileKey] === 'online';
                                 return (
-                                    <div key={turnstileKey} className="flex items-start gap-2 sm:gap-2.5">
+                                    <div key={turnstileKey} className="flex items-start gap-2 sm:gap-2.5 min-w-0">
                                         <span
                                             className={`${isOnline ? 'bg-[var(--export-green-text)]' : 'bg-slate-500'} shrink-0 w-3 h-3 rounded-full mt-1 ${isOnline ? 'animate-pulse' : ''}`}
                                             aria-hidden="true"
                                         />
-                                        <span className="text-[var(--export-green-text)] whitespace-nowrap">
+                                        <span className="text-[var(--export-green-text)] whitespace-nowrap min-w-0 overflow-hidden text-ellipsis md:overflow-visible">
                                             {toDisplayTurnstileLabel(turnstileKey)}
                                         </span>
                                     </div>
