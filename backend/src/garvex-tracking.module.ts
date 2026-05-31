@@ -148,7 +148,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
       requestRetries: Math.max(0, Math.min(5, Number.parseInt(process.env.GARVEX_MT_REQUEST_RETRIES ?? '1', 10) || 1)),
       autoSyncMs: Math.max(30000, Math.min(300000, Number.parseInt(process.env.GARVEX_MT_AUTO_SYNC_MS ?? '120000', 10) || 120000)),
       fullSyncEveryMs: Math.max(300000, Math.min(3600000, Number.parseInt(process.env.GARVEX_MT_FULL_SYNC_MS ?? '900000', 10) || 900000)),
-      fetchPageSize: Math.max(20, Math.min(500, Number.parseInt(process.env.GARVEX_MT_FETCH_PAGE_SIZE ?? '200', 10) || 200)),
+      fetchPageSize: Math.max(1, Math.min(50, Number.parseInt(process.env.GARVEX_MT_FETCH_PAGE_SIZE ?? '5', 10) || 5)),
       fetchMaxPages: Math.max(1, Math.min(50, Number.parseInt(process.env.GARVEX_MT_FETCH_MAX_PAGES ?? '10', 10) || 10)),
       showAddresses: (this.normalizeWhitespace(process.env.GARVEX_MT_SHOW_ADDRESSES ?? 'true').toLowerCase() === 'true'),
     };
@@ -427,12 +427,23 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async fetchAllUnits(config: GarvexTrackingConfig, token: string): Promise<GarvexUnit[]> {
-    const firstPage = await this.fetchUnitsPage(config, token, 1);
+    // Garvex Units/GetUnits sahifalari 0-indexed: Page=1 dan boshlansa birinchi 5 transport tushib qoladi.
+    const firstPage = await this.fetchUnitsPage(config, token, 0);
     const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
-    const limit = Math.min(pageCount, config.fetchMaxPages);
+    const objectCount = Math.max(0, this.toOptionalInteger(firstPage?.objectCount) ?? 0);
+    const expectedPages = objectCount > 0
+      ? Math.max(pageCount, Math.ceil(objectCount / config.fetchPageSize))
+      : pageCount;
+    const limit = Math.min(expectedPages, config.fetchMaxPages);
     const all: GarvexUnit[] = Array.isArray(firstPage?.objects) ? firstPage.objects : [];
+    if (objectCount > 0 && all.length === 0) {
+      throw new BadRequestException(
+        `Garvex Units/GetUnits objectCount=${objectCount}, lekin objects bo'sh. ` +
+        `GARVEX_MT_FETCH_PAGE_SIZE=${config.fetchPageSize} ni kichraytirish kerak.`,
+      );
+    }
 
-    for (let page = 2; page <= limit; page += 1) {
+    for (let page = 1; page < limit; page += 1) {
       const current = await this.fetchUnitsPage(config, token, page);
       const chunk = Array.isArray(current?.objects) ? current.objects : [];
       all.push(...chunk);

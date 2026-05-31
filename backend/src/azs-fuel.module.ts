@@ -150,13 +150,13 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   private getConfig(): AzsConfig {
     const enabledRaw = this.normalizeWhitespace(process.env.AZS_ENABLED ?? 'false').toLowerCase();
     const enabled = enabledRaw === 'true' || enabledRaw === '1' || enabledRaw === 'on';
-    // AZS Web appsettings.Production.json bilan bir xil default endpointlar
-    const baseUrl = this.normalizeBaseUrl(process.env.AZS_BASE_URL || 'https://api.azs.garvex.tech');
-    const authBaseUrl = this.normalizeBaseUrl(process.env.AZS_AUTH_BASE_URL || 'https://api.auth.garvex.tech');
+    // tantiazsonline.uz production appsettings endpointlari.
+    const baseUrl = this.normalizeBaseUrl(process.env.AZS_BASE_URL || 'https://api.azs.garvex.tech/api');
+    const authBaseUrl = this.normalizeBaseUrl(process.env.AZS_AUTH_BASE_URL || 'https://api.auth.garvex.tech/api');
     const username = this.normalizeWhitespace(process.env.AZS_USERNAME || '');
     const password = String(process.env.AZS_PASSWORD ?? '');
-    const tokenPath = this.normalizePath(process.env.AZS_TOKEN_PATH || '/api/Authenticate/Login', '/api/Authenticate/Login');
-    const eventsPath = this.normalizePath(process.env.AZS_EVENTS_PATH || '/api/Events/RefuelEvents', '/api/Events/RefuelEvents');
+    const tokenPath = this.normalizePath(process.env.AZS_TOKEN_PATH || '/Authenticate/Login', '/Authenticate/Login');
+    const eventsPath = this.normalizePath(process.env.AZS_EVENTS_PATH || '/events/deviceRefillEvents', '/events/deviceRefillEvents');
 
     return {
       enabled,
@@ -814,7 +814,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     } else {
       params.set('DateStart', String(this.toUnixSeconds(startDate)));
       params.set('DateEnd', String(this.toUnixSeconds(endDate)));
-      params.set('Page', '1');
+      params.set('Page', '0');
       params.set('CountOnPage', String(Math.min(config.fetchPageSize, 50)));
       params.set('OrderByDescending', 'true');
     }
@@ -1118,18 +1118,18 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   ): Promise<{ rows: ExternalFuelRow[]; objectCount: number }> {
     const aggregated: ExternalFuelRow[] = [];
     const seen = new Set<string>();
-    let page = 1;
+    let page = 0;
     let totalPages = 1;
     let objectCount = 0;
 
-    while (page <= totalPages && page <= config.fetchMaxPages) {
+    while (page < totalPages && page < config.fetchMaxPages) {
       const params = new URLSearchParams();
-      // deviceRefillEvents API: 0-indexed pages, lowercase params
+      // Garveks events API: 0-indexed pages; legacy deviceRefillEvents uses lowercase params.
       const isDeviceRefill = eventsPath.toLowerCase().includes('devicerefill');
       if (isDeviceRefill) {
         params.set('dateStart', String(this.toUnixSeconds(startDate)));
         params.set('dateEnd', String(this.toUnixSeconds(endDate)));
-        params.set('page', String(page - 1)); // 0-indexed
+        params.set('page', String(page));
         params.set('countOnPage', String(config.fetchPageSize));
         params.set('orderByDescending', 'true');
       } else {
@@ -2939,21 +2939,13 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         .orderBy('bucket', 'ASC')
         .getRawMany<{ bucket: string; liters: string; amount: string }>();
 
-      const hourlyMap = new Map<string, { liters: number; amount: number }>();
       for (const row of hourlyRows) {
-        hourlyMap.set(String(row.bucket), {
-          liters: Number.parseFloat(String(row.liters || '0')) || 0,
-          amount: Number.parseFloat(String(row.amount || '0')) || 0,
-        });
-      }
-
-      for (let hour = 0; hour < 24; hour += 1) {
-        const key = `${String(hour).padStart(2, '0')}:00`;
-        const point = hourlyMap.get(key);
+        const liters = Number.parseFloat(String(row.liters || '0')) || 0;
+        const amount = Number.parseFloat(String(row.amount || '0')) || 0;
         chart.push({
-          day: key,
-          consumption: point?.liters ?? 0,
-          cost: point?.amount ?? 0,
+          day: String(row.bucket),
+          consumption: Math.round(liters * 100) / 100,
+          cost: Math.round(amount * 100) / 100,
         });
       }
     } else {
@@ -2967,20 +2959,13 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         .orderBy('bucket', 'ASC')
         .getRawMany<{ bucket: string; liters: string; amount: string }>();
 
-      const dailyMap = new Map<string, { liters: number; amount: number }>();
       for (const row of dailyRows) {
-        dailyMap.set(String(row.bucket), {
-          liters: Number.parseFloat(String(row.liters || '0')) || 0,
-          amount: Number.parseFloat(String(row.amount || '0')) || 0,
-        });
-      }
-
-      for (const key of this.eachAzsDayKeyBetween(start, end)) {
-        const point = dailyMap.get(key);
+        const liters = Number.parseFloat(String(row.liters || '0')) || 0;
+        const amount = Number.parseFloat(String(row.amount || '0')) || 0;
         chart.push({
-          day: this.formatShortDate(key),
-          consumption: point?.liters ?? 0,
-          cost: point?.amount ?? 0,
+          day: this.formatShortDate(String(row.bucket)),
+          consumption: Math.round(liters * 100) / 100,
+          cost: Math.round(amount * 100) / 100,
         });
       }
     }
