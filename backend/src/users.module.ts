@@ -16,6 +16,7 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthModule, AuthService, toPublicUser } from './auth.module';
+import { EimzoAuthModule, EimzoAuthService, type SignerInfo } from './eimzo-auth.module';
 import { hashPassword } from './password.util';
 import { User, UserRole } from './user.entity';
 import { RolePermission } from './role-permission.entity';
@@ -30,6 +31,12 @@ const SUPERADMIN_USERNAME = (process.env.SUPERADMIN_USERNAME ?? 'superadmin').tr
 const ALLOWED_ROLES = new Set<string>(Object.values(UserRole));
 const ROLE_ORDER: UserRole[] = [UserRole.ADMIN, UserRole.DISPATCHER, UserRole.MANAGER, UserRole.USER];
 
+type EimzoBinding = {
+  pinfl: string | null;
+  inn: string | null;
+  certificateSerial: string | null;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -37,6 +44,7 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(RolePermission)
     private readonly rolePermissionRepo: Repository<RolePermission>,
+    private readonly eimzoAuthService: EimzoAuthService,
   ) {}
 
   private normalizeUsername(value: unknown): string {
@@ -75,11 +83,7 @@ export class UsersService {
     }
   }
 
-  private extractEimzoBinding(payload: any): {
-    pinfl: string | null;
-    inn: string | null;
-    certificateSerial: string | null;
-  } {
+  private extractEimzoBinding(payload: any): EimzoBinding {
     const source = this.parseCertificateObject(payload?.key ?? payload?.certificate ?? payload);
     const pinfl = this.normalizeDigits(
       source.PINFL ?? source.pinfl ?? source.signerPinfl ?? source.UID ?? source.uid,
@@ -106,6 +110,28 @@ export class UsersService {
       inn,
       certificateSerial,
     };
+  }
+
+  private signerToEimzoBinding(signer: SignerInfo): EimzoBinding {
+    return {
+      pinfl: signer.pinfl,
+      inn: signer.inn,
+      certificateSerial: signer.certificateSerial,
+    };
+  }
+
+  private ensureEimzoBindingsMatch(selected: EimzoBinding, signed: EimzoBinding): void {
+    const mismatches = [
+      selected.pinfl && signed.pinfl && selected.pinfl !== signed.pinfl,
+      selected.inn && signed.inn && selected.inn !== signed.inn,
+      selected.certificateSerial &&
+        signed.certificateSerial &&
+        selected.certificateSerial !== signed.certificateSerial,
+    ];
+
+    if (mismatches.some(Boolean)) {
+      throw new BadRequestException('Tanlangan E-IMZO kaliti imzo bilan mos emas');
+    }
   }
 
   private parseEimzoEnabled(value: unknown, fallback: boolean): boolean {
@@ -355,7 +381,21 @@ export class UsersService {
       throw new NotFoundException('Foydalanuvchi topilmadi');
     }
 
-    const binding = this.extractEimzoBinding(payload);
+    const selectedBinding = this.extractEimzoBinding(payload);
+    if (!String(payload?.challenge ?? '').trim() || !String(payload?.signature ?? '').trim()) {
+      throw new BadRequestException('E-IMZO kalitni biriktirish uchun kalit paroli bilan imzo tasdiqlanishi kerak');
+    }
+
+    const signer = await this.eimzoAuthService.verifyChallengeSignature(payload);
+    const signedBinding = this.signerToEimzoBinding(signer);
+    this.ensureEimzoBindingsMatch(selectedBinding, signedBinding);
+
+    const binding = {
+      pinfl: signedBinding.pinfl ?? selectedBinding.pinfl,
+      inn: signedBinding.inn ?? selectedBinding.inn,
+      certificateSerial: signedBinding.certificateSerial ?? selectedBinding.certificateSerial,
+    };
+
     if (binding.pinfl) user.pinfl = binding.pinfl;
     if (binding.inn) user.inn = binding.inn;
     if (binding.certificateSerial) user.certificate_serial = binding.certificateSerial;
@@ -505,7 +545,7 @@ export class UsersController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, RolePermission]), AuthModule],
+  imports: [TypeOrmModule.forFeature([User, RolePermission]), AuthModule, EimzoAuthModule],
   controllers: [UsersController],
   providers: [UsersService],
 })

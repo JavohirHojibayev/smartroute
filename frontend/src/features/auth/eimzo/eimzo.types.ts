@@ -13,6 +13,9 @@ export type EimzoKey = {
   TIN?: string;
   INN?: string;
   UID?: string;
+  T?: string;
+  ownerName?: string;
+  statusInfo?: string;
   validFrom?: Date | string;
   validTo?: Date | string;
   path?: string;

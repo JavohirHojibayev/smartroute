@@ -1,12 +1,10 @@
-import { initModuleEimzo } from '@shohrux_saidov/eimzo-client';
 import { resolveApiBaseUrl } from '../../../utils/apiBase';
+import { SmartRouteCapiwsClient } from './capiws.client';
 import type { EimzoChallengeResponse, EimzoKey, EimzoLoginResponse } from './eimzo.types';
-
-type EimzoModule = Awaited<ReturnType<typeof initModuleEimzo>>;
 
 const API_BASE = resolveApiBaseUrl();
 
-let modulePromise: Promise<EimzoModule> | null = null;
+let modulePromise: Promise<SmartRouteCapiwsClient> | null = null;
 
 export const getEimzoLocalhostUrl = () =>
   `${window.location.protocol}//localhost:${window.location.port || '5173'}${window.location.pathname}${window.location.search}`;
@@ -35,6 +33,15 @@ const errorToText = (error: unknown): string => {
 const normalizeErrorMessage = (error: unknown): string => {
   const text = errorToText(error);
   const lower = text.toLowerCase();
+  if (
+    lower.includes('парол') ||
+    lower.includes('pin') ||
+    lower.includes('пин')
+  ) return "Parol noto'g'ri";
+  if (
+    lower.includes('отмен') ||
+    lower.includes('bekor')
+  ) return 'Imzo bekor qilindi';
   if (lower.includes('invalid password') || lower.includes('password')) return "Parol noto'g'ri";
   if (lower.includes('cancel') || lower.includes('отмен')) return 'Imzo bekor qilindi';
   if (lower.includes('expired') || lower.includes('muddati')) return 'Kalit muddati tugagan';
@@ -56,7 +63,7 @@ const normalizeErrorMessage = (error: unknown): string => {
   return 'E-IMZO orqali kirishda xatolik yuz berdi';
 };
 
-const addApiKeyPair = (module: EimzoModule, domain: string, key: string) => {
+const addApiKeyPair = (module: SmartRouteCapiwsClient, domain: string, key: string) => {
   const normalizedDomain = String(domain || '').trim();
   const normalizedKey = String(key || '').trim();
   if (!normalizedDomain || !normalizedKey) return;
@@ -65,7 +72,7 @@ const addApiKeyPair = (module: EimzoModule, domain: string, key: string) => {
   }
 };
 
-const addConfiguredApiKeys = (module: EimzoModule) => {
+const addConfiguredApiKeys = (module: SmartRouteCapiwsClient) => {
   const host = window.location.hostname;
   const hostKey = String(import.meta.env.VITE_EIMZO_API_KEY ?? '').trim();
   if (hostKey) {
@@ -82,76 +89,13 @@ const addConfiguredApiKeys = (module: EimzoModule) => {
 
 };
 
-const probeCapiwsUrl = (url: string): Promise<boolean> => new Promise((resolve) => {
-  if (!window.WebSocket) {
-    resolve(false);
-    return;
-  }
-
-  let settled = false;
-  const finish = (value: boolean) => {
-    if (settled) return;
-    settled = true;
-    resolve(value);
-  };
-
-  try {
-    const socket = new WebSocket(url);
-    const timeout = window.setTimeout(() => {
-      socket.close();
-      finish(false);
-    }, 2500);
-
-    socket.onerror = () => {
-      window.clearTimeout(timeout);
-      finish(false);
-    };
-    socket.onmessage = (event) => {
-      window.clearTimeout(timeout);
-      socket.close();
-      try {
-        const payload = JSON.parse(String(event.data));
-        finish(Boolean(payload?.success));
-      } catch {
-        finish(false);
-      }
-    };
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ name: 'version' }));
-    };
-  } catch {
-    finish(false);
-  }
-});
-
-const selectWorkingCapiwsUrl = async () => {
-  const capiws = (window as any).CAPIWS;
-  if (!capiws) return;
-
-  const protocol = window.location.protocol.toLowerCase() === 'https:' ? 'wss' : 'ws';
-  const port = protocol === 'wss' ? '64443' : '64646';
-  const candidates = [
-    capiws.URL,
-    `${protocol}://127.0.0.1:${port}/service/cryptapi`,
-    `${protocol}://localhost:${port}/service/cryptapi`,
-  ].filter((url, index, all) => typeof url === 'string' && url && all.indexOf(url) === index);
-
-  for (const url of candidates) {
-    if (await probeCapiwsUrl(url)) {
-      capiws.URL = url;
-      return;
-    }
-  }
-
-  throw new Error('E-IMZO dasturi topilmadi yoki brauzer local E-IMZO WebSocket ulanishini bloklamoqda');
-};
-
-const getModule = async (): Promise<EimzoModule> => {
+const getModule = async (): Promise<SmartRouteCapiwsClient> => {
   if (!modulePromise) {
-    modulePromise = initModuleEimzo()
-      .then(async (module) => {
+    modulePromise = Promise.resolve()
+      .then(async () => {
+        const module = new SmartRouteCapiwsClient();
         addConfiguredApiKeys(module);
-        await selectWorkingCapiwsUrl();
+        await module.selectWorkingUrl();
         await module.checkVersion().catch((error: unknown) => {
           throw new Error(normalizeErrorMessage(error));
         });
@@ -234,6 +178,10 @@ export const bindEimzoKeyToUser = async (userId: number, key: EimzoKey, authToke
     throw new Error('Tanlangan E-IMZO kalitidan PINFL, INN yoki sertifikat seriali olinmadi');
   }
 
+  const certificate = buildCertificatePayload(key);
+  const challenge = await getChallenge();
+  const signature = await signChallenge(key, challenge);
+
   const response = await fetch(`${API_BASE}/users/${userId}/eimzo`, {
     method: 'PATCH',
     headers: {
@@ -241,7 +189,10 @@ export const bindEimzoKeyToUser = async (userId: number, key: EimzoKey, authToke
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({
-      key: buildCertificatePayload(key),
+      key: certificate,
+      certificate: JSON.stringify(certificate),
+      challenge,
+      signature,
     }),
   });
   const payload = await response.json().catch(() => null);
@@ -265,8 +216,8 @@ const signChallenge = async (key: EimzoKey, challenge: string): Promise<string> 
   if (keyIsExpired(key)) throw new Error('Kalit muddati tugagan');
   try {
     const module = await getModule();
-    const result = await module.signPkcs7(key as any, challenge) as any;
-    const signature = result?.hash?.pkcs7_64 ?? result?.hash?.pkcs7 ?? result?.hash?.signature_hex ?? result?.pkcs7_64;
+    const result = await module.signPkcs7(key, challenge);
+    const signature = result.pkcs7_64;
     if (!signature) {
       throw new Error('Imzo bekor qilindi');
     }

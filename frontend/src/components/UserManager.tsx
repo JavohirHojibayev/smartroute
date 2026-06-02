@@ -14,7 +14,6 @@ import {
   X,
   Eye,
   EyeOff,
-  FileKey2,
   RefreshCw,
 } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -22,7 +21,6 @@ import { resolveApiBaseUrl } from '../utils/apiBase';
 import eImzoIcon from '../assets/e-imzo.png';
 import {
   bindEimzoKeyToUser,
-  formatEimzoKeyLabel,
   formatEimzoKeyLocation,
   getEimzoLocalhostUrl,
   getEimzoKeys,
@@ -132,6 +130,29 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
     return payload.error;
   }
   return fallback;
+};
+
+const formatEimzoCertificateOption = (key: EimzoKey): string => {
+  const identity = getEimzoKeyIdentity(key);
+  const ownerName = key.CN || key.alias || key.name || 'E-IMZO kalit';
+  const documentNumber = identity.pinfl || identity.inn || identity.certificateSerial;
+  return documentNumber ? `${documentNumber} - ${ownerName}` : ownerName;
+};
+
+const formatEimzoDate = (value?: Date | string): string => {
+  if (!value) return "Noma'lum";
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return String(value);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+const getEimzoOwnerType = (key: EimzoKey): string => {
+  const raw = `${key.O ?? ''} ${key.type ?? ''}`.toLowerCase();
+  if (raw.includes('yuridik') || raw.includes('юрид')) return 'YURIDIK SHAXS';
+  return 'JISMONIY SHAXS';
 };
 
 export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissionsChanged, initialTab = 'users' }: UserManagerProps) => {
@@ -303,7 +324,13 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
 
   useEffect(() => {
     if (!eimzoBindSuccess) return;
-    const timeout = setTimeout(() => setEimzoBindSuccess(null), 5000);
+    const timeout = setTimeout(() => {
+      setEimzoModalUser(null);
+      setEimzoKeys([]);
+      setSelectedEimzoIndex(-1);
+      setEimzoBindError(null);
+      setEimzoBindSuccess(null);
+    }, 3000);
     return () => clearTimeout(timeout);
   }, [eimzoBindSuccess]);
 
@@ -356,7 +383,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
     try {
       const keys = await getEimzoKeys();
       setEimzoKeys(keys);
-      setSelectedEimzoIndex(keys.length > 0 ? 0 : -1);
+      setSelectedEimzoIndex(-1);
       if (keys.length === 0) {
         setEimzoBindError('Kalit topilmadi');
       }
@@ -405,9 +432,8 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
     try {
       const updatedUser = await bindEimzoKeyToUser(eimzoModalUser.id, selectedEimzoKey, authToken) as ApiUser;
       setUsers((prev) => prev.map((item) => item.id === updatedUser.id ? updatedUser : item));
-      setEimzoModalUser(updatedUser);
-      setEimzoBindSuccess('tizimga biriktirildi');
       await loadUsers(true);
+      setEimzoBindSuccess('Kalit muvaffaqiyatli biriktirildi');
     } catch (error) {
       setEimzoBindError(error instanceof Error ? error.message : 'E-IMZO kalitni biriktirishda xatolik');
     } finally {
@@ -681,7 +707,6 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     const displayName = user.fullName || user.username;
                     const canDelete = canManage && user.id !== currentUserId && user.username.toLowerCase() !== SUPERADMIN_USERNAME;
                     const canBindEimzo = canManage || user.id === currentUserId;
-                    const eimzoId = user.pinfl || user.inn || user.certificateSerial || null;
 
                     return (
                       <tr key={user.id} className="hover:bg-blue-500/5 transition-all group">
@@ -724,21 +749,12 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                             type="button"
                             onClick={() => openEimzoBindModal(user)}
                             disabled={!canBindEimzo}
-                            className={`inline-flex h-12 w-12 items-center justify-center rounded-xl border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                              user.eimzoEnabled
-                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:border-emerald-400/50'
-                                : 'border-slate-700/70 bg-slate-900/40 text-slate-300 hover:border-blue-500/50 hover:text-blue-300'
-                            }`}
+                            className="inline-flex h-9 w-28 items-center justify-center border-0 bg-transparent p-0 transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
                             title={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
                             aria-label={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
                           >
-                            <img src={eImzoIcon} alt="" className="h-7 w-7 object-contain" />
+                            <img src={eImzoIcon} alt="" className="h-8 w-28 object-contain" />
                           </button>
-                          {eimzoId ? (
-                            <p className="mt-1 max-w-[12rem] truncate text-[11px] text-slate-500" title={eimzoId}>
-                              {eimzoId}
-                            </p>
-                          ) : null}
                         </td>
                         <td className="px-6 py-4 text-right pr-8 space-x-2">
                           <button
@@ -1111,7 +1127,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                 event.preventDefault();
                 void bindSelectedEimzoKey();
               }}
-              className="glass-panel w-full max-w-lg rounded-3xl border border-slate-700/60 p-6"
+              className="glass-panel w-full max-w-xl rounded-[26px] border border-slate-700/60 p-6 shadow-2xl shadow-slate-950/50"
             >
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
@@ -1131,43 +1147,107 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                 </button>
               </div>
 
-              <label className="block">
-                <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">
-                  Kompyuterdagi DSKEYS / PFX kalitlar
-                </span>
-                <select
-                  value={selectedEimzoIndex}
-                  disabled={isLoadingEimzoKeys || isBindingEimzo || eimzoKeys.length === 0}
-                  onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              {eimzoBindSuccess ? (
+                <div
+                  className="mt-6 flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/12 px-6 py-10 text-center shadow-lg shadow-emerald-950/20"
+                  role="status"
+                  aria-live="polite"
                 >
-                  {eimzoKeys.length === 0 ? (
-                    <option value={-1}>{isLoadingEimzoKeys ? 'Kalitlar yuklanmoqda...' : 'Kalit topilmadi'}</option>
-                  ) : (
-                    eimzoKeys.map((key, index) => (
-                      <option key={`${key.serialNumber ?? key.name ?? key.alias ?? index}-${index}`} value={index}>
-                        {formatEimzoKeyLabel(key)}
+                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-500/20 text-emerald-200">
+                    <CheckCircle2 size={34} />
+                  </div>
+                  <p className="text-xl font-black text-emerald-100">{eimzoBindSuccess}</p>
+                  <p className="mt-3 max-w-sm text-sm font-semibold text-emerald-200/80">
+                    Oyna 3 soniyadan keyin avtomatik yopiladi
+                  </p>
+                </div>
+              ) : (
+                <>
+              <div className="grid grid-cols-[minmax(0,1fr)_3.75rem] items-end gap-3">
+                <fieldset className="min-w-0 rounded-xl border border-slate-600/80 bg-slate-950/20 px-3 pb-2 pt-1 transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+                  <legend className="px-2 text-sm font-medium text-slate-300">Sertifikatni tanlang</legend>
+                  <select
+                    value={selectedEimzoIndex}
+                    disabled={isLoadingEimzoKeys || isBindingEimzo || eimzoKeys.length === 0}
+                    onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
+                    className="w-full min-w-0 bg-transparent py-1 text-sm font-semibold text-slate-100 outline-none [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60"
+                    aria-label="Sertifikatni tanlang"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    {eimzoKeys.length === 0 ? (
+                      <option value={-1} style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+                        {isLoadingEimzoKeys ? 'Kalitlar yuklanmoqda...' : 'Kalit topilmadi'}
                       </option>
-                    ))
-                  )}
-                </select>
-              </label>
+                    ) : (
+                      <>
+                        <option value={-1} disabled style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+                          Sertifikatni tanlang
+                        </option>
+                        {eimzoKeys.map((key, index) => (
+                          <option
+                            key={`${key.serialNumber ?? key.name ?? key.alias ?? index}-${index}`}
+                            value={index}
+                            style={{
+                              backgroundColor: selectedEimzoIndex === index ? '#2563eb' : '#ffffff',
+                              color: selectedEimzoIndex === index ? '#ffffff' : '#0f172a',
+                            }}
+                          >
+                            {formatEimzoCertificateOption(key)}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </fieldset>
+                <button
+                  type="button"
+                  onClick={() => void loadEimzoKeysForBinding()}
+                  disabled={isLoadingEimzoKeys || isBindingEimzo}
+                  className="inline-flex h-[58px] w-[60px] items-center justify-center rounded-xl border border-slate-600/80 bg-slate-950/20 text-slate-200 transition-colors hover:border-blue-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="E-IMZO kalitlarini yangilash"
+                  title="Yangilash"
+                >
+                  <RefreshCw size={20} className={isLoadingEimzoKeys ? 'animate-spin' : ''} />
+                </button>
+              </div>
 
               {selectedEimzoKey ? (
-                <div className="mt-3 rounded-xl border border-slate-700/70 bg-slate-900/35 px-3 py-2 text-xs text-slate-400">
-                  <p className="truncate" title={formatEimzoKeyLocation(selectedEimzoKey)}>
-                    {formatEimzoKeyLocation(selectedEimzoKey)}
-                  </p>
-                  {(() => {
-                    const identity = getEimzoKeyIdentity(selectedEimzoKey);
-                    const parts = [
-                      identity.pinfl ? `PINFL: ${identity.pinfl}` : null,
-                      identity.inn ? `INN: ${identity.inn}` : null,
-                      identity.certificateSerial ? `Serial: ${identity.certificateSerial}` : null,
-                    ].filter(Boolean);
-                    return parts.length > 0 ? <p className="mt-1 truncate">{parts.join(' | ')}</p> : null;
-                  })()}
-                </div>
+                (() => {
+                  const identity = getEimzoKeyIdentity(selectedEimzoKey);
+                  const ownerName = selectedEimzoKey.CN || selectedEimzoKey.alias || "Noma'lum";
+                  const serial = identity.certificateSerial || selectedEimzoKey.serialNumber || selectedEimzoKey.serial || "Noma'lum";
+                  const validity = `${formatEimzoDate(selectedEimzoKey.validFrom)} - ${formatEimzoDate(selectedEimzoKey.validTo)}`;
+                  return (
+                    <div className="mt-3 rounded-xl border border-slate-600/70 bg-slate-950/25 p-4 text-sm shadow-lg shadow-slate-950/20">
+                      <div className="grid gap-2">
+                        <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+                          <span className="font-bold text-slate-200">Seriya raqami:</span>
+                          <span className="truncate text-slate-300" title={serial}>{serial}</span>
+                        </div>
+                        <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+                          <span className="font-bold text-slate-200">JSHSHIR:</span>
+                          <span className="flex min-w-0 items-center gap-2 text-slate-300">
+                            <span className="truncate" title={identity.pinfl ?? "Noma'lum"}>{identity.pinfl ?? "Noma'lum"}</span>
+                            <span className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold uppercase text-emerald-300">
+                              {getEimzoOwnerType(selectedEimzoKey)}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+                          <span className="font-bold text-slate-200">F.I.SH:</span>
+                          <span className="truncate text-slate-300" title={ownerName}>{ownerName}</span>
+                        </div>
+                        <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+                          <span className="font-bold text-slate-200">Amal qilish muddati:</span>
+                          <span className="text-slate-300">{validity}</span>
+                        </div>
+                        <p className="mt-2 truncate border-t border-slate-700/70 pt-2 text-xs text-slate-500" title={formatEimzoKeyLocation(selectedEimzoKey)}>
+                          {formatEimzoKeyLocation(selectedEimzoKey)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()
               ) : null}
 
               {eimzoBindError ? (
@@ -1184,31 +1264,17 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                 </div>
               ) : null}
 
-              {eimzoBindSuccess ? (
-                <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200" role="status">
-                  {eimzoBindSuccess}
-                </div>
-              ) : null}
-
-              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => void loadEimzoKeysForBinding()}
-                  disabled={isLoadingEimzoKeys || isBindingEimzo}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <RefreshCw size={16} className={isLoadingEimzoKeys ? 'animate-spin' : ''} />
-                  Yangilash
-                </button>
+              <div className="mt-6">
                 <button
                   type="submit"
-                  disabled={!selectedEimzoKey || isLoadingEimzoKeys || isBindingEimzo}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!selectedEimzoKey || isLoadingEimzoKeys || isBindingEimzo || Boolean(eimzoBindSuccess)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-4 text-base font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
                 >
-                  <FileKey2 size={16} />
-                  {isBindingEimzo ? 'Biriktirilmoqda...' : 'Biriktirish'}
+                  {isBindingEimzo ? 'Biriktirilmoqda...' : eimzoBindSuccess ? 'Yopilmoqda...' : 'Biriktirish'}
                 </button>
               </div>
+                </>
+              )}
             </motion.form>
           </motion.div>
         ) : null}

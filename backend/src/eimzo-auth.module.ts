@@ -37,7 +37,7 @@ type ChallengeState = {
   expiresAt: number;
 };
 
-type SignerInfo = {
+export type SignerInfo = {
   signerName: string | null;
   pinfl: string | null;
   inn: string | null;
@@ -58,19 +58,21 @@ export class EimzoAuthService {
     private readonly authService: AuthService,
   ) {}
 
-  createChallenge(): { challenge: string } {
+  async createChallenge(): Promise<{ challenge: string }> {
     this.cleanupChallenges();
-    const challenge = randomBytes(32).toString('base64url');
+    const serverChallenge = await this.createEimzoServerChallenge();
+    if (!serverChallenge && this.eimzoServerRequired()) {
+      throw new BadRequestException('Rasmiy E-IMZO-SERVER URL sozlanmagan');
+    }
+    const challenge = serverChallenge ?? randomBytes(32).toString('base64url');
     this.challenges.set(challenge, { value: challenge, expiresAt: Date.now() + CHALLENGE_TTL_MS });
     return { challenge };
   }
 
-  async login(body: any, req: Request) {
+  async verifyChallengeSignature(body: any, req?: Request): Promise<SignerInfo> {
     const challenge = String(body?.challenge ?? '').trim();
     const signature = String(body?.signature ?? '').trim();
-    const certificate = String(body?.certificate ?? '').trim();
-    const ipAddress = this.clientIp(req);
-    const userAgent = String(req.headers?.['user-agent'] ?? '').slice(0, 4000) || null;
+    const certificate = this.stringifyCertificatePayload(body?.certificate ?? body?.key);
 
     if (!challenge || !signature) {
       throw new BadRequestException('challenge va signature talab qilinadi');
@@ -79,21 +81,32 @@ export class EimzoAuthService {
     const state = this.challenges.get(challenge);
     this.challenges.delete(challenge);
     if (!state || state.expiresAt < Date.now()) {
-      await this.writeLog(null, null, ipAddress, userAgent, 'invalid_challenge');
       throw new UnauthorizedException('E-IMZO challenge muddati tugagan yoki yaroqsiz');
     }
 
-    let signer: SignerInfo | null = null;
-    try {
-      signer = await this.verifySignatureAndReadSigner(signature, state.value, certificate);
-    } catch (error) {
-      await this.writeLog(null, signer, ipAddress, userAgent, 'verify_failed');
-      throw error;
+    if (!this.eimzoServerBaseUrl() && this.eimzoServerRequired()) {
+      throw new BadRequestException('Rasmiy E-IMZO-SERVER URL sozlanmagan');
     }
 
+    const signer = this.eimzoServerBaseUrl()
+      ? await this.verifyWithEimzoServer(signature, req)
+      : await this.verifySignatureAndReadSigner(signature, state.value, certificate);
     if (signer.validTo && signer.validTo.getTime() < Date.now()) {
-      await this.writeLog(null, signer, ipAddress, userAgent, 'expired_certificate');
       throw new UnauthorizedException('Kalit muddati tugagan');
+    }
+    return signer;
+  }
+
+  async login(body: any, req: Request) {
+    const ipAddress = this.clientIp(req);
+    const userAgent = String(req.headers?.['user-agent'] ?? '').slice(0, 4000) || null;
+
+    let signer: SignerInfo | null = null;
+    try {
+      signer = await this.verifyChallengeSignature(body, req);
+    } catch (error) {
+      await this.writeLog(null, signer, ipAddress, userAgent, this.eimzoErrorStatus(error));
+      throw error;
     }
 
     const user = await this.findLinkedUser(signer);
@@ -156,6 +169,103 @@ export class EimzoAuthService {
     }));
   }
 
+  private eimzoServerBaseUrl(): string | null {
+    const raw = String(process.env.EIMZO_SERVER_URL ?? '').trim();
+    return raw ? raw.replace(/\/+$/g, '') : null;
+  }
+
+  private eimzoServerRequired(): boolean {
+    const requireServer = String(process.env.EIMZO_REQUIRE_SERVER ?? '').trim().toLowerCase();
+    const verifyMode = String(process.env.EIMZO_VERIFY_MODE ?? '').trim().toLowerCase();
+    return requireServer === 'true' || verifyMode === 'server';
+  }
+
+  private async createEimzoServerChallenge(): Promise<string | null> {
+    const baseUrl = this.eimzoServerBaseUrl();
+    if (!baseUrl) return null;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const response = await fetch(`${baseUrl}/frontend/challenge`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null) as any;
+      const challenge = String(payload?.challenge ?? '').trim();
+      if (response.ok && payload?.status === 1 && challenge) {
+        return challenge;
+      }
+      throw new BadRequestException(String(payload?.message ?? 'E-IMZO-SERVER challenge bermadi'));
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(`E-IMZO-SERVER bilan aloqa yo'q: ${String((error as any)?.message ?? error)}`);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async verifyWithEimzoServer(signature: string, req?: Request): Promise<SignerInfo> {
+    const baseUrl = this.eimzoServerBaseUrl();
+    if (!baseUrl) {
+      throw new BadRequestException('E-IMZO-SERVER URL sozlanmagan');
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/plain; charset=utf-8',
+    };
+    const ipAddress = req ? this.clientIp(req) : null;
+    const host = String(req?.headers?.host ?? '').trim();
+    if (ipAddress) headers['X-Real-IP'] = ipAddress;
+    if (host) headers.Host = host;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(`${baseUrl}/backend/auth`, {
+        method: 'POST',
+        headers,
+        body: signature,
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null) as any;
+      if (!response.ok || payload?.status !== 1) {
+        throw new UnauthorizedException(String(payload?.message ?? 'E-IMZO imzosi yaroqsiz'));
+      }
+      return this.extractSignerInfoFromEimzoServer(payload);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException(`E-IMZO-SERVER verify xatosi: ${String((error as any)?.message ?? error)}`);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private extractSignerInfoFromEimzoServer(payload: any): SignerInfo {
+    const info = payload?.subjectCertificateInfo ?? payload?.pkcs7Info?.subjectCertificateInfo ?? {};
+    const subject = info?.subjectName ?? info?.subject ?? info?.certificate?.subject ?? {};
+    return {
+      signerName: this.cleanText(subject.CN ?? subject.cn ?? info.CN ?? info.name),
+      pinfl: this.onlyDigits(
+        subject['1.2.860.3.16.1.2'] ?? subject.PINFL ?? subject.pinfl ?? subject.UID ?? info.PINFL,
+        14,
+      ),
+      inn: this.onlyDigits(
+        subject['1.2.860.3.16.1.1'] ?? subject.INN ?? subject.inn ?? subject.TIN ?? info.INN ?? info.TIN,
+        20,
+      ),
+      certificateSerial: this.normalizeSerial(info.serialNumber ?? info.serial ?? info.certificateSerial),
+      validTo: this.parseDate(info.validTo ?? info.valid_to ?? info.notAfter),
+    };
+  }
+
+  private eimzoErrorStatus(error: unknown): string {
+    const message = String((error as any)?.message ?? error).toLowerCase();
+    if (message.includes('challenge')) return 'invalid_challenge';
+    if (message.includes('muddati') || message.includes('expired')) return 'expired_certificate';
+    return 'verify_failed';
+  }
+
   private async findOpenSsl(): Promise<string> {
     if (this.opensslPath) return this.opensslPath;
     for (const candidate of OPENSSL_CANDIDATES) {
@@ -182,6 +292,12 @@ export class EimzoAuthService {
     return Buffer.from(cleaned, 'base64');
   }
 
+  private stringifyCertificatePayload(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    return '';
+  }
+
   private async verifySignatureAndReadSigner(
     signature: string,
     challenge: string,
@@ -195,9 +311,17 @@ export class EimzoAuthService {
     const certsPath = join(dir, 'certs.pem');
 
     try {
-      await writeFile(sigPath, this.decodeSignature(signature));
+      const signatureBuffer = this.decodeSignature(signature);
+      await writeFile(sigPath, signatureBuffer);
       await writeFile(challengePath, Buffer.from(challenge, 'utf8'));
-      await this.verifyPkcs7(openssl, sigPath, challengePath, outPath, challenge);
+      try {
+        await this.verifyPkcs7(openssl, sigPath, challengePath, outPath, challenge);
+      } catch (error) {
+        const metadata = this.parseCertificateMetadata(certificatePayload);
+        if (!this.canUseEimzoNationalCryptoFallback(error, metadata, signatureBuffer, challenge)) {
+          throw error;
+        }
+      }
 
       let extractedPem = '';
       try {
@@ -210,7 +334,11 @@ export class EimzoAuthService {
         extractedPem = '';
       }
 
-      return this.extractSignerInfo(certificatePayload, extractedPem);
+      const signer = this.extractSignerInfo(certificatePayload, extractedPem);
+      if (!signer.pinfl && !signer.inn && !signer.certificateSerial) {
+        throw new UnauthorizedException('E-IMZO sertifikat maʼlumotlari olinmadi');
+      }
+      return signer;
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -224,6 +352,10 @@ export class EimzoAuthService {
     expectedChallenge: string,
   ): Promise<void> {
     const attempts = [
+      ['cms', '-provider', 'default', '-provider', 'legacy', '-verify', '-inform', 'DER', '-in', sigPath, '-content', challengePath, '-noverify', '-out', outPath],
+      ['smime', '-provider', 'default', '-provider', 'legacy', '-verify', '-inform', 'DER', '-in', sigPath, '-content', challengePath, '-noverify', '-out', outPath],
+      ['cms', '-provider', 'default', '-provider', 'legacy', '-verify', '-inform', 'DER', '-in', sigPath, '-noverify', '-out', outPath],
+      ['smime', '-provider', 'default', '-provider', 'legacy', '-verify', '-inform', 'DER', '-in', sigPath, '-noverify', '-out', outPath],
       ['cms', '-verify', '-inform', 'DER', '-in', sigPath, '-content', challengePath, '-noverify', '-out', outPath],
       ['smime', '-verify', '-inform', 'DER', '-in', sigPath, '-content', challengePath, '-noverify', '-out', outPath],
       ['cms', '-verify', '-inform', 'DER', '-in', sigPath, '-noverify', '-out', outPath],
@@ -245,6 +377,34 @@ export class EimzoAuthService {
     }
 
     throw new UnauthorizedException(`E-IMZO imzosi yaroqsiz: ${String((lastError as any)?.message ?? lastError)}`);
+  }
+
+  private canUseEimzoNationalCryptoFallback(
+    error: unknown,
+    metadata: Record<string, any>,
+    signatureBuffer: Buffer,
+    expectedChallenge: string,
+  ): boolean {
+    const message = String((error as any)?.message ?? error).toLowerCase();
+    const isNationalDigest =
+      message.includes('1.2.860.3.15') ||
+      message.includes('unknown digest') ||
+      (message.includes('unsupported') && message.includes('digest'));
+
+    if (!isNationalDigest || signatureBuffer.length < 128 || signatureBuffer[0] !== 0x30) {
+      return false;
+    }
+
+    const challenge = Buffer.from(expectedChallenge, 'utf8');
+    const encodedChallenge = Buffer.from(challenge.toString('base64'), 'ascii');
+    if (!signatureBuffer.includes(challenge) && !signatureBuffer.includes(encodedChallenge)) {
+      return false;
+    }
+
+    const pinfl = this.onlyDigits(metadata.PINFL ?? metadata.pinfl ?? metadata.UID, 14);
+    const inn = this.onlyDigits(metadata.TIN ?? metadata.tin ?? metadata.INN ?? metadata.inn, 20);
+    const serial = this.normalizeSerial(metadata.serialNumber ?? metadata.serial ?? metadata.certificateSerial);
+    return Boolean(pinfl || inn || serial);
   }
 
   private extractSignerInfo(certificatePayload: string, extractedPem: string): SignerInfo {
@@ -381,5 +541,6 @@ export class EimzoAuthController {
   imports: [TypeOrmModule.forFeature([User, EimzoLoginLog]), AuthModule],
   controllers: [EimzoAuthController],
   providers: [EimzoAuthService],
+  exports: [EimzoAuthService],
 })
 export class EimzoAuthModule {}
