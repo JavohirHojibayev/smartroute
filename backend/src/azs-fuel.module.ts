@@ -89,6 +89,12 @@ type AzsKindContext = {
   postsForKind: any[];
 };
 
+type AzsDashboardStatsResult = {
+  stats: Record<string, any>;
+  kindFilter: AzsObjectKindFilter;
+  token?: string;
+};
+
 @Injectable()
 export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AzsFuelService.name);
@@ -124,6 +130,11 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       if (Date.now() < this.nextSyncAt) return;
       void this.syncNow().catch(() => undefined);
     }, config.autoSyncEveryMs);
+    this.refreshAzsDashboardStatsInBackground(
+      config,
+      undefined,
+      this.azsDashboardStatsCacheKey(config, undefined),
+    );
     void this.syncNow().catch(() => undefined);
   }
 
@@ -865,6 +876,19 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   );
 
   /** GetDevices + GetDevicePosts — post/jami filtrlari uchun (qisqa muddatli kesh) */
+  private readonly AZS_DASHBOARD_CACHE_MS = Math.max(
+    10_000,
+    Math.min(300_000, Number.parseInt(process.env.AZS_DASHBOARD_CACHE_MS ?? '60000', 10) || 60_000),
+  );
+  private readonly AZS_LEVEL_CHART_CACHE_MS = Math.max(
+    10_000,
+    Math.min(300_000, Number.parseInt(process.env.AZS_LEVEL_CHART_CACHE_MS ?? '60000', 10) || 60_000),
+  );
+  private azsDashboardStatsCache = new Map<string, { at: number; value: AzsDashboardStatsResult }>();
+  private azsDashboardStatsRefreshInFlight = new Map<string, Promise<void>>();
+  private azsLevelMapCache = new Map<string, { at: number; value: Map<string, number> | null }>();
+  private azsLevelMapRefreshInFlight = new Map<string, Promise<void>>();
+
   private async loadAzsObjectKindContext(config: AzsConfig, objectKind?: string): Promise<AzsKindContext> {
     const cacheKey = `${config.baseUrl}|${this.normalizeWhitespace(objectKind || 'all').toLowerCase() || 'all'}`;
     const now = Date.now();
@@ -970,20 +994,66 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     return value;
   }
 
-  private async fetchAzsDashboardStats(
+  private azsDashboardStatsCacheKey(config: AzsConfig, objectKind?: string): string {
+    return `${config.baseUrl}|${this.normalizeWhitespace(objectKind || 'all').toLowerCase() || 'all'}`;
+  }
+
+  private emptyAzsDashboardStatsResult(): AzsDashboardStatsResult {
+    const fallback = this.emptyAzsStats();
+    fallback.objectKinds = [{ key: 'all', label: "Barcha ob'ektlar" }];
+    return { stats: fallback, kindFilter: this.azsKindFilterAll, token: '' };
+  }
+
+  private refreshAzsDashboardStatsInBackground(config: AzsConfig, objectKind: string | undefined, cacheKey: string): void {
+    if (this.azsDashboardStatsRefreshInFlight.has(cacheKey)) return;
+
+    const task = this.fetchAzsDashboardStatsFresh(config, objectKind)
+      .then((value) => {
+        this.azsDashboardStatsCache.set(cacheKey, { at: Date.now(), value });
+      })
+      .catch((error) => {
+        this.logger.warn(`AZS dashboard background refresh: ${String((error as any)?.message ?? error)}`);
+      })
+      .finally(() => {
+        this.azsDashboardStatsRefreshInFlight.delete(cacheKey);
+      });
+
+    this.azsDashboardStatsRefreshInFlight.set(cacheKey, task);
+  }
+
+  private fetchAzsDashboardStats(
     config: AzsConfig,
     objectKind?: string,
-  ): Promise<{ stats: Record<string, any>; kindFilter: AzsObjectKindFilter }> {
+  ): AzsDashboardStatsResult {
+    if (!config.enabled || !config.username || !config.password) {
+      return this.emptyAzsDashboardStatsResult();
+    }
+
+    const cacheKey = this.azsDashboardStatsCacheKey(config, objectKind);
+    const cached = this.azsDashboardStatsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && now - cached.at < this.AZS_DASHBOARD_CACHE_MS) {
+      return cached.value;
+    }
+
+    this.refreshAzsDashboardStatsInBackground(config, objectKind, cacheKey);
+    return cached?.value ?? this.emptyAzsDashboardStatsResult();
+  }
+
+  private async fetchAzsDashboardStatsFresh(
+    config: AzsConfig,
+    objectKind?: string,
+  ): Promise<AzsDashboardStatsResult> {
     const fallback = this.emptyAzsStats();
     fallback.objectKinds = [{ key: 'all', label: "Barcha ob'ektlar" }];
     if (!config.enabled || !config.username || !config.password) {
-      return { stats: fallback, kindFilter: this.azsKindFilterAll };
+      return { stats: fallback, kindFilter: this.azsKindFilterAll, token: '' };
     }
 
     try {
       const ctx = await this.loadAzsObjectKindContext(config, objectKind);
       if (!ctx.token) {
-        return { stats: fallback, kindFilter: this.azsKindFilterAll };
+        return { stats: fallback, kindFilter: this.azsKindFilterAll, token: '' };
       }
 
       const headers = { Accept: 'application/json', Authorization: `Bearer ${ctx.token}` };
@@ -1080,10 +1150,10 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         azsSectionNames,
         sectionGaugeRows,
       };
-      return { stats, kindFilter };
+      return { stats, kindFilter, token: ctx.token };
     } catch (error) {
       this.logger.warn(`AZS dashboard stats olishda xatolik: ${String((error as any)?.message ?? error)}`);
-      return { stats: fallback, kindFilter: this.azsKindFilterAll };
+      throw error;
     }
   }
 
@@ -2304,6 +2374,119 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
    * DeviceEventsdan level qatorlarini olib, vaqt qutisiga (soat/kun) tushiramiz.
    * DBdan hisoblangan qiymat bilan farq bo'lsa, API qiymati ustun.
    */
+  private azsLevelMapCacheKey(
+    config: AzsConfig,
+    kindFilter: AzsObjectKindFilter,
+    start: Date,
+    end: Date,
+    sameDay: boolean,
+    stationFilterRaw: string,
+    sectionFilterRaw: string,
+    allSectionNames: string[],
+  ): string {
+    const kindKey = kindFilter.kindAll
+      ? 'all'
+      : [
+          ...kindFilter.deviceIds.map((v) => `d:${this.normalizeWhitespace(v)}`),
+          ...kindFilter.postIds.map((v) => `p:${this.normalizeWhitespace(v)}`),
+          ...kindFilter.postNames.map((v) => `n:${this.normalizeWhitespace(v)}`),
+        ]
+          .filter(Boolean)
+          .sort()
+          .join(',');
+    return [
+      config.baseUrl,
+      kindKey,
+      start.toISOString(),
+      end.toISOString(),
+      sameDay ? 'day' : 'range',
+      this.normalizeWhitespace(stationFilterRaw).toLowerCase() || 'all',
+      this.normalizeWhitespace(sectionFilterRaw).toLowerCase() || 'all',
+      allSectionNames.map((v) => this.normalizeWhitespace(v).toLowerCase()).filter(Boolean).sort().join(','),
+    ].join('|');
+  }
+
+  private refreshAzsLevelMapInBackground(
+    config: AzsConfig,
+    token: string,
+    kindFilter: AzsObjectKindFilter,
+    start: Date,
+    end: Date,
+    sameDay: boolean,
+    stationFilterRaw: string,
+    sectionFilterRaw: string,
+    allSectionNames: string[],
+    cacheKey: string,
+  ): void {
+    if (this.azsLevelMapRefreshInFlight.has(cacheKey)) return;
+
+    const task = this.fetchAzsLevelMapFromApi(
+      config,
+      token,
+      kindFilter,
+      start,
+      end,
+      sameDay,
+      stationFilterRaw,
+      sectionFilterRaw,
+      allSectionNames,
+    )
+      .then((value) => {
+        this.azsLevelMapCache.set(cacheKey, { at: Date.now(), value });
+      })
+      .catch((error) => {
+        this.logger.warn(`AZS level chart background refresh: ${String((error as any)?.message ?? error)}`);
+      })
+      .finally(() => {
+        this.azsLevelMapRefreshInFlight.delete(cacheKey);
+      });
+
+    this.azsLevelMapRefreshInFlight.set(cacheKey, task);
+  }
+
+  private getAzsLevelMapFromApiCached(
+    config: AzsConfig,
+    token: string,
+    kindFilter: AzsObjectKindFilter,
+    start: Date,
+    end: Date,
+    sameDay: boolean,
+    stationFilterRaw: string,
+    sectionFilterRaw: string,
+    allSectionNames: string[],
+  ): Map<string, number> | null {
+    if (!token) return null;
+    const cacheKey = this.azsLevelMapCacheKey(
+      config,
+      kindFilter,
+      start,
+      end,
+      sameDay,
+      stationFilterRaw,
+      sectionFilterRaw,
+      allSectionNames,
+    );
+    const cached = this.azsLevelMapCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && now - cached.at < this.AZS_LEVEL_CHART_CACHE_MS) {
+      return cached.value;
+    }
+
+    this.refreshAzsLevelMapInBackground(
+      config,
+      token,
+      kindFilter,
+      start,
+      end,
+      sameDay,
+      stationFilterRaw,
+      sectionFilterRaw,
+      allSectionNames,
+      cacheKey,
+    );
+    return cached?.value ?? null;
+  }
+
   private async fetchAzsLevelMapFromApi(
     config: AzsConfig,
     token: string,
@@ -2870,8 +3053,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
     const startSql = this.toSqliteDateTime(start);
     const endSql = this.toSqliteDateTime(end);
-    const { stats: azsStats, kindFilter } = await this.fetchAzsDashboardStats(config, objectKind);
-    const kindCtx = await this.loadAzsObjectKindContext(config, objectKind);
+    const dashboardStats = this.fetchAzsDashboardStats(config, objectKind);
+    const { stats: azsStats, kindFilter } = dashboardStats;
+    const azsToken = dashboardStats.token || '';
     // AZS "Заправки" = eventsType 131 (Выдача по карте) va 132 (Выдача без карты)
     let baseQb = this.fuelRepo
       .createQueryBuilder('entry')
@@ -3073,10 +3257,10 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const levelAllSectionsAggSum =
       this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'sum').toLowerCase() === 'sum';
     const apiLevelMap =
-      config.enabled && kindCtx?.token
-        ? await this.fetchAzsLevelMapFromApi(
+      config.enabled && azsToken
+        ? this.getAzsLevelMapFromApiCached(
             config,
-            kindCtx.token,
+            azsToken,
             kindFilter,
             start,
             end,
@@ -3084,7 +3268,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
             stationFilter,
             sectionFilter,
             imputeSectionNames,
-          ).catch(() => null)
+          )
         : null;
 
     /**

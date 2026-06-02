@@ -136,6 +136,11 @@ const FUEL_NAV_ITEMS: ReadonlyArray<{ id: FuelNavTab; labelKey: keyof typeof uz;
 ];
 
 const API_BASE = resolveApiBaseUrl();
+const FUEL_SUMMARY_REFRESH_MS = 15_000;
+const FUEL_LEVEL_REFRESH_MS = 30_000;
+const FUEL_REPORTS_REFRESH_MS = 30_000;
+const FUEL_OBJECTS_REFRESH_MS = 30_000;
+const FUEL_RESERVOIRS_REFRESH_MS = 15_000;
 
 /** Backend `AZS_CALENDAR_UTC_OFFSET_HOURS` bilan mos (standart 5 = Toshkent) */
 const AZS_CALENDAR_OFFSET_H = Number.isFinite(Number(import.meta.env.VITE_AZS_CALENDAR_OFFSET_HOURS))
@@ -358,7 +363,10 @@ export const FuelManager = () => {
     useEffect(() => {
         if (fuelNavTab !== 'objects') return;
         let active = true;
+        let busy = false;
         const load = async () => {
+            if (busy) return;
+            busy = true;
             try {
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/objects`);
                 const payload = (await response.json().catch(() => null)) as AzsListPayload<AzsObjectRow> | null;
@@ -370,10 +378,12 @@ export const FuelManager = () => {
                 );
             } catch {
                 if (active) setAzsObjects({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+            } finally {
+                busy = false;
             }
         };
         void load();
-        const interval = setInterval(() => void load(), 12_000);
+        const interval = setInterval(() => void load(), FUEL_OBJECTS_REFRESH_MS);
         return () => {
             active = false;
             clearInterval(interval);
@@ -387,7 +397,10 @@ export const FuelManager = () => {
     useEffect(() => {
         if (fuelNavTab !== 'reservoirs') return;
         let active = true;
+        let busy = false;
         const load = async () => {
+            if (busy) return;
+            busy = true;
             try {
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/reservoirs`);
                 const payload = (await response.json().catch(() => null)) as AzsListPayload<AzsReservoirRow> | null;
@@ -399,11 +412,12 @@ export const FuelManager = () => {
                 );
             } catch {
                 if (active) setAzsReservoirs({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+            } finally {
+                busy = false;
             }
         };
         void load();
-        /** Rezervuarlar вЂ” AZS bilan yaqin real-time (server keshi ~3s) */
-        const interval = setInterval(() => void load(), 5_000);
+        const interval = setInterval(() => void load(), FUEL_RESERVOIRS_REFRESH_MS);
         return () => {
             active = false;
             clearInterval(interval);
@@ -412,8 +426,11 @@ export const FuelManager = () => {
 
     useEffect(() => {
         let active = true;
+        let busy = false;
 
         const loadSummary = async () => {
+            if (busy) return;
+            busy = true;
             try {
                 const params = new URLSearchParams();
                 if (dateFrom) params.set('dateFrom', dateFrom);
@@ -429,8 +446,26 @@ export const FuelManager = () => {
                 setError(null);
             } catch {
                 if (active) setError("Yoqilg'i integratsiyasi bilan aloqa yo'q");
+            } finally {
+                busy = false;
             }
         };
+
+        void loadSummary();
+        const interval = setInterval(() => {
+            void loadSummary();
+        }, FUEL_SUMMARY_REFRESH_MS);
+
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, [dateFrom, dateTo, selectedStation]);
+
+    useEffect(() => {
+        if (fuelNavTab !== 'reports') return;
+        let active = true;
+        let busy = false;
 
         const loadTodayCount = async () => {
             try {
@@ -478,25 +513,34 @@ export const FuelManager = () => {
             }
         };
 
-        void loadSummary();
-        void loadTodayCount();
-        void loadOperations();
+        const loadReports = async () => {
+            if (busy) return;
+            busy = true;
+            try {
+                await Promise.all([loadTodayCount(), loadOperations()]);
+            } finally {
+                busy = false;
+            }
+        };
+
+        void loadReports();
         const interval = setInterval(() => {
-            void loadSummary();
-            void loadTodayCount();
-            void loadOperations();
-        }, 5000);
+            void loadReports();
+        }, FUEL_REPORTS_REFRESH_MS);
 
         return () => {
             active = false;
             clearInterval(interval);
         };
-    }, [dateFrom, dateTo, selectedStation, operationsPage, operationsRowsPerPage]);
+    }, [fuelNavTab, dateFrom, dateTo, selectedStation, operationsPage, operationsRowsPerPage]);
 
     useEffect(() => {
         if (fuelNavTab !== 'main') return;
         let active = true;
+        let busy = false;
         const loadSectionLevel = async () => {
+            if (busy) return;
+            busy = true;
             try {
                 const params = new URLSearchParams();
                 if (levelDateFrom) params.set('dateFrom', levelDateFrom);
@@ -512,10 +556,12 @@ export const FuelManager = () => {
                 setSectionLevelSummary(payload);
             } catch {
                 if (active) setSectionLevelSummary(null);
+            } finally {
+                busy = false;
             }
         };
         void loadSectionLevel();
-        const interval = setInterval(() => void loadSectionLevel(), 5000);
+        const interval = setInterval(() => void loadSectionLevel(), FUEL_LEVEL_REFRESH_MS);
         return () => {
             active = false;
             clearInterval(interval);

@@ -1,22 +1,35 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    Check,
+    ChevronDown,
     CircleDot,
-    Clock3,
+    Copy,
+    ExternalLink,
     Fuel,
     Gauge,
-    Info,
     KeyRound,
-    MapPin,
+    List,
+    LocateFixed,
+    MessageSquare,
+    MoreVertical,
+    Pencil,
+    Radio,
+    RotateCw,
     Satellite,
     Search,
+    Settings,
+    SlidersHorizontal,
     Truck,
+    Wrench,
+    X,
 } from 'lucide-react';
-import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
-import { divIcon, latLngBounds } from 'leaflet';
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { divIcon, latLngBounds, type Map as LeafletMap } from 'leaflet';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import 'leaflet/dist/leaflet.css';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
+type VehicleKind = 'car' | 'truck' | 'forklift' | 'loader';
 
 type TrackingVehicle = {
     id: number;
@@ -32,6 +45,7 @@ type TrackingVehicle = {
     satellites: number | null;
     fuelLevel: number | null;
     status: VehicleState;
+    kind: VehicleKind;
     lastMessageAt: string | null;
     syncedAt: string | null;
 };
@@ -40,7 +54,6 @@ type VehicleMarkerCluster = {
     id: string;
     lat: number;
     lng: number;
-    status: VehicleState;
     vehicles: TrackingVehicle[];
 };
 
@@ -94,6 +107,35 @@ const LIVE_AFTER_MS = 15 * 60 * 1000;
 const SYNC_INTERVAL_MS = 10_000;
 const MAP_FALLBACK_CENTER: [number, number] = [38.34, 66.44];
 
+const vehicleSvgByKind: Record<VehicleKind, string> = {
+    car: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.1 10.7 7.4 7.2C7.8 6.1 8.8 5.4 10 5.4h4c1.2 0 2.2.7 2.6 1.8l1.3 3.5h.8c.9 0 1.6.7 1.6 1.6v3.2c0 .6-.5 1.1-1.1 1.1h-1.1a2.7 2.7 0 0 1-5.2 0H11a2.7 2.7 0 0 1-5.2 0H4.7c-.6 0-1.1-.5-1.1-1.1v-3.2c0-.9.7-1.6 1.6-1.6h.9Zm3.6-3.2c-.3 0-.6.2-.8.6l-.9 2.6h8l-.9-2.6c-.2-.4-.5-.6-.8-.6H9.7Z"></path>
+            <path d="M7.6 16.8a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Zm8.8 0a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"></path>
+        </svg>
+    `,
+    truck: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.4 6.4h10.4c.5 0 .9.4.9.9v8.2H10a2.8 2.8 0 0 0-5.4 0H3.4c-.5 0-.9-.4-.9-.9V7.3c0-.5.4-.9.9-.9Z"></path>
+            <path d="M15.7 9.4h3l2.8 3.3v2.8h-1.2a2.8 2.8 0 0 0-5.4 0h-.2V10.4c0-.6.4-1 1-1Z"></path>
+            <path d="M7.3 18.2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10.3 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
+        </svg>
+    `,
+    forklift: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.2 9.4h4.5c.5 0 .9.4.9.9v4.2h2.2V6.6c0-.6.5-1 1-1s1 .4 1 1v9.8h3.4c.6 0 1 .5 1 1s-.4 1-1 1H15c-.6 0-1-.4-1-1v-.9H9.7a2.7 2.7 0 0 1-5.3-.1H3.2c-.5 0-.9-.4-.9-.9v-2.7c0-.5.4-.9.9-.9H5V10.6c0-.7.5-1.2 1.2-1.2Z"></path>
+            <path d="M11.6 9.4h-3l1.8-2.6h2.7v2.6h-1.5Zm-4.6 8a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"></path>
+            <path d="M18.9 5.8c.6 0 1 .4 1 1v8.5h-2V6.8c0-.6.4-1 1-1Z"></path>
+        </svg>
+    `,
+    loader: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.4 13.1h4.2l1.6-3.7h3.7l2.8 3.7h2.1l1.3-3h2.4l-1.2 5.3h-3.5a3 3 0 0 0-5.8 0H9.8a3 3 0 0 0-5.8 0H2.5c-.5 0-.9-.4-.9-.9v-.5c0-.5.4-.9.9-.9h.9Z"></path>
+            <path d="M6.9 17.7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM4.5 12.1l-1.7-3h4.7l.8 3H4.5Z"></path>
+        </svg>
+    `,
+};
+
 const stateStyles: Record<VehicleState, { label: string; marker: string; badge: string; dot: string }> = {
     moving: {
         label: 'Harakatda',
@@ -117,26 +159,20 @@ const stateStyles: Record<VehicleState, { label: string; marker: string; badge: 
 
 const vehicleIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
-const buildVehicleIcon = (state: VehicleState, isSelected = false, count = 1) => {
+const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = false, count = 1) => {
     const countLabel = count > 1 ? String(count) : '';
-    const cacheKey = `${state}:${isSelected ? 'selected' : 'normal'}:${countLabel}`;
+    const cacheKey = `${state}:${kind}:${isSelected ? 'selected' : 'normal'}:${countLabel}`;
     const cached = vehicleIconCache.get(cacheKey);
     if (cached) return cached;
 
     const icon = divIcon({
         className: '',
-        iconSize: count > 1 ? [46, 46] : [38, 38],
-        iconAnchor: count > 1 ? [23, 23] : [19, 19],
+        iconSize: count > 1 ? [44, 44] : [38, 38],
+        iconAnchor: count > 1 ? [22, 22] : [19, 19],
         html: `
-            <div class="sr-garvex-marker ${stateStyles[state].marker} ${count > 1 ? 'is-cluster' : ''} ${isSelected ? 'is-selected' : ''}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M10 17h4V5H2v12h3"></path>
-                    <path d="M14 17h1"></path>
-                    <path d="M14 8h4l4 4v5h-3"></path>
-                    <circle cx="7.5" cy="17.5" r="2.5"></circle>
-                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
-                </svg>
-                ${countLabel ? `<span class="sr-marker-count">${countLabel}</span>` : ''}
+            <div class="sr-garvex-marker ${stateStyles[state].marker} kind-${kind} ${isSelected ? 'is-selected' : ''}">
+                <span class="sr-garvex-marker-icon">${vehicleSvgByKind[kind]}</span>
+                ${countLabel ? `<span class="sr-cluster-count">${countLabel}</span>` : ''}
             </div>
         `,
     });
@@ -144,8 +180,8 @@ const buildVehicleIcon = (state: VehicleState, isSelected = false, count = 1) =>
     return icon;
 };
 
-const getVehicleIcon = (state: VehicleState, isSelected: boolean, count = 1) =>
-    buildVehicleIcon(state, isSelected, count);
+const getVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected: boolean, count = 1) =>
+    buildVehicleIcon(state, kind, isSelected, count);
 
 const extractRegion = (address: string | null | undefined): string => {
     const normalized = String(address || '').trim();
@@ -163,7 +199,17 @@ const toSeenAtMs = (lastMessageAt: string | null | undefined, lastMessageUnix: n
     return unixRaw > 9_999_999_999 ? unixRaw : unixRaw * 1000;
 };
 
-const toVehicleState = (speed: number, lastMessageAt: string | null | undefined, lastMessageUnix: number | null | undefined): VehicleState => {
+const toVehicleState = (
+    apiStatus: string | number | null | undefined,
+    speed: number,
+    lastMessageAt: string | null | undefined,
+    lastMessageUnix: number | null | undefined,
+): VehicleState => {
+    const normalizedStatus = String(apiStatus ?? '').trim().toLowerCase();
+    if (normalizedStatus === '1' || normalizedStatus === 'moving' || normalizedStatus === 'active') return 'moving';
+    if (normalizedStatus === '2' || normalizedStatus === 'stopped' || normalizedStatus === 'stop') return 'stopped';
+    if (!normalizedStatus || normalizedStatus === '0' || normalizedStatus === 'offline') return 'offline';
+
     const seenAt = toSeenAtMs(lastMessageAt, lastMessageUnix);
     if (!Number.isFinite(seenAt) || Date.now() - seenAt > LIVE_AFTER_MS) return 'offline';
     if (speed > 2) return 'moving';
@@ -207,25 +253,72 @@ const formatMetric = (value: number | null | undefined, suffix = '') => {
     return `${Number(value).toLocaleString('uz-UZ', { maximumFractionDigits: 1 })}${suffix}`;
 };
 
-const makeClusterKey = (vehicle: TrackingVehicle) =>
-    `${Math.round(vehicle.lat * 100) / 100}:${Math.round(vehicle.lng * 100) / 100}`;
+const getVehicleKind = (nameRaw: string): VehicleKind => {
+    const name = nameRaw.toLowerCase();
+    if (/kara|кара/.test(name)) return 'forklift';
+    if (/pagruz|pogruz|погруз|excavator|ekskavator|экскаватор|shantui|шант/i.test(name)) return 'loader';
+    if (/chacman|dong|feng|isuzu|gazel|камаз|truck|howo|shacman/.test(name)) return 'truck';
+    return 'car';
+};
 
-const clusterVehicles = (items: TrackingVehicle[]): VehicleMarkerCluster[] => {
-    const groups = new Map<string, TrackingVehicle[]>();
-    for (const item of items) {
-        const key = makeClusterKey(item);
-        const group = groups.get(key);
-        if (group) group.push(item);
-        else groups.set(key, [item]);
+const formatVehicleLabel = (name: string) => {
+    const clean = name.trim();
+    if (clean.length <= 12) return clean;
+    return `${clean.slice(0, 11)}...`;
+};
+
+const formatCoordinates = (vehicle: TrackingVehicle) =>
+    `${vehicle.lat.toFixed(6)}, ${vehicle.lng.toFixed(6)}`;
+
+const getClusterRadiusPx = (zoom: number) => {
+    if (zoom <= 9) return 72;
+    if (zoom <= 12) return 62;
+    if (zoom <= 15) return 52;
+    if (zoom <= 17) return 44;
+    return 38;
+};
+
+const buildDisplayClusters = (items: TrackingVehicle[], map: LeafletMap, zoom: number): VehicleMarkerCluster[] => {
+    const radiusPx = getClusterRadiusPx(zoom);
+    const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    const clusters: Array<VehicleMarkerCluster & { x: number; y: number }> = [];
+
+    for (const vehicle of sortedItems) {
+        const point = map.project([vehicle.lat, vehicle.lng], zoom);
+        let target: (VehicleMarkerCluster & { x: number; y: number }) | undefined;
+
+        for (const cluster of clusters) {
+            const dx = point.x - cluster.x;
+            const dy = point.y - cluster.y;
+            if (Math.sqrt((dx * dx) + (dy * dy)) <= radiusPx) {
+                target = cluster;
+                break;
+            }
+        }
+
+        if (target) {
+            const nextCount = target.vehicles.length + 1;
+            target.vehicles.push(vehicle);
+            target.lat = ((target.lat * (nextCount - 1)) + vehicle.lat) / nextCount;
+            target.lng = ((target.lng * (nextCount - 1)) + vehicle.lng) / nextCount;
+            target.x = ((target.x * (nextCount - 1)) + point.x) / nextCount;
+            target.y = ((target.y * (nextCount - 1)) + point.y) / nextCount;
+        } else {
+            clusters.push({
+                id: String(vehicle.id),
+                lat: vehicle.lat,
+                lng: vehicle.lng,
+                vehicles: [vehicle],
+                x: point.x,
+                y: point.y,
+            });
+        }
     }
 
-    const statusRank: Record<VehicleState, number> = { moving: 0, stopped: 1, offline: 2 };
-    return Array.from(groups.entries()).map(([id, group]) => {
-        const sorted = [...group].sort((a, b) => statusRank[a.status] - statusRank[b.status]);
-        const lat = group.reduce((sum, item) => sum + item.lat, 0) / group.length;
-        const lng = group.reduce((sum, item) => sum + item.lng, 0) / group.length;
-        return { id, lat, lng, status: sorted[0]?.status ?? 'offline', vehicles: sorted };
-    });
+    return clusters.map(({ x: _x, y: _y, ...cluster }) => ({
+        ...cluster,
+        id: cluster.vehicles.map((vehicle) => vehicle.id).join('-'),
+    }));
 };
 
 const mapApiVehicle = (item: GarvexVehicleApi): TrackingVehicle | null => {
@@ -252,7 +345,8 @@ const mapApiVehicle = (item: GarvexVehicleApi): TrackingVehicle | null => {
         ignition: typeof item.point?.ign === 'boolean' ? item.point.ign : null,
         satellites: asOptionalNumber(item.point?.sats),
         fuelLevel: asOptionalNumber(item.point?.fuelLevel),
-        status: toVehicleState(speed, item.lastMessageAt, item.lastMessageUnix),
+        status: toVehicleState(item.status, speed, item.lastMessageAt, item.lastMessageUnix),
+        kind: getVehicleKind(name),
         lastMessageAt: item.lastMessageAt || null,
         syncedAt: item.syncedAt || null,
     };
@@ -261,11 +355,15 @@ const mapApiVehicle = (item: GarvexVehicleApi): TrackingVehicle | null => {
 const MapAutoFit = ({
     vehicles,
     selectedVehicle,
+    fitKey,
 }: {
     vehicles: TrackingVehicle[];
     selectedVehicle: TrackingVehicle | null;
+    fitKey: string;
 }) => {
     const map = useMap();
+    const lastFitKeyRef = useRef<string | null>(null);
+    const lastCenteredVehicleIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         const t = window.setTimeout(() => map.invalidateSize(), 80);
@@ -274,9 +372,20 @@ const MapAutoFit = ({
 
     useEffect(() => {
         if (selectedVehicle) {
-            map.setView([selectedVehicle.lat, selectedVehicle.lng], Math.max(map.getZoom(), 14), { animate: true });
+            if (lastCenteredVehicleIdRef.current !== selectedVehicle.id) {
+                lastCenteredVehicleIdRef.current = selectedVehicle.id;
+                map.setView([selectedVehicle.lat, selectedVehicle.lng], Math.max(map.getZoom(), 14), { animate: true });
+            }
             return;
         }
+
+        lastCenteredVehicleIdRef.current = null;
+
+        const nextFitKey = `${fitKey}:${vehicles.length}`;
+        if (lastFitKeyRef.current === nextFitKey) {
+            return;
+        }
+        lastFitKeyRef.current = nextFitKey;
 
         if (vehicles.length === 0) {
             map.setView(MAP_FALLBACK_CENTER, 9, { animate: false });
@@ -285,34 +394,149 @@ const MapAutoFit = ({
 
         const bounds = latLngBounds(vehicles.map((vehicle) => [vehicle.lat, vehicle.lng] as [number, number]));
         map.fitBounds(bounds.pad(0.22), { animate: true, maxZoom: 13 });
-    }, [map, selectedVehicle, vehicles]);
+    }, [map, selectedVehicle, vehicles, fitKey]);
 
     return null;
+};
+
+const VehicleMarkers = ({
+    vehicles,
+    selectedVehicleId,
+    onSelect,
+}: {
+    vehicles: TrackingVehicle[];
+    selectedVehicleId: number | null;
+    onSelect: (id: number | null) => void;
+}) => {
+    const map = useMap();
+    const [zoom, setZoom] = useState(() => map.getZoom());
+
+    useMapEvents({
+        zoomend: () => setZoom(map.getZoom()),
+    });
+
+    const clusters = useMemo(
+        () => buildDisplayClusters(vehicles, map, zoom),
+        [vehicles, map, zoom],
+    );
+
+    return (
+        <>
+            {clusters.map((cluster) => {
+                const isCluster = cluster.vehicles.length > 1;
+                const representative = cluster.vehicles[0];
+                const isSelected = cluster.vehicles.some((vehicle) => vehicle.id === selectedVehicleId);
+                const markerState = isCluster ? 'stopped' : representative.status;
+                const markerKind = isCluster ? 'car' : representative.kind;
+
+                return (
+                    <Marker
+                        key={cluster.id}
+                        position={[cluster.lat, cluster.lng]}
+                        icon={getVehicleIcon(markerState, markerKind, isSelected, cluster.vehicles.length)}
+                        eventHandlers={{
+                            click: () => {
+                                if (isCluster) {
+                                    map.setView([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, 18), { animate: true });
+                                } else {
+                                    onSelect(representative.id);
+                                }
+                            },
+                        }}
+                    >
+                        {!isCluster ? (
+                            <>
+                                <Tooltip permanent direction="bottom" offset={[0, 16]} opacity={1} className="sr-garvex-label">
+                                    {formatVehicleLabel(representative.name)}
+                                </Tooltip>
+                                <Popup className="sr-garvex-popup" minWidth={420} maxWidth={460}>
+                                    <div className="sr-garvex-popup-card">
+                                        <div className="sr-popup-header">
+                                            <div className="min-w-0">
+                                                <div className="sr-popup-title-row">
+                                                    <span
+                                                        className={`sr-popup-vehicle-icon ${stateStyles[representative.status].marker} kind-${representative.kind}`}
+                                                        dangerouslySetInnerHTML={{ __html: vehicleSvgByKind[representative.kind] }}
+                                                    />
+                                                    <span className="sr-popup-title">{representative.name}</span>
+                                                </div>
+                                                <div className={`sr-popup-status ${stateStyles[representative.status].marker}`}>
+                                                    {stateStyles[representative.status].label}
+                                                </div>
+                                            </div>
+                                            <div className="sr-popup-time">
+                                                <div>~ {formatAgo(representative.lastMessageAt)}</div>
+                                                <div>{formatDateTime(representative.lastMessageAt)}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="sr-popup-metrics">
+                                            <div><Gauge size={16} /> <b>{formatMetric(representative.speed, ' km/h')}</b></div>
+                                            <div><KeyRound size={16} /> <b>{representative.ignition ? 'On' : 'Off'}</b></div>
+                                            <div><Satellite size={16} /> <b>{formatMetric(representative.satellites)}</b></div>
+                                        </div>
+
+                                        <div className="sr-popup-details">
+                                            <div><span>Koordinatalar:</span> {formatCoordinates(representative)}</div>
+                                            <div className="sr-popup-address">
+                                                <span>Adres:</span> {representative.address}
+                                                <span className="sr-popup-detail-actions">
+                                                    <Copy size={15} />
+                                                    <ExternalLink size={15} />
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="sr-popup-sensors">
+                                            <div className="sr-popup-sensors-header">
+                                                <span>Datchiklar</span>
+                                                <span>v</span>
+                                            </div>
+                                            <div className="sr-popup-sensor-grid">
+                                                <div>DART: <b>N/A</b></div>
+                                                <div>Zajiganie: <b>{representative.ignition == null ? 'N/A' : representative.ignition ? 'On' : 'Off'}</b></div>
+                                                <div>Moment rashod: <b>N/A</b></div>
+                                                <div>Kuchlanish: <b>N/A</b></div>
+                                                <div>Skorost: <b>{formatMetric(representative.speed, ' km/h')}</b></div>
+                                                <div>Sputniklar: <b>{formatMetric(representative.satellites)}</b></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="sr-popup-toolbar">
+                                            <span><CircleDot size={17} /></span>
+                                            <span><Wrench size={17} /></span>
+                                            <span><Satellite size={17} /></span>
+                                            <span><MessageSquare size={17} /></span>
+                                            <span><Radio size={17} /></span>
+                                            <span><Pencil size={17} /></span>
+                                            <span><X size={17} /></span>
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </>
+                        ) : null}
+                    </Marker>
+                );
+            })}
+        </>
+    );
 };
 
 export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
     const [vehicles, setVehicles] = useState<TrackingVehicle[]>([]);
     const [query, setQuery] = useState('');
-    const [source, setSource] = useState<'garvex' | 'stale' | 'empty'>('empty');
     const [syncMessage, setSyncMessage] = useState<string | null>('Garvexdan jonli GPS ma`lumotlari olinmoqda...');
-    const [lastSyncAtLabel, setLastSyncAtLabel] = useState<string | null>(null);
-    const [lastStats, setLastStats] = useState<GarvexHealthResponse['stats'] | null>(null);
     const cacheRef = useRef<TrackingVehicle[]>([]);
     const cacheAtRef = useRef<number>(0);
     const inFlightRef = useRef(false);
+    const syncInFlightRef = useRef(false);
 
-    const load = async (forceSync = false) => {
+    const load = async () => {
         if (inFlightRef.current) return;
         inFlightRef.current = true;
 
         try {
-            if (forceSync) {
-                await fetch(`${API_BASE}/integrations/tracking/garvex/sync`, {
-                    cache: 'no-store',
-                }).catch(() => null);
-            }
-
             const [healthResponse, vehiclesResponse] = await Promise.all([
                 fetch(`${API_BASE}/integrations/tracking/garvex/health`, { cache: 'no-store' }),
                 fetch(`${API_BASE}/integrations/tracking/garvex/vehicles`, { cache: 'no-store' }),
@@ -337,27 +561,21 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
             if (mapped.length > 0) {
                 setVehicles(mapped);
-                setSource('garvex');
                 setSyncMessage(null);
-                setLastStats(health?.stats ?? null);
                 cacheRef.current = mapped;
                 cacheAtRef.current = Date.now();
-                const syncAtIso = health?.lastSyncAt || mapped[0]?.syncedAt || new Date().toISOString();
-                setLastSyncAtLabel(formatDateTime(syncAtIso));
-                setSelectedVehicleId((prev) => (prev && mapped.some((vehicle) => vehicle.id === prev) ? prev : mapped[0].id));
+                setSelectedVehicleId((prev) => (prev && mapped.some((vehicle) => vehicle.id === prev) ? prev : null));
                 return;
             }
 
             const canUseCache = cacheRef.current.length > 0 && (Date.now() - cacheAtRef.current) <= (5 * 60 * 1000);
             if (canUseCache) {
                 setVehicles(cacheRef.current);
-                setSource('stale');
                 setSyncMessage('Vaqtincha so`nggi ishonchli GPS nuqtalari ko`rsatilmoqda.');
                 return;
             }
 
             setVehicles([]);
-            setSource('empty');
 
             if (!health?.enabled) {
                 setSyncMessage('Garvex integratsiyasi o`chiq.');
@@ -372,11 +590,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             const canUseCache = cacheRef.current.length > 0 && (Date.now() - cacheAtRef.current) <= (5 * 60 * 1000);
             if (canUseCache) {
                 setVehicles(cacheRef.current);
-                setSource('stale');
                 setSyncMessage('Tarmoq uzilishi: so`nggi GPS nuqtalari saqlandi.');
             } else {
                 setVehicles([]);
-                setSource('empty');
                 setSyncMessage('Garvex bilan ulanishda tarmoq xatosi.');
             }
         } finally {
@@ -384,10 +600,26 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         }
     };
 
+    const syncInBackground = () => {
+        if (syncInFlightRef.current) return;
+        syncInFlightRef.current = true;
+        void fetch(`${API_BASE}/integrations/tracking/garvex/sync`, {
+            cache: 'no-store',
+            priority: 'low',
+        } as RequestInit & { priority?: 'low' })
+            .catch(() => null)
+            .finally(() => {
+                syncInFlightRef.current = false;
+                void load();
+            });
+    };
+
     useEffect(() => {
-        void load(true);
+        void load();
+        syncInBackground();
         const timer = window.setInterval(() => {
-            void load(true);
+            syncInBackground();
+            void load();
         }, SYNC_INTERVAL_MS);
         return () => window.clearInterval(timer);
     }, []);
@@ -395,7 +627,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     useEffect(() => {
         if (selectedVehicleId == null) return;
         const exists = vehicles.some((vehicle) => vehicle.id === selectedVehicleId);
-        if (!exists) setSelectedVehicleId(vehicles[0]?.id ?? null);
+        if (!exists) setSelectedVehicleId(null);
     }, [vehicles, selectedVehicleId]);
 
     const selectedVehicle = useMemo(
@@ -407,7 +639,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         const moving = vehicles.filter((vehicle) => vehicle.status === 'moving').length;
         const stopped = vehicles.filter((vehicle) => vehicle.status === 'stopped').length;
         const offline = vehicles.filter((vehicle) => vehicle.status === 'offline').length;
-        return { moving, stopped, offline, live: moving + stopped, total: vehicles.length };
+        return { moving, stopped, offline, total: vehicles.length };
     }, [vehicles]);
 
     const filteredVehicles = useMemo(() => {
@@ -417,8 +649,6 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             `${vehicle.name} ${vehicle.imei ?? ''} ${vehicle.address} ${vehicle.region}`.toLowerCase().includes(q),
         );
     }, [query, vehicles]);
-
-    const markerClusters = useMemo(() => clusterVehicles(filteredVehicles), [filteredVehicles]);
 
     const tileConfig = {
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -432,8 +662,8 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     <h3 className="app-module-heading">Tezkor xarita (Garvex GPS)</h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400" /> {counters.live} Jonli
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-300">
+                        <span className="h-2 w-2 rounded-full bg-cyan-400" /> {counters.total} Transport
                     </span>
                     <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">
                         {counters.moving} Harakatda
@@ -453,91 +683,95 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 </div>
             ) : null}
 
-            <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-                <aside className="glass-panel flex min-h-[520px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-700/55 xl:h-[calc(100vh-10.5rem)] xl:min-h-[680px]">
-                    <div className="border-b border-slate-700/55 p-3">
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
-                                    <Truck size={18} className="text-blue-400" />
-                                    Transportlar
-                                </div>
-                                <div className="mt-1 text-xs text-slate-500">
-                                    Kaliy zavod <span className="font-semibold text-blue-300">{filteredVehicles.length} / {counters.total}</span>
-                                </div>
-                            </div>
-                            <div className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                                source === 'garvex'
-                                    ? 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300'
-                                    : source === 'stale'
-                                        ? 'border-amber-400/30 bg-amber-500/10 text-amber-300'
-                                        : 'border-slate-500/30 bg-slate-700/25 text-slate-300'
-                            }`}>
-                                {source === 'garvex' ? 'Garvex live' : source === 'stale' ? 'Keshlangan' : 'Kutilmoqda'}
-                            </div>
-                        </div>
-                        <label className="relative block">
-                            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[570px_minmax(0,1fr)]">
+                <aside className="sr-garvex-sidebar">
+                    <div className="sr-sidebar-tab">
+                        <button type="button" className="sr-sidebar-tab-button">
+                            <Truck size={20} />
+                            <span>OBYEKTLAR</span>
+                        </button>
+                    </div>
+
+                    <div className="sr-sidebar-search-row">
+                        <label className="sr-sidebar-search">
+                            <Search size={17} />
                             <input
                                 value={query}
                                 onChange={(event) => setQuery(event.target.value)}
-                                className="h-10 w-full rounded-xl border border-slate-700 bg-slate-950/50 pl-9 pr-3 text-sm text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-500"
-                                placeholder="Transport, IMEI yoki manzil..."
+                                placeholder="Poisk"
                             />
                         </label>
+                        <button type="button" className="sr-sidebar-icon-button" aria-label="Filter">
+                            <SlidersHorizontal size={18} />
+                        </button>
+                        <button type="button" className="sr-sidebar-icon-button is-plain" aria-label="Settings">
+                            <Settings size={20} />
+                        </button>
                     </div>
 
-                    <div className="flex items-center justify-between border-b border-slate-700/45 bg-slate-950/25 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        <span className="inline-flex items-center gap-2">
-                            <CircleDot size={13} /> Obyektlar
-                        </span>
-                        <span>{lastSyncAtLabel ? `Sync: ${lastSyncAtLabel}` : 'Sync kutilmoqda'}</span>
+                    <div className="sr-sidebar-toolbar">
+                        <div className="sr-sidebar-toolbar-left">
+                            <ChevronDown size={16} />
+                            <span className="sr-garvex-checkbox"><Check size={13} /></span>
+                            <span className="sr-sort-icon">A/Z</span>
+                            <List size={18} />
+                            <RotateCw size={17} />
+                        </div>
+                        <div className="sr-sidebar-toolbar-right">
+                            <LocateFixed size={18} />
+                            <CircleDot size={17} />
+                            <KeyRound size={17} />
+                            <Satellite size={17} />
+                            <Gauge size={17} />
+                            <Fuel size={17} />
+                            <X size={17} />
+                        </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto dark-scrollbar">
+                    <div className="sr-sidebar-group-row">
+                        <ChevronDown size={16} />
+                        <span className="sr-garvex-checkbox"><Check size={13} /></span>
+                        <span className="sr-group-title">Kaliy zavod</span>
+                        <span className="sr-group-count">{filteredVehicles.length} / {counters.total}</span>
+                    </div>
+
+                    <div className="sr-sidebar-list">
                         {filteredVehicles.length === 0 ? (
-                            <div className="m-3 rounded-xl border border-dashed border-slate-700 bg-slate-950/35 p-4 text-sm text-slate-400">
+                            <div className="sr-sidebar-empty">
                                 Transport topilmadi.
                             </div>
                         ) : (
                             filteredVehicles.map((vehicle) => {
                                 const selected = vehicle.id === selectedVehicleId;
-                                const styles = stateStyles[vehicle.status];
                                 return (
                                     <button
                                         key={vehicle.id}
                                         type="button"
                                         onClick={() => setSelectedVehicleId(vehicle.id)}
-                                        className={`flex w-full min-w-0 items-start gap-3 border-b border-slate-800/70 px-3 py-2.5 text-left transition-colors ${
-                                            selected ? 'bg-blue-500/14' : 'hover:bg-slate-800/45'
-                                        }`}
+                                        className={`sr-object-row ${selected ? 'is-selected' : ''}`}
                                     >
-                                        <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-blue-500 bg-blue-500 text-[10px] text-white">
-                                            OK
+                                        <span className="sr-tree-branch" aria-hidden="true" />
+                                        <span className="sr-garvex-checkbox"><Check size={13} /></span>
+                                        <span
+                                            className={`sr-list-vehicle-icon ${stateStyles[vehicle.status].marker} kind-${vehicle.kind}`}
+                                            dangerouslySetInnerHTML={{ __html: vehicleSvgByKind[vehicle.kind] }}
+                                        />
+                                        <span className="sr-object-main">
+                                            <span className="sr-object-name">{vehicle.name}</span>
+                                            <span className="sr-object-address">{vehicle.address}</span>
                                         </span>
-                                        <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${styles.dot}`} />
-                                        <span className="min-w-0 flex-1">
-                                            <span className="flex min-w-0 items-center justify-between gap-2">
-                                                <span className="truncate text-sm font-semibold text-slate-100">{vehicle.name}</span>
-                                                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${styles.badge}`}>
-                                                    {styles.label}
-                                                </span>
+                                        <span className="sr-object-telemetry">
+                                            <LocateFixed size={17} className="sr-muted-icon" />
+                                            <Radio size={16} className={vehicle.status === 'offline' ? 'sr-red-icon' : 'sr-green-icon'} />
+                                            <KeyRound size={16} className={vehicle.ignition ? 'sr-green-icon' : 'sr-muted-icon'} />
+                                            <span className={vehicle.satellites == null ? 'sr-muted-text' : 'sr-green-text'}>
+                                                {vehicle.satellites ?? '?'}
                                             </span>
-                                            <span className="mt-0.5 line-clamp-1 text-xs text-slate-500">{vehicle.address}</span>
-                                            <span className="mt-2 grid grid-cols-4 gap-1.5 text-[11px] text-slate-400">
-                                                <span className="inline-flex items-center gap-1">
-                                                    <Gauge size={12} className="text-blue-400" /> {formatMetric(vehicle.speed, '')}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1">
-                                                    <Satellite size={12} className="text-emerald-400" /> {formatMetric(vehicle.satellites)}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1">
-                                                    <KeyRound size={12} className={vehicle.ignition ? 'text-emerald-400' : 'text-slate-500'} /> {vehicle.ignition ? 'On' : 'Off'}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1">
-                                                    <Fuel size={12} className="text-amber-400" /> {formatMetric(vehicle.fuelLevel)}
-                                                </span>
+                                            <span className="sr-blue-text">{formatMetric(vehicle.speed, '')}</span>
+                                            <span className={vehicle.fuelLevel == null ? 'sr-muted-text' : 'sr-slate-text'}>
+                                                {vehicle.fuelLevel == null ? '?' : formatMetric(vehicle.fuelLevel)}
                                             </span>
+                                            <MoreVertical size={17} className="sr-muted-icon" />
                                         </span>
                                     </button>
                                 );
@@ -556,118 +790,312 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                         className="absolute inset-0 h-full w-full sr-live-map"
                     >
                         <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
-                        <MapAutoFit vehicles={filteredVehicles.length > 0 ? filteredVehicles : vehicles} selectedVehicle={selectedVehicle} />
+                        <MapAutoFit
+                            vehicles={filteredVehicles.length > 0 ? filteredVehicles : vehicles}
+                            selectedVehicle={selectedVehicle}
+                            fitKey={query.trim().toLowerCase() || 'all'}
+                        />
 
-                        {markerClusters.map((cluster) => {
-                            const isSelected = cluster.vehicles.some((vehicle) => vehicle.id === selectedVehicleId);
-                            const primary =
-                                (isSelected ? cluster.vehicles.find((vehicle) => vehicle.id === selectedVehicleId) : undefined) ??
-                                cluster.vehicles[0];
-
-                            if (!primary) {
-                                return null;
-                            }
-
-                            return (
-                                <Marker
-                                    key={cluster.id}
-                                    position={[cluster.lat, cluster.lng]}
-                                    icon={getVehicleIcon(cluster.status, isSelected, cluster.vehicles.length)}
-                                    eventHandlers={{ click: () => setSelectedVehicleId(primary.id) }}
-                                >
-                                    <Tooltip direction="top" offset={[0, -18]} opacity={1} className="sr-vehicle-tooltip">
-                                        <div className="min-w-[170px] space-y-1">
-                                            <p className="font-bold text-blue-300">
-                                                {cluster.vehicles.length > 1 ? `${cluster.vehicles.length} ta transport` : primary.name}
-                                            </p>
-                                            <p className="text-[11px] text-slate-300">{primary.region}</p>
-                                            <div className="flex justify-between gap-4">
-                                                <span>Tezlik</span>
-                                                <span className="font-mono text-slate-100">{formatMetric(primary.speed, ' km/s')}</span>
-                                            </div>
-                                        </div>
-                                    </Tooltip>
-                                    <Popup className="sr-vehicle-popup">
-                                        <div className="w-[240px] space-y-2">
-                                            <div className="font-bold text-slate-900">
-                                                {cluster.vehicles.length > 1 ? `${cluster.vehicles.length} ta transport` : primary.name}
-                                            </div>
-                                            <div className="text-xs text-slate-600">{primary.address}</div>
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                                <div>Tezlik: <b>{formatMetric(primary.speed, ' km/s')}</b></div>
-                                                <div>Sun'iy yo'ldosh: <b>{formatMetric(primary.satellites)}</b></div>
-                                                <div>Yoqilgi: <b>{formatMetric(primary.fuelLevel)}</b></div>
-                                                <div>Holat: <b>{stateStyles[cluster.status].label}</b></div>
-                                            </div>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            );
-                        })}
+                        <VehicleMarkers
+                            vehicles={filteredVehicles}
+                            selectedVehicleId={selectedVehicleId}
+                            onSelect={setSelectedVehicleId}
+                        />
                     </MapContainer>
 
-                    <div className="absolute bottom-4 left-4 z-[500] w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-700/80 bg-slate-950/86 p-4 shadow-2xl backdrop-blur-md">
-                        <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                            <Info size={14} className="text-blue-400" /> Tanlangan obyekt
-                        </h4>
-                        {selectedVehicle ? (
-                            <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <div className="truncate text-sm font-bold text-slate-100">{selectedVehicle.name}</div>
-                                        <div className="mt-0.5 truncate text-xs text-slate-500">{selectedVehicle.imei ?? 'IMEI yoq'}</div>
-                                    </div>
-                                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${stateStyles[selectedVehicle.status].badge}`}>
-                                        {stateStyles[selectedVehicle.status].label}
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 p-2">
-                                        <p className="text-slate-500">Tezlik</p>
-                                        <p className="font-bold text-slate-100">{formatMetric(selectedVehicle.speed, ' km/s')}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 p-2">
-                                        <p className="text-slate-500">GPS</p>
-                                        <p className="font-bold text-slate-100">{formatMetric(selectedVehicle.satellites)} sats</p>
-                                    </div>
-                                    <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 p-2">
-                                        <p className="text-slate-500">Yoqilgi</p>
-                                        <p className="font-bold text-slate-100">{formatMetric(selectedVehicle.fuelLevel)}</p>
-                                    </div>
-                                    <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 p-2">
-                                        <p className="text-slate-500">Xabar</p>
-                                        <p className="font-bold text-slate-100">{formatAgo(selectedVehicle.lastMessageAt)}</p>
-                                    </div>
-                                </div>
-                                <div className="rounded-xl border border-slate-700/70 bg-slate-900/65 p-2 text-xs text-slate-300">
-                                    <div className="mb-1 flex items-center gap-1.5 text-slate-500">
-                                        <MapPin size={13} /> Manzil
-                                    </div>
-                                    <p className="line-clamp-2">{selectedVehicle.address}</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="rounded-xl border border-dashed border-slate-600 bg-slate-900/40 p-3 text-xs text-slate-300">
-                                Transport tanlang.
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="absolute bottom-4 right-4 z-[500] rounded-xl border border-slate-700/70 bg-slate-950/78 px-3 py-2 text-[11px] font-semibold text-slate-300 backdrop-blur">
-                        <div className="flex items-center gap-1.5">
-                            <Clock3 size={13} className="text-blue-400" />
-                            {lastSyncAtLabel ? `So'nggi sync: ${lastSyncAtLabel}` : 'Sync kutilmoqda'}
-                        </div>
-                        {lastStats?.mode ? (
-                            <div className="mt-1 text-slate-500">
-                                {lastStats.mode} / fetched {lastStats.fetched ?? 0}
-                            </div>
-                        ) : null}
-                    </div>
                 </section>
             </div>
 
             <style>{`
+                .sr-garvex-sidebar {
+                    display: flex;
+                    min-width: 0;
+                    min-height: 520px;
+                    flex-direction: column;
+                    overflow: hidden;
+                    border: 1px solid #d9dde4;
+                    border-radius: 5px;
+                    background: #ffffff;
+                    color: #2f3744;
+                    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+                }
+                @media (min-width: 1280px) {
+                    .sr-garvex-sidebar {
+                        height: calc(100vh - 10.5rem);
+                        min-height: 680px;
+                    }
+                }
+                .sr-sidebar-tab {
+                    display: flex;
+                    height: 46px;
+                    align-items: flex-end;
+                    justify-content: center;
+                    border-bottom: 1px solid #d9dde4;
+                    background: #ffffff;
+                }
+                .sr-sidebar-tab-button {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    height: 46px;
+                    border-bottom: 2px solid #1169ff;
+                    color: #1169ff;
+                    font-size: 16px;
+                    font-weight: 500;
+                    line-height: 1;
+                }
+                .sr-sidebar-search-row {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) 32px 30px;
+                    align-items: center;
+                    gap: 0;
+                    padding: 8px 8px 7px;
+                    border-bottom: 1px solid #e3e6eb;
+                    background: #ffffff;
+                }
+                .sr-sidebar-search {
+                    display: flex;
+                    height: 32px;
+                    align-items: center;
+                    gap: 8px;
+                    min-width: 0;
+                    border: 1px solid #d7dbe1;
+                    border-radius: 5px 0 0 5px;
+                    background: #ffffff;
+                    padding: 0 9px;
+                    color: #9aa2ad;
+                }
+                .sr-sidebar-search input {
+                    width: 100%;
+                    min-width: 0;
+                    border: 0;
+                    outline: none;
+                    color: #2f3744;
+                    font-size: 14px;
+                    background: transparent;
+                }
+                .sr-sidebar-search input::placeholder {
+                    color: #b2b8c1;
+                }
+                .sr-sidebar-icon-button {
+                    display: inline-flex;
+                    height: 32px;
+                    width: 32px;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid #d7dbe1;
+                    border-left: 0;
+                    color: #126bff;
+                    background: #ffffff;
+                }
+                .sr-sidebar-icon-button.is-plain {
+                    border: 0;
+                    color: #6b7280;
+                }
+                .sr-sidebar-toolbar {
+                    display: flex;
+                    height: 40px;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    border-bottom: 1px solid #d9dde4;
+                    background: #ffffff;
+                    color: #7b828c;
+                    padding: 0 9px;
+                }
+                .sr-sidebar-toolbar-left,
+                .sr-sidebar-toolbar-right {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    min-width: 0;
+                }
+                .sr-sidebar-toolbar-right {
+                    gap: 13px;
+                }
+                .sr-sort-icon {
+                    color: #656d78;
+                    font-size: 12px;
+                    font-weight: 800;
+                    letter-spacing: 0;
+                }
+                .sr-garvex-checkbox {
+                    display: inline-flex;
+                    width: 16px;
+                    height: 16px;
+                    flex: 0 0 auto;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 2px;
+                    background: #1169ff;
+                    color: #ffffff;
+                }
+                .sr-sidebar-group-row {
+                    display: flex;
+                    height: 38px;
+                    align-items: center;
+                    gap: 8px;
+                    border-bottom: 1px solid #e3e6eb;
+                    background: #eaf2ff;
+                    padding: 0 10px;
+                    color: #2f3744;
+                }
+                .sr-group-title {
+                    font-size: 16px;
+                    font-weight: 500;
+                }
+                .sr-group-count {
+                    border: 1px solid #c7d3e4;
+                    border-radius: 999px;
+                    background: #f8fbff;
+                    color: #6d7785;
+                    padding: 2px 7px;
+                    font-size: 12px;
+                    line-height: 1.15;
+                }
+                .sr-sidebar-list {
+                    min-height: 0;
+                    flex: 1;
+                    overflow-y: auto;
+                    background: #ffffff;
+                    scrollbar-color: #b5bbc5 #f2f4f7;
+                    scrollbar-width: thin;
+                }
+                .sr-sidebar-list::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .sr-sidebar-list::-webkit-scrollbar-track {
+                    background: #f2f4f7;
+                }
+                .sr-sidebar-list::-webkit-scrollbar-thumb {
+                    border-radius: 8px;
+                    background: #aeb5bf;
+                }
+                .sr-sidebar-empty {
+                    margin: 12px;
+                    border: 1px dashed #cfd5de;
+                    border-radius: 5px;
+                    color: #7b828c;
+                    padding: 14px;
+                    font-size: 14px;
+                }
+                .sr-object-row {
+                    position: relative;
+                    display: grid;
+                    width: 100%;
+                    min-width: 0;
+                    grid-template-columns: 17px 16px 23px minmax(0, 1fr) 198px;
+                    align-items: center;
+                    column-gap: 8px;
+                    min-height: 40px;
+                    border-bottom: 0;
+                    background: #ffffff;
+                    padding: 4px 8px 4px 9px;
+                    text-align: left;
+                }
+                .sr-object-row:hover,
+                .sr-object-row.is-selected {
+                    background: #eef5ff;
+                }
+                .sr-tree-branch {
+                    position: relative;
+                    display: block;
+                    width: 17px;
+                    height: 40px;
+                    border-left: 1px solid #d9dde4;
+                }
+                .sr-tree-branch::after {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 50%;
+                    width: 12px;
+                    border-top: 1px solid #d9dde4;
+                }
+                .sr-list-vehicle-icon {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 22px;
+                    height: 18px;
+                    color: #1169ff;
+                }
+                .sr-list-vehicle-icon svg {
+                    width: 22px;
+                    height: 18px;
+                    fill: currentColor;
+                    stroke: none;
+                }
+                .sr-list-vehicle-icon.kind-forklift,
+                .sr-list-vehicle-icon.kind-loader {
+                    color: #d97706;
+                }
+                .sr-list-vehicle-icon.kind-truck {
+                    color: #2563eb;
+                }
+                .sr-list-vehicle-icon.is-offline {
+                    color: #9ca3af;
+                }
+                .sr-object-main {
+                    display: flex;
+                    min-width: 0;
+                    flex-direction: column;
+                    justify-content: center;
+                }
+                .sr-object-name {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    color: #2f3744;
+                    font-size: 15px;
+                    font-weight: 500;
+                    line-height: 1.15;
+                }
+                .sr-object-address {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    color: #9aa2ad;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    margin-top: 2px;
+                }
+                .sr-object-telemetry {
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    align-items: center;
+                    justify-items: center;
+                    gap: 7px;
+                    color: #8b93a0;
+                    font-size: 12px;
+                    font-weight: 500;
+                }
+                .sr-muted-icon,
+                .sr-muted-text {
+                    color: #8b93a0;
+                }
+                .sr-green-icon,
+                .sr-green-text {
+                    color: #00c853;
+                }
+                .sr-red-icon {
+                    color: #f00000;
+                }
+                .sr-blue-text {
+                    color: #1169ff;
+                }
+                .sr-slate-text {
+                    color: #4b5563;
+                }
+                @media (max-width: 700px) {
+                    .sr-object-row {
+                        grid-template-columns: 17px 16px 23px minmax(0, 1fr);
+                    }
+                    .sr-object-telemetry,
+                    .sr-sidebar-toolbar-right {
+                        display: none;
+                    }
+                }
                 .sr-live-map .leaflet-control-zoom {
                     margin-top: 14px;
                     margin-left: 14px;
@@ -681,93 +1109,257 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     width: 34px;
                     height: 34px;
                     border-radius: 9999px;
-                    border: 4px solid rgba(219, 234, 254, 0.98);
-                    color: #ffffff;
-                    background: #2b7cff;
+                    border: 4px solid #7fb0ff;
+                    color: #2563eb;
+                    background: #ffffff;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.42);
-                    transition: transform 0.18s ease, box-shadow 0.18s ease;
-                }
-                .sr-garvex-marker.is-cluster {
-                    width: 42px;
-                    height: 42px;
-                    background: #2f80ff;
-                    box-shadow: 0 7px 20px rgba(37, 99, 235, 0.44);
+                    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.22);
+                    transition: transform 0.16s ease, box-shadow 0.16s ease;
                 }
                 .sr-garvex-marker::before {
-                    display: none;
-                }
-                .sr-garvex-marker svg {
-                    position: relative;
-                    z-index: 1;
-                    width: 18px;
-                    height: 18px;
-                }
-                .sr-garvex-marker.is-moving {
-                    background: #2b7cff;
-                }
-                .sr-garvex-marker.is-stopped {
-                    background: #2f80ff;
-                    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.36);
-                }
-                .sr-garvex-marker.is-stopped::before {
-                    display: none;
-                }
-                .sr-garvex-marker.is-offline {
-                    background: #2f80ff;
-                    opacity: 0.72;
-                    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.32);
-                }
-                .sr-garvex-marker.is-offline::before {
-                    display: none;
-                }
-                .sr-garvex-marker.is-selected {
-                    transform: scale(1.14);
-                    box-shadow: 0 10px 28px rgba(59, 130, 246, 0.64);
-                    z-index: 2;
-                }
-                .sr-garvex-marker.is-selected::after {
                     content: '';
                     position: absolute;
                     inset: -5px;
                     border-radius: 9999px;
-                    border: 2px solid rgba(255, 255, 255, 0.92);
+                    background: rgba(37, 99, 235, 0.16);
+                    z-index: -1;
                 }
-                .sr-marker-count {
-                    position: absolute;
-                    right: -6px;
-                    top: -8px;
-                    z-index: 2;
-                    min-width: 21px;
-                    height: 21px;
-                    border-radius: 9999px;
-                    border: 2px solid #bfdbfe;
-                    background: #1d4ed8;
-                    color: #ffffff;
+                .sr-garvex-marker-icon,
+                .sr-popup-vehicle-icon {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                }
+                .sr-garvex-marker svg,
+                .sr-popup-vehicle-icon svg {
+                    width: 22px;
+                    height: 22px;
+                    fill: currentColor;
+                    stroke: none;
+                }
+                .sr-garvex-marker.kind-forklift,
+                .sr-garvex-marker.kind-loader,
+                .sr-popup-vehicle-icon.kind-forklift,
+                .sr-popup-vehicle-icon.kind-loader {
+                    color: #d97706;
+                }
+                .sr-garvex-marker.kind-truck,
+                .sr-popup-vehicle-icon.kind-truck {
+                    color: #2563eb;
+                }
+                .sr-garvex-marker.is-moving {
+                    border-color: #22c55e;
+                    box-shadow: 0 3px 11px rgba(34, 197, 94, 0.32);
+                }
+                .sr-garvex-marker.is-moving::before {
+                    background: rgba(34, 197, 94, 0.18);
+                }
+                .sr-garvex-marker.is-stopped {
+                    border-color: #7fb0ff;
+                    box-shadow: 0 3px 11px rgba(37, 99, 235, 0.28);
+                }
+                .sr-garvex-marker.is-stopped::before {
+                    background: rgba(37, 99, 235, 0.16);
+                }
+                .sr-garvex-marker.is-offline {
+                    border-color: #ef4444;
+                    box-shadow: 0 3px 11px rgba(239, 68, 68, 0.3);
+                }
+                .sr-garvex-marker.is-offline::before {
+                    background: rgba(239, 68, 68, 0.16);
+                }
+                .sr-garvex-marker.is-selected {
+                    transform: scale(1.08);
+                    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.42);
+                    z-index: 2;
+                }
+                .sr-cluster-count {
+                    position: absolute;
+                    top: -9px;
+                    right: -8px;
+                    display: inline-flex;
+                    min-width: 22px;
+                    height: 22px;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 999px;
+                    border: 2px solid #ffffff;
+                    background: #1169ff;
+                    color: #ffffff;
                     padding: 0 5px;
-                    font-size: 11px;
+                    font-size: 12px;
                     font-weight: 800;
                     line-height: 1;
-                    box-shadow: 0 3px 10px rgba(30, 64, 175, 0.38);
+                    box-shadow: 0 2px 7px rgba(17, 105, 255, 0.4);
                 }
-                .sr-vehicle-tooltip.leaflet-tooltip {
-                    background: rgba(15, 23, 42, 0.96);
-                    border: 1px solid rgba(71, 85, 105, 0.9);
-                    color: #e2e8f0;
-                    border-radius: 12px;
+                .sr-garvex-label.leaflet-tooltip {
+                    border: 0;
+                    border-radius: 5px;
+                    background: #ffffff;
+                    color: #4b5563;
+                    padding: 4px 7px;
+                    font-size: 11.5px;
+                    font-weight: 800;
+                    line-height: 1.05;
+                    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+                }
+                .sr-garvex-label.leaflet-tooltip-bottom::before {
+                    display: none;
+                }
+                .sr-garvex-popup .leaflet-popup-content-wrapper {
+                    border-radius: 4px;
+                    padding: 0;
+                    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+                }
+                .sr-garvex-popup .leaflet-popup-content {
+                    margin: 0;
+                    width: 420px !important;
+                }
+                .sr-garvex-popup-card {
+                    overflow: hidden;
+                    border-radius: 4px;
+                    background: #ffffff;
+                    color: #4b5563;
+                    font-size: 14px;
+                }
+                .sr-popup-header {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 12px;
+                    padding: 12px 14px 8px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                .sr-popup-title-row {
+                    display: flex;
+                    align-items: center;
+                    min-width: 0;
+                    gap: 8px;
+                }
+                .sr-popup-vehicle-icon {
+                    width: 24px;
+                    height: 24px;
+                    flex: 0 0 auto;
+                    color: #2563eb;
+                }
+                .sr-popup-title {
+                    min-width: 0;
+                    color: #4b5563;
+                    font-size: 16px;
+                    font-weight: 800;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .sr-popup-status {
+                    margin-left: 32px;
+                    margin-top: 2px;
+                    font-size: 12px;
+                    font-weight: 700;
+                }
+                .sr-popup-status.is-moving {
+                    color: #16a34a;
+                }
+                .sr-popup-status.is-stopped {
+                    color: #2563eb;
+                }
+                .sr-popup-status.is-offline {
+                    color: #dc2626;
+                }
+                .sr-popup-time {
+                    flex: 0 0 auto;
+                    text-align: right;
+                    color: #9ca3af;
+                    font-size: 12px;
+                    font-weight: 700;
+                    line-height: 1.35;
+                }
+                .sr-popup-metrics {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    margin: 10px 12px;
+                    border: 1px solid #d9dde3;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .sr-popup-metrics div {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 7px;
+                    min-height: 32px;
+                    color: #4b5563;
+                    border-right: 1px solid #e5e7eb;
+                    font-size: 13px;
+                }
+                .sr-popup-metrics div:last-child {
+                    border-right: 0;
+                }
+                .sr-popup-details {
+                    padding: 4px 14px 10px;
+                    color: #4b5563;
+                    line-height: 1.35;
+                }
+                .sr-popup-details span {
+                    color: #374151;
+                    font-weight: 700;
+                }
+                .sr-popup-address {
+                    position: relative;
+                    padding-right: 42px;
+                    margin-top: 4px;
+                }
+                .sr-popup-detail-actions {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    display: inline-flex;
+                    gap: 7px;
+                    color: #6b7280;
+                }
+                .sr-popup-sensors {
+                    margin: 0 12px 10px;
+                    border-radius: 5px;
+                    overflow: hidden;
+                    background: #f4f6f9;
+                }
+                .sr-popup-sensors-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 9px 10px;
+                    background: #edf3fb;
+                    color: #374151;
+                    font-weight: 800;
+                }
+                .sr-popup-sensor-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    color: #4b5563;
+                    font-size: 12px;
+                }
+                .sr-popup-sensor-grid div {
                     padding: 8px 10px;
-                    box-shadow: 0 16px 30px rgba(2, 6, 23, 0.45);
+                    border-top: 1px solid #e5e7eb;
                 }
-                .sr-vehicle-tooltip.leaflet-tooltip-top:before {
-                    border-top-color: rgba(15, 23, 42, 0.96);
+                .sr-popup-sensor-grid div:nth-child(odd) {
+                    border-right: 1px solid #e5e7eb;
                 }
-                .sr-vehicle-popup .leaflet-popup-content-wrapper {
-                    border-radius: 14px;
+                .sr-popup-toolbar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    gap: 14px;
+                    padding: 8px 14px 10px;
+                    color: #6b7280;
+                    border-top: 1px solid #eef0f3;
+                }
+                .sr-popup-toolbar span {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
                 }
             `}</style>
         </div>
