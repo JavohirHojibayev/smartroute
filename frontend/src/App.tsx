@@ -51,6 +51,7 @@ import { CargoManager } from './components/CargoManager';
 import { UserManager } from './components/UserManager';
 import { LoginPage } from './components/LoginPage';
 import { resolveApiBaseUrl } from './utils/apiBase';
+import type { EimzoLoginResponse } from './features/auth/eimzo/eimzo.types';
 import {
   type AppRole,
   type PermissionMap,
@@ -70,6 +71,11 @@ type AuthUser = {
   permissions: PermissionMap;
   status: 'active' | 'inactive';
   lastLoginAt: string | null;
+  pinfl?: string | null;
+  inn?: string | null;
+  certificateSerial?: string | null;
+  eimzoEnabled?: boolean;
+  lastEimzoLoginAt?: string | null;
   createdAt: string;
 };
 
@@ -428,6 +434,33 @@ function App() {
     } finally {
       setAuthSubmitting(false);
     }
+  };
+
+  const handleEimzoLogin = async (payload: EimzoLoginResponse) => {
+    const token = String(payload.token || payload.accessToken || '');
+    if (!token || !payload.user) {
+      throw new Error('E-IMZO login javobi yaroqsiz');
+    }
+
+    const user = {
+      id: Number(payload.user.id),
+      username: String(payload.user.username || payload.user.pinfl || payload.user.inn || `eimzo-${payload.user.id}`),
+      email: payload.user.email ?? null,
+      fullName: payload.user.fullName ?? null,
+      role: payload.user.role as AppRole,
+      permissions: normalizePermissionMap(payload.user.permissions, payload.user.role as AppRole),
+      status: (payload.user.status === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive',
+      lastLoginAt: payload.user.lastLoginAt ?? new Date().toISOString(),
+      pinfl: payload.user.pinfl ?? null,
+      inn: payload.user.inn ?? null,
+      createdAt: payload.user.createdAt ?? new Date().toISOString(),
+    };
+
+    const session = { token, user };
+    setAuthSession(session);
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    setAuthError(null);
+    setActiveTab('dashboard');
   };
 
   const handleLogout = async () => {
@@ -1066,6 +1099,7 @@ function App() {
         onToggleLang={toggleLang}
         onToggleTheme={toggleTheme}
         onSubmit={handleLogin}
+        onEimzoLogin={handleEimzoLogin}
       />
     );
   }

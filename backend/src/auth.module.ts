@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { User, UserRole } from './user.entity';
 import { hashPassword, verifyPassword } from './password.util';
 import { buildFullPermissions, sanitizePermissionMap, type PermissionMap } from './permissions';
@@ -22,10 +22,14 @@ const SUPERADMIN_USERNAME = (process.env.SUPERADMIN_USERNAME ?? 'superadmin').tr
 const SUPERADMIN_PASSWORD = String(process.env.SUPERADMIN_PASSWORD ?? '').trim();
 const SUPERADMIN_EMAIL = String(process.env.SUPERADMIN_EMAIL ?? 'superadmin@example.local').trim();
 const SUPERADMIN_FULL_NAME = String(process.env.SUPERADMIN_FULL_NAME ?? 'Super Admin').trim() || 'Super Admin';
+const JWT_ISSUER = 'smartroute';
+const JWT_TTL_SECONDS = Math.max(300, Number.parseInt(process.env.AUTH_JWT_TTL_SECONDS ?? '86400', 10) || 86400);
+const JWT_SECRET = String(process.env.AUTH_JWT_SECRET || SUPERADMIN_PASSWORD || randomBytes(32).toString('hex'));
 
 type SessionState = {
   userId: number;
   issuedAt: number;
+  expiresAt?: number;
 };
 
 export type PublicUser = {
@@ -37,6 +41,11 @@ export type PublicUser = {
   permissions: PermissionMap;
   status: 'active' | 'inactive';
   lastLoginAt: string | null;
+  pinfl: string | null;
+  inn: string | null;
+  certificateSerial: string | null;
+  eimzoEnabled: boolean;
+  lastEimzoLoginAt: string | null;
   createdAt: string;
 };
 
@@ -52,8 +61,22 @@ export const toPublicUser = (user: User): PublicUser => ({
   permissions: sanitizePermissionMap(user.permissions, user.role),
   status: user.is_active ? 'active' : 'inactive',
   lastLoginAt: user.last_login_at ? new Date(user.last_login_at).toISOString() : null,
+  pinfl: user.pinfl || null,
+  inn: user.inn || null,
+  certificateSerial: user.certificate_serial || null,
+  eimzoEnabled: Boolean(user.eimzo_enabled),
+  lastEimzoLoginAt: user.last_eimzo_login_at ? new Date(user.last_eimzo_login_at).toISOString() : null,
   createdAt: new Date(user.created_at).toISOString(),
 });
+
+const base64Url = (value: Buffer | string): string =>
+  Buffer.from(value).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+const decodeBase64Url = (value: string): Buffer => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return Buffer.from(padded, 'base64');
+};
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -76,6 +99,61 @@ export class AuthService implements OnModuleInit {
   private normalizeEmail(value: unknown): string | null {
     const normalized = String(value ?? '').trim().toLowerCase();
     return normalized || null;
+  }
+
+  private signJwt(user: User): { token: string; expiresAt: number } {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const expiresAt = issuedAt + JWT_TTL_SECONDS;
+    const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const payload = base64Url(JSON.stringify({
+      iss: JWT_ISSUER,
+      sub: String(user.id),
+      role: user.role,
+      iat: issuedAt,
+      exp: expiresAt,
+      jti: randomUUID(),
+    }));
+    const data = `${header}.${payload}`;
+    const signature = base64Url(createHmac('sha256', JWT_SECRET).update(data).digest());
+    return { token: `${data}.${signature}`, expiresAt: expiresAt * 1000 };
+  }
+
+  private verifyJwt(token: string): SessionState | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const data = `${parts[0]}.${parts[1]}`;
+    const expected = base64Url(createHmac('sha256', JWT_SECRET).update(data).digest());
+    const actualBuffer = Buffer.from(parts[2]);
+    const expectedBuffer = Buffer.from(expected);
+    if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) {
+      return null;
+    }
+
+    let payload: any = null;
+    try {
+      payload = JSON.parse(decodeBase64Url(parts[1]).toString('utf8'));
+    } catch {
+      return null;
+    }
+
+    const userId = Number.parseInt(String(payload?.sub ?? ''), 10);
+    const exp = Number(payload?.exp);
+    if (!Number.isFinite(userId) || userId <= 0 || !Number.isFinite(exp) || Date.now() >= exp * 1000) {
+      return null;
+    }
+
+    return { userId, issuedAt: Number(payload?.iat ?? 0) * 1000 || Date.now(), expiresAt: exp * 1000 };
+  }
+
+  createSessionToken(user: User, tokenMode: 'opaque' | 'jwt' = 'opaque'): string {
+    if (tokenMode === 'jwt') {
+      const jwt = this.signJwt(user);
+      this.sessions.set(jwt.token, { userId: user.id, issuedAt: Date.now(), expiresAt: jwt.expiresAt });
+      return jwt.token;
+    }
+
+    const token = this.createSessionToken(user);
+    return token;
   }
 
   extractTokenFromAuthorization(authHeader: string | undefined): string | null {
@@ -184,8 +262,18 @@ export class AuthService implements OnModuleInit {
   }
 
   async getUserByToken(token: string): Promise<User | null> {
-    const session = this.sessions.get(token);
+    let session = this.sessions.get(token);
     if (!session) {
+      session = this.verifyJwt(token) ?? undefined;
+      if (session) {
+        this.sessions.set(token, session);
+      }
+    }
+    if (!session) {
+      return null;
+    }
+    if (session.expiresAt && Date.now() >= session.expiresAt) {
+      this.sessions.delete(token);
       return null;
     }
 

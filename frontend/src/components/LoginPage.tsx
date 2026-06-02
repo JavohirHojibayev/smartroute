@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Globe, KeyRound, Moon, Sun, UserRound } from 'lucide-react';
+import { Globe, Moon, Sun } from 'lucide-react';
 import { dicts, type Language } from '../i18n';
+import { AuthModeSwitcher, type AuthMode } from '../features/auth/AuthModeSwitcher';
+import { EimzoLoginForm } from '../features/auth/EimzoLoginForm';
+import { LoginPasswordForm } from '../features/auth/LoginPasswordForm';
+import { getEimzoLocalhostUrl, isEimzoApiKeyErrorMessage } from '../features/auth/eimzo/eimzo.service';
+import type { EimzoLoginResponse } from '../features/auth/eimzo/eimzo.types';
 
 type LoginPageProps = {
   lang: Language;
@@ -12,6 +16,7 @@ type LoginPageProps = {
   onToggleLang: () => void;
   onToggleTheme: () => void;
   onSubmit: (credentials: { username: string; password: string }) => Promise<void> | void;
+  onEimzoLogin: (payload: EimzoLoginResponse) => Promise<void> | void;
 };
 
 export const LoginPage = ({
@@ -22,23 +27,19 @@ export const LoginPage = ({
   onToggleLang,
   onToggleTheme,
   onSubmit,
+  onEimzoLogin,
 }: LoginPageProps) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<AuthMode>('password');
+  const [eimzoSubmitting, setEimzoSubmitting] = useState(false);
+  const [eimzoError, setEimzoError] = useState<string | null>(null);
   const t = dicts[lang];
+  const activeError = mode === 'eimzo' ? eimzoError : errorMessage;
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!username.trim() || !password.trim() || isSubmitting) {
-      return;
-    }
-
-    await onSubmit({
-      username: username.trim(),
-      password,
-    });
-  };
+  useEffect(() => {
+    if (mode !== 'eimzo' || !eimzoError) return;
+    const timeout = window.setTimeout(() => setEimzoError(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [eimzoError, mode]);
 
   return (
     <div className={`app-shell min-h-screen text-slate-100 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
@@ -116,60 +117,35 @@ export const LoginPage = ({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-1 space-y-5 sm:space-y-6">
-            <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">{t.loginLabel}</span>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
-                <UserRound size={18} className="text-slate-400" />
-                <input
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  autoComplete="username"
-                  className="login-auth-input w-full bg-transparent text-[14px] text-slate-100 outline-none placeholder:text-slate-500 sm:text-sm"
-                  placeholder={t.loginPlaceholder}
-                  required
-                />
-              </div>
-            </label>
+          <AuthModeSwitcher mode={mode} onChange={(nextMode) => {
+            setMode(nextMode);
+            setEimzoError(null);
+          }} />
 
-            <label className="block">
-              <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">{t.passwordLabel}</span>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
-                <KeyRound size={18} className="text-slate-400" />
-                <input
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  className="login-auth-input w-full bg-transparent text-[14px] text-slate-100 outline-none placeholder:text-slate-500 sm:text-sm"
-                  placeholder={t.passwordPlaceholder}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="rounded-lg p-1 text-slate-400 transition-colors hover:text-slate-200"
-                  aria-label={showPassword ? t.hidePassword : t.showPassword}
+          {activeError ? (
+            <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {activeError}
+              {mode === 'eimzo' && isEimzoApiKeyErrorMessage(activeError) ? (
+                <a
+                  href={getEimzoLocalhostUrl()}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/20"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </label>
+                  Localhostda ochish
+                </a>
+              ) : null}
+            </div>
+          ) : null}
 
-            {errorMessage ? (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="login-submit-btn mt-2 w-full rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all disabled:cursor-not-allowed disabled:opacity-70 sm:py-3.5"
-            >
-              {isSubmitting ? t.signingIn : t.signIn}
-            </button>
-          </form>
+          {mode === 'password' ? (
+            <LoginPasswordForm lang={lang} isSubmitting={isSubmitting} onSubmit={onSubmit} />
+          ) : (
+            <EimzoLoginForm
+              isSubmitting={eimzoSubmitting}
+              onSubmittingChange={setEimzoSubmitting}
+              onLogin={onEimzoLogin}
+              onError={setEimzoError}
+            />
+          )}
         </section>
       </div>
     </div>

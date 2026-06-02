@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Headers,
   Injectable,
@@ -50,6 +51,69 @@ export class UsersService {
   private normalizeEmail(value: unknown): string | null {
     const normalized = String(value ?? '').trim().toLowerCase();
     return normalized || null;
+  }
+
+  private normalizeDigits(value: unknown, maxLength: number): string | null {
+    const normalized = String(value ?? '').replace(/\D+/g, '').slice(0, maxLength);
+    return normalized || null;
+  }
+
+  private normalizeCertificateSerial(value: unknown): string | null {
+    const normalized = String(value ?? '').replace(/[^0-9a-fA-F]/g, '').replace(/^0+/, '').toUpperCase();
+    return normalized || null;
+  }
+
+  private parseCertificateObject(value: unknown): Record<string, any> {
+    if (!value) return {};
+    if (typeof value === 'object') return value as Record<string, any>;
+    if (typeof value !== 'string') return {};
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed as Record<string, any> : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private extractEimzoBinding(payload: any): {
+    pinfl: string | null;
+    inn: string | null;
+    certificateSerial: string | null;
+  } {
+    const source = this.parseCertificateObject(payload?.key ?? payload?.certificate ?? payload);
+    const pinfl = this.normalizeDigits(
+      source.PINFL ?? source.pinfl ?? source.signerPinfl ?? source.UID ?? source.uid,
+      14,
+    );
+    const inn = this.normalizeDigits(
+      source.TIN ?? source.tin ?? source.INN ?? source.inn ?? source.signerInn,
+      20,
+    );
+    const certificateSerial = this.normalizeCertificateSerial(
+      source.serialNumber ??
+      source.serial ??
+      source.certificateSerial ??
+      source.certificate_serial ??
+      source.SERIALNUMBER,
+    );
+
+    if (!pinfl && !inn && !certificateSerial) {
+      throw new BadRequestException('Tanlangan E-IMZO kalitidan PINFL, INN yoki sertifikat seriali olinmadi');
+    }
+
+    return {
+      pinfl,
+      inn,
+      certificateSerial,
+    };
+  }
+
+  private parseEimzoEnabled(value: unknown, fallback: boolean): boolean {
+    if (typeof value === 'boolean') return value;
+    const raw = String(value ?? '').trim().toLowerCase();
+    if (['true', '1', 'yes', 'on', 'enabled'].includes(raw)) return true;
+    if (['false', '0', 'no', 'off', 'disabled'].includes(raw)) return false;
+    return fallback;
   }
 
   private parseRole(value: unknown, fallback: UserRole): UserRole {
@@ -173,6 +237,10 @@ export class UsersService {
     const password = String(payload?.password ?? '').trim();
     const email = this.normalizeEmail(payload?.email);
     const fullName = this.normalizeOptionalString(payload?.fullName ?? payload?.full_name ?? payload?.name);
+    const pinfl = this.normalizeDigits(payload?.pinfl, 14);
+    const inn = this.normalizeDigits(payload?.inn, 20);
+    const certificateSerial = this.normalizeCertificateSerial(payload?.certificateSerial ?? payload?.certificate_serial);
+    const eimzoEnabled = this.parseEimzoEnabled(payload?.eimzoEnabled ?? payload?.eimzo_enabled, false);
 
     if (!username) {
       throw new BadRequestException('Login bo\'sh bo\'lishi mumkin emas');
@@ -204,6 +272,10 @@ export class UsersService {
       role,
       permissions,
       is_active: isActive,
+      pinfl,
+      inn,
+      certificate_serial: certificateSerial,
+      eimzo_enabled: eimzoEnabled,
       password_hash: hashPassword(password),
     });
 
@@ -234,6 +306,14 @@ export class UsersService {
     user.username = nextUsername;
     user.email = nextEmail;
     user.full_name = nextFullName;
+    if (payload?.pinfl !== undefined) user.pinfl = this.normalizeDigits(payload?.pinfl, 14);
+    if (payload?.inn !== undefined) user.inn = this.normalizeDigits(payload?.inn, 20);
+    if (payload?.certificateSerial !== undefined || payload?.certificate_serial !== undefined) {
+      user.certificate_serial = this.normalizeCertificateSerial(payload?.certificateSerial ?? payload?.certificate_serial);
+    }
+    if (payload?.eimzoEnabled !== undefined || payload?.eimzo_enabled !== undefined) {
+      user.eimzo_enabled = this.parseEimzoEnabled(payload?.eimzoEnabled ?? payload?.eimzo_enabled, user.eimzo_enabled);
+    }
 
     if (payload?.password !== undefined) {
       const password = String(payload.password ?? '').trim();
@@ -264,6 +344,22 @@ export class UsersService {
         user.permissions = this.parsePermissions(user.permissions, user.role);
       }
     }
+
+    const saved = await this.userRepo.save(user);
+    return toPublicUser(saved);
+  }
+
+  async bindEimzo(id: number, payload: any) {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+
+    const binding = this.extractEimzoBinding(payload);
+    if (binding.pinfl) user.pinfl = binding.pinfl;
+    if (binding.inn) user.inn = binding.inn;
+    if (binding.certificateSerial) user.certificate_serial = binding.certificateSerial;
+    user.eimzo_enabled = true;
 
     const saved = await this.userRepo.save(user);
     return toPublicUser(saved);
@@ -367,6 +463,21 @@ export class UsersController {
   ) {
     await this.authService.requireAdminFromAuthorization(authorization);
     return await this.usersService.updateRolePermissions(role, body?.permissions ?? body);
+  }
+
+  @Patch(':id/eimzo')
+  async bindEimzo(
+    @Param('id') idRaw: string,
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: any,
+  ) {
+    const actor = await this.authService.requireUserFromAuthorization(authorization);
+    const id = this.parseUserId(idRaw);
+    if (actor.id !== id && actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Faqat o\'z E-IMZO kalitingizni biriktirishingiz mumkin');
+    }
+
+    return { user: await this.usersService.bindEimzo(id, body) };
   }
 
   @Patch(':id')

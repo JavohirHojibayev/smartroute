@@ -14,9 +14,22 @@ import {
   X,
   Eye,
   EyeOff,
+  FileKey2,
+  RefreshCw,
 } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
+import eImzoIcon from '../assets/e-imzo.png';
+import {
+  bindEimzoKeyToUser,
+  formatEimzoKeyLabel,
+  formatEimzoKeyLocation,
+  getEimzoLocalhostUrl,
+  getEimzoKeys,
+  getEimzoKeyIdentity,
+  isEimzoApiKeyErrorMessage,
+} from '../features/auth/eimzo/eimzo.service';
+import type { EimzoKey } from '../features/auth/eimzo/eimzo.types';
 import {
   type PermissionLevel,
   type PermissionMap,
@@ -39,6 +52,11 @@ type ApiUser = {
   permissions: PermissionMap;
   status: StatusKey;
   lastLoginAt: string | null;
+  pinfl?: string | null;
+  inn?: string | null;
+  certificateSerial?: string | null;
+  eimzoEnabled?: boolean;
+  lastEimzoLoginAt?: string | null;
   createdAt: string;
 };
 
@@ -49,6 +67,10 @@ type UserFormState = {
   role: RoleKey;
   status: StatusKey;
   password: string;
+  pinfl: string;
+  inn: string;
+  certificateSerial: string;
+  eimzoEnabled: boolean;
 };
 
 type UserManagerProps = {
@@ -85,6 +107,10 @@ const createInitialForm = (): UserFormState => ({
   role: 'user',
   status: 'active',
   password: '',
+  pinfl: '',
+  inn: '',
+  certificateSerial: '',
+  eimzoEnabled: false,
 });
 
 const createRolePermissionState = (): Record<RoleKey, PermissionMap> => ({
@@ -129,9 +155,17 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [eimzoModalUser, setEimzoModalUser] = useState<ApiUser | null>(null);
+  const [eimzoKeys, setEimzoKeys] = useState<EimzoKey[]>([]);
+  const [selectedEimzoIndex, setSelectedEimzoIndex] = useState(-1);
+  const [isLoadingEimzoKeys, setIsLoadingEimzoKeys] = useState(false);
+  const [isBindingEimzo, setIsBindingEimzo] = useState(false);
+  const [eimzoBindError, setEimzoBindError] = useState<string | null>(null);
+  const [eimzoBindSuccess, setEimzoBindSuccess] = useState<string | null>(null);
 
   const roleItems = useMemo(() => ['admin', 'dispatcher', 'manager', 'user'] as const, []);
   const canManage = accessLevel === 'full';
+  const selectedEimzoKey = useMemo(() => eimzoKeys[selectedEimzoIndex] ?? null, [eimzoKeys, selectedEimzoIndex]);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -267,6 +301,12 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
     return () => clearTimeout(timeout);
   }, [rolePermissionsSuccess]);
 
+  useEffect(() => {
+    if (!eimzoBindSuccess) return;
+    const timeout = setTimeout(() => setEimzoBindSuccess(null), 5000);
+    return () => clearTimeout(timeout);
+  }, [eimzoBindSuccess]);
+
   const openCreateModal = () => {
     if (!canManage) {
       return;
@@ -290,6 +330,10 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
       role: user.role,
       status: user.status,
       password: '',
+      pinfl: user.pinfl || '',
+      inn: user.inn || '',
+      certificateSerial: user.certificateSerial || '',
+      eimzoEnabled: Boolean(user.eimzoEnabled),
     });
     setFormError(null);
     setShowPassword(false);
@@ -303,6 +347,72 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
     setIsFormOpen(false);
     setFormError(null);
     setShowPassword(false);
+  };
+
+  const loadEimzoKeysForBinding = async () => {
+    setIsLoadingEimzoKeys(true);
+    setEimzoBindError(null);
+    setEimzoBindSuccess(null);
+    try {
+      const keys = await getEimzoKeys();
+      setEimzoKeys(keys);
+      setSelectedEimzoIndex(keys.length > 0 ? 0 : -1);
+      if (keys.length === 0) {
+        setEimzoBindError('Kalit topilmadi');
+      }
+    } catch (error) {
+      setEimzoKeys([]);
+      setSelectedEimzoIndex(-1);
+      setEimzoBindError(error instanceof Error ? error.message : 'E-IMZO kalitlarini olishda xatolik');
+    } finally {
+      setIsLoadingEimzoKeys(false);
+    }
+  };
+
+  const openEimzoBindModal = (user: ApiUser) => {
+    const canBindUser = canManage || user.id === currentUserId;
+    if (!canBindUser) {
+      return;
+    }
+    setEimzoModalUser(user);
+    setEimzoKeys([]);
+    setSelectedEimzoIndex(-1);
+    setEimzoBindError(null);
+    setEimzoBindSuccess(null);
+    void loadEimzoKeysForBinding();
+  };
+
+  const closeEimzoBindModal = () => {
+    if (isBindingEimzo) {
+      return;
+    }
+    setEimzoModalUser(null);
+    setEimzoKeys([]);
+    setSelectedEimzoIndex(-1);
+    setEimzoBindError(null);
+    setEimzoBindSuccess(null);
+  };
+
+  const bindSelectedEimzoKey = async () => {
+    if (!eimzoModalUser || !selectedEimzoKey || !authToken) {
+      setEimzoBindError('E-IMZO kalit tanlanmagan');
+      return;
+    }
+
+    setIsBindingEimzo(true);
+    setEimzoBindError(null);
+    setEimzoBindSuccess(null);
+    try {
+      const updatedUser = await bindEimzoKeyToUser(eimzoModalUser.id, selectedEimzoKey, authToken) as ApiUser;
+      setUsers((prev) => prev.map((item) => item.id === updatedUser.id ? updatedUser : item));
+      setEimzoModalUser(updatedUser);
+      setEimzoBindSuccess('tizimga biriktirildi');
+      await loadUsers(true);
+    } catch (error) {
+      setEimzoBindError(error instanceof Error ? error.message : 'E-IMZO kalitni biriktirishda xatolik');
+    } finally {
+      setIsBindingEimzo(false);
+    }
   };
 
   const submitForm = async () => {
@@ -331,6 +441,10 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
         email: formState.email,
         role: formState.role,
         permissions: rolePermissions[formState.role],
+        pinfl: formState.pinfl,
+        inn: formState.inn,
+        certificateSerial: formState.certificateSerial,
+        eimzoEnabled: formState.eimzoEnabled,
       };
 
       if (formState.password.trim()) {
@@ -546,25 +660,28 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     <th className="px-6 py-4">Roli</th>
                     <th className="px-6 py-4">Holati</th>
                     <th className="px-6 py-4">Oxirgi faollik</th>
+                    <th className="px-6 py-4">E-IMZO</th>
                     <th className="px-6 py-4 text-right pr-8">Amallar</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/30">
                   {isLoadingUsers ? (
                     <tr>
-                      <td className="px-6 py-10 text-sm text-slate-500" colSpan={5}>Yuklanmoqda...</td>
+                      <td className="px-6 py-10 text-sm text-slate-500" colSpan={6}>Yuklanmoqda...</td>
                     </tr>
                   ) : userLoadError ? (
                     <tr>
-                      <td className="px-6 py-10 text-sm text-red-400" colSpan={5}>{userLoadError}</td>
+                      <td className="px-6 py-10 text-sm text-red-400" colSpan={6}>{userLoadError}</td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td className="px-6 py-10 text-sm text-slate-500" colSpan={5}>Foydalanuvchi topilmadi</td>
+                      <td className="px-6 py-10 text-sm text-slate-500" colSpan={6}>Foydalanuvchi topilmadi</td>
                     </tr>
                   ) : users.map((user) => {
                     const displayName = user.fullName || user.username;
                     const canDelete = canManage && user.id !== currentUserId && user.username.toLowerCase() !== SUPERADMIN_USERNAME;
+                    const canBindEimzo = canManage || user.id === currentUserId;
+                    const eimzoId = user.pinfl || user.inn || user.certificateSerial || null;
 
                     return (
                       <tr key={user.id} className="hover:bg-blue-500/5 transition-all group">
@@ -601,6 +718,27 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-400">
                           {formatLastActive(user)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            type="button"
+                            onClick={() => openEimzoBindModal(user)}
+                            disabled={!canBindEimzo}
+                            className={`inline-flex h-12 w-12 items-center justify-center rounded-xl border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                              user.eimzoEnabled
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:border-emerald-400/50'
+                                : 'border-slate-700/70 bg-slate-900/40 text-slate-300 hover:border-blue-500/50 hover:text-blue-300'
+                            }`}
+                            title={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
+                            aria-label={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
+                          >
+                            <img src={eImzoIcon} alt="" className="h-7 w-7 object-contain" />
+                          </button>
+                          {eimzoId ? (
+                            <p className="mt-1 max-w-[12rem] truncate text-[11px] text-slate-500" title={eimzoId}>
+                              {eimzoId}
+                            </p>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4 text-right pr-8 space-x-2">
                           <button
@@ -883,6 +1021,50 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     placeholder="F.I.O"
                   />
                 </label>
+
+                <label className="sm:col-span-1">
+                  <span className="mb-1 block text-xs text-slate-500">E-IMZO PINFL</span>
+                  <input
+                    value={formState.pinfl}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, pinfl: event.target.value.replace(/\D+/g, '').slice(0, 14) }))}
+                    disabled={!canManage}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                    placeholder="14 raqam"
+                  />
+                </label>
+
+                <label className="sm:col-span-1">
+                  <span className="mb-1 block text-xs text-slate-500">E-IMZO INN</span>
+                  <input
+                    value={formState.inn}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, inn: event.target.value.replace(/\D+/g, '').slice(0, 20) }))}
+                    disabled={!canManage}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                    placeholder="INN"
+                  />
+                </label>
+
+                <label className="sm:col-span-2">
+                  <span className="mb-1 block text-xs text-slate-500">E-IMZO sertifikat serial</span>
+                  <input
+                    value={formState.certificateSerial}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, certificateSerial: event.target.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase() }))}
+                    disabled={!canManage}
+                    className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                    placeholder="Sertifikat serial raqami"
+                  />
+                </label>
+
+                <label className="sm:col-span-2 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={formState.eimzoEnabled}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, eimzoEnabled: event.target.checked }))}
+                    disabled={!canManage}
+                    className="h-4 w-4 rounded border-slate-600 accent-emerald-500"
+                  />
+                  <span className="text-sm font-semibold text-emerald-200">E-IMZO orqali kirishga ruxsat berish</span>
+                </label>
               </div>
 
               {formError ? (
@@ -909,6 +1091,125 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {eimzoModalUser ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4"
+          >
+            <motion.form
+              initial={{ y: 12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 12, opacity: 0 }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void bindSelectedEimzoKey();
+              }}
+              className="glass-panel w-full max-w-lg rounded-3xl border border-slate-700/60 p-6"
+            >
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="text-lg font-bold">E-IMZO biriktirish</h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {eimzoModalUser.fullName || eimzoModalUser.username}
+                  </p>
+                </div>
+                <button
+                  onClick={closeEimzoBindModal}
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  type="button"
+                  disabled={isBindingEimzo}
+                  aria-label="Yopish"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">
+                  Kompyuterdagi DSKEYS / PFX kalitlar
+                </span>
+                <select
+                  value={selectedEimzoIndex}
+                  disabled={isLoadingEimzoKeys || isBindingEimzo || eimzoKeys.length === 0}
+                  onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {eimzoKeys.length === 0 ? (
+                    <option value={-1}>{isLoadingEimzoKeys ? 'Kalitlar yuklanmoqda...' : 'Kalit topilmadi'}</option>
+                  ) : (
+                    eimzoKeys.map((key, index) => (
+                      <option key={`${key.serialNumber ?? key.name ?? key.alias ?? index}-${index}`} value={index}>
+                        {formatEimzoKeyLabel(key)}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
+
+              {selectedEimzoKey ? (
+                <div className="mt-3 rounded-xl border border-slate-700/70 bg-slate-900/35 px-3 py-2 text-xs text-slate-400">
+                  <p className="truncate" title={formatEimzoKeyLocation(selectedEimzoKey)}>
+                    {formatEimzoKeyLocation(selectedEimzoKey)}
+                  </p>
+                  {(() => {
+                    const identity = getEimzoKeyIdentity(selectedEimzoKey);
+                    const parts = [
+                      identity.pinfl ? `PINFL: ${identity.pinfl}` : null,
+                      identity.inn ? `INN: ${identity.inn}` : null,
+                      identity.certificateSerial ? `Serial: ${identity.certificateSerial}` : null,
+                    ].filter(Boolean);
+                    return parts.length > 0 ? <p className="mt-1 truncate">{parts.join(' | ')}</p> : null;
+                  })()}
+                </div>
+              ) : null}
+
+              {eimzoBindError ? (
+                <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+                  {eimzoBindError}
+                  {isEimzoApiKeyErrorMessage(eimzoBindError) ? (
+                    <a
+                      href={getEimzoLocalhostUrl()}
+                      className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/20"
+                    >
+                      Localhostda ochish
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {eimzoBindSuccess ? (
+                <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200" role="status">
+                  {eimzoBindSuccess}
+                </div>
+              ) : null}
+
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => void loadEimzoKeysForBinding()}
+                  disabled={isLoadingEimzoKeys || isBindingEimzo}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw size={16} className={isLoadingEimzoKeys ? 'animate-spin' : ''} />
+                  Yangilash
+                </button>
+                <button
+                  type="submit"
+                  disabled={!selectedEimzoKey || isLoadingEimzoKeys || isBindingEimzo}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <FileKey2 size={16} />
+                  {isBindingEimzo ? 'Biriktirilmoqda...' : 'Biriktirish'}
+                </button>
+              </div>
+            </motion.form>
           </motion.div>
         ) : null}
       </AnimatePresence>

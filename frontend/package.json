@@ -14,6 +14,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^6.5.0",
     "@mui/x-date-pickers": "^7.29.4",
+    "@shohrux_saidov/eimzo-client": "^0.0.10",
     "dayjs": "^1.11.20",
     "framer-motion": "^12.35.2",
     "jspdf": "^4.2.0",
