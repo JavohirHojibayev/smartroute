@@ -132,15 +132,29 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
   return fallback;
 };
 
-const formatEimzoCertificateOption = (key: EimzoKey): string => {
-  const identity = getEimzoKeyIdentity(key);
-  const ownerName = key.CN || key.alias || key.name || 'E-IMZO kalit';
-  const documentNumber = identity.pinfl || identity.inn || identity.certificateSerial;
-  return documentNumber ? `${documentNumber} - ${ownerName}` : ownerName;
+const formatDisplayName = (value: string): string =>
+  value
+    .replace(/[_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('uz-UZ')
+    .replace(/(^|\s)(\S)/g, (match) => match.toLocaleUpperCase('uz-UZ'));
+
+const formatEimzoCertificateOption = (key: EimzoKey, fallback: string): string => {
+  const directName = key.CN || key.alias || key.ownerName;
+  if (directName?.trim()) return formatDisplayName(directName);
+
+  const rawName = key.name?.trim();
+  if (rawName) {
+    const afterUnderscore = rawName.split('_').slice(1).join(' ').trim();
+    return formatDisplayName(afterUnderscore || rawName);
+  }
+
+  return fallback;
 };
 
-const formatEimzoDate = (value?: Date | string): string => {
-  if (!value) return "Noma'lum";
+const formatEimzoDate = (value: Date | string | undefined, fallback: string): string => {
+  if (!value) return fallback;
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return String(value);
   const day = String(date.getDate()).padStart(2, '0');
@@ -149,10 +163,10 @@ const formatEimzoDate = (value?: Date | string): string => {
   return `${day}.${month}.${year}`;
 };
 
-const getEimzoOwnerType = (key: EimzoKey): string => {
+const getEimzoOwnerType = (key: EimzoKey, legalLabel: string, individualLabel: string): string => {
   const raw = `${key.O ?? ''} ${key.type ?? ''}`.toLowerCase();
-  if (raw.includes('yuridik') || raw.includes('юрид')) return 'YURIDIK SHAXS';
-  return 'JISMONIY SHAXS';
+  if (raw.includes('yuridik') || raw.includes('юрид')) return legalLabel;
+  return individualLabel;
 };
 
 export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissionsChanged, initialTab = 'users' }: UserManagerProps) => {
@@ -385,12 +399,12 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
       setEimzoKeys(keys);
       setSelectedEimzoIndex(-1);
       if (keys.length === 0) {
-        setEimzoBindError('Kalit topilmadi');
+        setEimzoBindError(t('eimzoKeyNotFound'));
       }
     } catch (error) {
       setEimzoKeys([]);
       setSelectedEimzoIndex(-1);
-      setEimzoBindError(error instanceof Error ? error.message : 'E-IMZO kalitlarini olishda xatolik');
+      setEimzoBindError(error instanceof Error ? error.message : t('eimzoKeysLoadError'));
     } finally {
       setIsLoadingEimzoKeys(false);
     }
@@ -422,7 +436,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
 
   const bindSelectedEimzoKey = async () => {
     if (!eimzoModalUser || !selectedEimzoKey || !authToken) {
-      setEimzoBindError('E-IMZO kalit tanlanmagan');
+      setEimzoBindError(t('eimzoBindKeyMissing'));
       return;
     }
 
@@ -433,9 +447,9 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
       const updatedUser = await bindEimzoKeyToUser(eimzoModalUser.id, selectedEimzoKey, authToken) as ApiUser;
       setUsers((prev) => prev.map((item) => item.id === updatedUser.id ? updatedUser : item));
       await loadUsers(true);
-      setEimzoBindSuccess('Kalit muvaffaqiyatli biriktirildi');
+      setEimzoBindSuccess(t('eimzoBindSuccess'));
     } catch (error) {
-      setEimzoBindError(error instanceof Error ? error.message : 'E-IMZO kalitni biriktirishda xatolik');
+      setEimzoBindError(error instanceof Error ? error.message : t('eimzoBindError'));
     } finally {
       setIsBindingEimzo(false);
     }
@@ -750,8 +764,8 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                             onClick={() => openEimzoBindModal(user)}
                             disabled={!canBindEimzo}
                             className="inline-flex h-9 w-28 items-center justify-center border-0 bg-transparent p-0 transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
-                            title={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
-                            aria-label={user.eimzoEnabled ? 'E-IMZO kalit biriktirilgan' : 'E-IMZO kalit biriktirish'}
+                            title={user.eimzoEnabled ? t('eimzoLinkedTitle') : t('eimzoLinkTitle')}
+                            aria-label={user.eimzoEnabled ? t('eimzoLinkedTitle') : t('eimzoLinkTitle')}
                           >
                             <img src={eImzoIcon} alt="" className="h-8 w-28 object-contain" />
                           </button>
@@ -1079,7 +1093,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     disabled={!canManage}
                     className="h-4 w-4 rounded border-slate-600 accent-emerald-500"
                   />
-                  <span className="text-sm font-semibold text-emerald-200">E-IMZO orqali kirishga ruxsat berish</span>
+                  <span className="text-sm font-semibold text-emerald-200">{t('eimzoAllowLogin')}</span>
                 </label>
               </div>
 
@@ -1131,7 +1145,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
             >
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <h4 className="text-lg font-bold">E-IMZO biriktirish</h4>
+                  <h4 className="text-lg font-bold">{t('eimzoBindTitle')}</h4>
                   <p className="mt-1 text-sm text-slate-500">
                     {eimzoModalUser.fullName || eimzoModalUser.username}
                   </p>
@@ -1157,31 +1171,28 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     <CheckCircle2 size={34} />
                   </div>
                   <p className="text-xl font-black text-emerald-100">{eimzoBindSuccess}</p>
-                  <p className="mt-3 max-w-sm text-sm font-semibold text-emerald-200/80">
-                    Oyna 3 soniyadan keyin avtomatik yopiladi
-                  </p>
                 </div>
               ) : (
                 <>
               <div className="grid grid-cols-[minmax(0,1fr)_3.75rem] items-end gap-3">
                 <fieldset className="min-w-0 rounded-xl border border-slate-600/80 bg-slate-950/20 px-3 pb-2 pt-1 transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-                  <legend className="px-2 text-sm font-medium text-slate-300">Sertifikatni tanlang</legend>
+                  <legend className="px-2 text-sm font-medium text-slate-300">{t('eimzoSelectLabel')}</legend>
                   <select
                     value={selectedEimzoIndex}
                     disabled={isLoadingEimzoKeys || isBindingEimzo || eimzoKeys.length === 0}
                     onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
                     className="w-full min-w-0 bg-transparent py-1 text-sm font-semibold text-slate-100 outline-none [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60"
-                    aria-label="Sertifikatni tanlang"
+                    aria-label={t('eimzoSelectLabel')}
                     style={{ colorScheme: 'dark' }}
                   >
                     {eimzoKeys.length === 0 ? (
                       <option value={-1} style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
-                        {isLoadingEimzoKeys ? 'Kalitlar yuklanmoqda...' : 'Kalit topilmadi'}
+                        {isLoadingEimzoKeys ? t('eimzoKeysLoading') : t('eimzoKeyNotFound')}
                       </option>
                     ) : (
                       <>
                         <option value={-1} disabled style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
-                          Sertifikatni tanlang
+                          {t('eimzoSelectPlaceholder')}
                         </option>
                         {eimzoKeys.map((key, index) => (
                           <option
@@ -1192,7 +1203,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                               color: selectedEimzoIndex === index ? '#ffffff' : '#0f172a',
                             }}
                           >
-                            {formatEimzoCertificateOption(key)}
+                            {formatEimzoCertificateOption(key, t('eimzoKeyFallback'))}
                           </option>
                         ))}
                       </>
@@ -1204,8 +1215,8 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                   onClick={() => void loadEimzoKeysForBinding()}
                   disabled={isLoadingEimzoKeys || isBindingEimzo}
                   className="inline-flex h-[58px] w-[60px] items-center justify-center rounded-xl border border-slate-600/80 bg-slate-950/20 text-slate-200 transition-colors hover:border-blue-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label="E-IMZO kalitlarini yangilash"
-                  title="Yangilash"
+                  aria-label={t('eimzoRefreshKeys')}
+                  title={t('refresh')}
                 >
                   <RefreshCw size={20} className={isLoadingEimzoKeys ? 'animate-spin' : ''} />
                 </button>
@@ -1214,31 +1225,31 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
               {selectedEimzoKey ? (
                 (() => {
                   const identity = getEimzoKeyIdentity(selectedEimzoKey);
-                  const ownerName = selectedEimzoKey.CN || selectedEimzoKey.alias || "Noma'lum";
-                  const serial = identity.certificateSerial || selectedEimzoKey.serialNumber || selectedEimzoKey.serial || "Noma'lum";
-                  const validity = `${formatEimzoDate(selectedEimzoKey.validFrom)} - ${formatEimzoDate(selectedEimzoKey.validTo)}`;
+                  const ownerName = selectedEimzoKey.CN || selectedEimzoKey.alias || t('eimzoUnknown');
+                  const serial = identity.certificateSerial || selectedEimzoKey.serialNumber || selectedEimzoKey.serial || t('eimzoUnknown');
+                  const validity = `${formatEimzoDate(selectedEimzoKey.validFrom, t('eimzoUnknown'))} - ${formatEimzoDate(selectedEimzoKey.validTo, t('eimzoUnknown'))}`;
                   return (
                     <div className="mt-3 rounded-xl border border-slate-600/70 bg-slate-950/25 p-4 text-sm shadow-lg shadow-slate-950/20">
                       <div className="grid gap-2">
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">Seriya raqami:</span>
+                          <span className="font-bold text-slate-200">{t('eimzoSerialNumber')}</span>
                           <span className="truncate text-slate-300" title={serial}>{serial}</span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">JSHSHIR:</span>
+                          <span className="font-bold text-slate-200">{t('eimzoPinfl')}</span>
                           <span className="flex min-w-0 items-center gap-2 text-slate-300">
-                            <span className="truncate" title={identity.pinfl ?? "Noma'lum"}>{identity.pinfl ?? "Noma'lum"}</span>
+                            <span className="truncate" title={identity.pinfl ?? t('eimzoUnknown')}>{identity.pinfl ?? t('eimzoUnknown')}</span>
                             <span className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold uppercase text-emerald-300">
-                              {getEimzoOwnerType(selectedEimzoKey)}
+                              {getEimzoOwnerType(selectedEimzoKey, t('eimzoLegal'), t('eimzoIndividual'))}
                             </span>
                           </span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">F.I.SH:</span>
+                          <span className="font-bold text-slate-200">{t('eimzoFullName')}</span>
                           <span className="truncate text-slate-300" title={ownerName}>{ownerName}</span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">Amal qilish muddati:</span>
+                          <span className="font-bold text-slate-200">{t('eimzoValidityPeriod')}</span>
                           <span className="text-slate-300">{validity}</span>
                         </div>
                         <p className="mt-2 truncate border-t border-slate-700/70 pt-2 text-xs text-slate-500" title={formatEimzoKeyLocation(selectedEimzoKey)}>
@@ -1258,7 +1269,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                       href={getEimzoLocalhostUrl()}
                       className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/20"
                     >
-                      Localhostda ochish
+                      {t('eimzoOpenLocalhost')}
                     </a>
                   ) : null}
                 </div>
@@ -1270,7 +1281,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                   disabled={!selectedEimzoKey || isLoadingEimzoKeys || isBindingEimzo || Boolean(eimzoBindSuccess)}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-4 text-base font-semibold text-white shadow-lg shadow-blue-950/30 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
                 >
-                  {isBindingEimzo ? 'Biriktirilmoqda...' : eimzoBindSuccess ? 'Yopilmoqda...' : 'Biriktirish'}
+                  {isBindingEimzo ? t('eimzoBinding') : eimzoBindSuccess ? t('eimzoClosing') : t('eimzoBindButton')}
                 </button>
               </div>
                 </>

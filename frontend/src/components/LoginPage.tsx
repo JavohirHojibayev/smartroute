@@ -117,7 +117,7 @@ export const LoginPage = ({
             </div>
           </div>
 
-          <AuthModeSwitcher mode={mode} onChange={(nextMode) => {
+          <AuthModeSwitcher lang={lang} mode={mode} onChange={(nextMode) => {
             setMode(nextMode);
             setEimzoError(null);
           }} />
@@ -130,7 +130,7 @@ export const LoginPage = ({
                   href={getEimzoLocalhostUrl()}
                   className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/20"
                 >
-                  Localhostda ochish
+                  {t.eimzoOpenLocalhost}
                 </a>
               ) : null}
             </div>
@@ -140,6 +140,7 @@ export const LoginPage = ({
             <LoginPasswordForm lang={lang} isSubmitting={isSubmitting} onSubmit={onSubmit} />
           ) : (
             <EimzoLoginForm
+              lang={lang}
               isSubmitting={eimzoSubmitting}
               onSubmittingChange={setEimzoSubmitting}
               onLogin={onEimzoLogin}

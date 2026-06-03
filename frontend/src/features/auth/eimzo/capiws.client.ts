@@ -22,12 +22,26 @@ type NativeCapiwsClient = {
   apikey?: (keys: string[], callback: (event: unknown, data: CapiwsResponse) => void, error: (error: unknown) => void) => void;
 };
 
+type BridgeMessage = {
+  type?: string;
+  id?: string;
+  ok?: boolean;
+  response?: CapiwsResponse;
+  error?: string;
+};
+
 const DEFAULT_API_KEYS = [
   'localhost',
   '96D0C1491615C82B9A54D9989779DF825B690748224C2B04F500F370D51827CE2644D8D4A82C18184D73AB8530BB8ED537269603F61DB0D03D2104ABF789970B',
   '127.0.0.1',
   'A7BCFA5D490B351BE0754130DF03A068F855DB4333D43921125B9CF2670EF6A40370C646B90401955E1F7BC9CDBF59CE0B2C5467D820BE189C845D0B79CFC96F',
 ];
+
+const MESSAGE_REQUEST = 'smartroute:eimzo:request';
+const MESSAGE_RESPONSE = 'smartroute:eimzo:response';
+const MESSAGE_READY = 'smartroute:eimzo:ready';
+const LOCAL_EIMZO_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const bridgeDisabled = String(import.meta.env.VITE_EIMZO_DISABLE_LOCALHOST_BRIDGE ?? '').trim().toLowerCase() === 'true';
 
 const ensureBrowserWebSocket = () => {
   if (!window.WebSocket) {
@@ -161,11 +175,111 @@ const uniqueKeys = (keys: EimzoKey[]): EimzoKey[] => {
   return out;
 };
 
+class CapiwsLocalhostBridge {
+  private readonly origin: string;
+  private readonly url: string;
+  private iframe: HTMLIFrameElement | null = null;
+  private readyPromise: Promise<void> | null = null;
+  private requestIndex = 0;
+  private readonly pending = new Map<string, {
+    resolve: (value: CapiwsResponse) => void;
+    reject: (reason?: unknown) => void;
+    timeout: number;
+  }>();
+
+  constructor(url: string) {
+    this.url = url;
+    this.origin = new URL(url).origin;
+    window.addEventListener('message', this.handleMessage);
+  }
+
+  async call(request: CapiwsRequest, timeoutMs: number): Promise<CapiwsResponse> {
+    await this.ensureReady();
+
+    return new Promise((resolve, reject) => {
+      const id = `eimzo-${Date.now()}-${this.requestIndex += 1}`;
+      const timeout = window.setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error('E-IMZO localhost bridge javob bermadi'));
+      }, timeoutMs);
+
+      this.pending.set(id, { resolve, reject, timeout });
+      this.iframe?.contentWindow?.postMessage({
+        type: MESSAGE_REQUEST,
+        id,
+        request,
+        timeoutMs,
+      }, this.origin);
+    });
+  }
+
+  private ensureReady(): Promise<void> {
+    if (this.readyPromise) return this.readyPromise;
+
+    this.readyPromise = new Promise((resolve, reject) => {
+      const iframe = document.createElement('iframe');
+      iframe.src = this.url;
+      iframe.title = 'SmartRoute E-IMZO bridge';
+      iframe.tabIndex = -1;
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '0';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+
+      const timeout = window.setTimeout(() => {
+        reject(new Error('E-IMZO localhost bridge yuklanmadi'));
+      }, 5000);
+
+      const onReady = (event: MessageEvent) => {
+        const data = event.data as BridgeMessage;
+        if (event.origin !== this.origin || data?.type !== MESSAGE_READY) return;
+        window.clearTimeout(timeout);
+        window.removeEventListener('message', onReady);
+        resolve();
+      };
+
+      iframe.onerror = () => {
+        window.clearTimeout(timeout);
+        window.removeEventListener('message', onReady);
+        reject(new Error('E-IMZO localhost bridge yuklanmadi'));
+      };
+
+      window.addEventListener('message', onReady);
+      document.body.appendChild(iframe);
+      this.iframe = iframe;
+    });
+
+    return this.readyPromise;
+  }
+
+  private readonly handleMessage = (event: MessageEvent) => {
+    const data = event.data as BridgeMessage;
+    if (event.origin !== this.origin || data?.type !== MESSAGE_RESPONSE || !data.id) return;
+
+    const pending = this.pending.get(data.id);
+    if (!pending) return;
+    this.pending.delete(data.id);
+    window.clearTimeout(pending.timeout);
+
+    if (data.ok) {
+      pending.resolve(data.response ?? {});
+      return;
+    }
+    pending.reject(new Error(data.error || 'E-IMZO bridge xatosi'));
+  };
+}
+
 export class SmartRouteCapiwsClient {
   private apiKeys = [...DEFAULT_API_KEYS];
   private url: string | null = null;
   private newApi = false;
   private nativeClient: NativeCapiwsClient | null = null;
+  private bridge: CapiwsLocalhostBridge | null = null;
+  private hasExplicitHostApiKey = false;
 
   getKeys(): string[] {
     return [...this.apiKeys];
@@ -176,9 +290,19 @@ export class SmartRouteCapiwsClient {
     const normalizedKey = key.trim();
     if (!normalizedDomain || !normalizedKey || this.apiKeys.includes(normalizedDomain)) return;
     this.apiKeys.push(normalizedDomain, normalizedKey);
+    if (this.matchesCurrentHost(normalizedDomain)) {
+      this.hasExplicitHostApiKey = true;
+    }
   }
 
   async selectWorkingUrl(): Promise<void> {
+    if (this.shouldUseLocalhostBridge()) {
+      const bridge = new CapiwsLocalhostBridge(this.localhostBridgeUrl());
+      await bridge.call({ name: 'version' }, 3500);
+      this.bridge = bridge;
+      return;
+    }
+
     const nativeClient = this.getNativeClient();
     if (nativeClient) {
       await this.callNative(nativeClient, { name: 'version' }, 2500);
@@ -329,13 +453,34 @@ export class SmartRouteCapiwsClient {
   }
 
   private async call(request: CapiwsRequest): Promise<CapiwsResponse> {
-    if (!this.url && !this.nativeClient) {
+    if (!this.url && !this.nativeClient && !this.bridge) {
       await this.selectWorkingUrl();
+    }
+    if (this.bridge) {
+      return this.bridge.call(request, 15000);
     }
     if (this.nativeClient) {
       return this.callNative(this.nativeClient, request, 15000);
     }
     return this.send(this.url as string, request, 15000);
+  }
+
+  private shouldUseLocalhostBridge(): boolean {
+    if (bridgeDisabled || this.hasExplicitHostApiKey) return false;
+    const host = window.location.hostname.toLowerCase();
+    return window.location.protocol === 'http:' && !LOCAL_EIMZO_HOSTS.has(host);
+  }
+
+  private localhostBridgeUrl(): string {
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `${window.location.protocol}//localhost${port}/eimzo-bridge.html`;
+  }
+
+  private matchesCurrentHost(domain: string): boolean {
+    const normalized = domain.toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+    const currentHost = window.location.hostname.toLowerCase();
+    const currentHostWithPort = window.location.host.toLowerCase();
+    return normalized === currentHost || normalized === currentHostWithPort;
   }
 
   private getNativeClient(): NativeCapiwsClient | null {

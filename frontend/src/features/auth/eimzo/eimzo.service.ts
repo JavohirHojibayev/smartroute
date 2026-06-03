@@ -33,6 +33,11 @@ const errorToText = (error: unknown): string => {
 const normalizeErrorMessage = (error: unknown): string => {
   const text = errorToText(error);
   const lower = text.toLowerCase();
+  if (lower.includes('парол') || lower.includes('пин')) return "Parol noto'g'ri";
+  if (lower.includes('отмен')) return 'Imzo bekor qilindi';
+  if (lower.includes('домен') || lower.includes('недействител')) {
+    return `${window.location.hostname} uchun E-IMZO API-key kerak. E-IMZO default kalitlari faqat localhost/127.0.0.1 uchun ishlaydi. E-IMZO bilan ishlash uchun ${getEimzoLocalhostUrl()} manzilidan kiring yoki 192.168.0.3 uchun rasmiy API-key qo'shing.`;
+  }
   if (
     lower.includes('парол') ||
     lower.includes('pin') ||
@@ -89,6 +94,10 @@ const addConfiguredApiKeys = (module: SmartRouteCapiwsClient) => {
 
 };
 
+const wait = (ms: number): Promise<void> => new Promise((resolve) => {
+  window.setTimeout(resolve, ms);
+});
+
 const getModule = async (): Promise<SmartRouteCapiwsClient> => {
   if (!modulePromise) {
     modulePromise = Promise.resolve()
@@ -105,20 +114,33 @@ const getModule = async (): Promise<SmartRouteCapiwsClient> => {
         return module;
       });
   }
-  return modulePromise;
+  try {
+    return await modulePromise;
+  } catch (error) {
+    modulePromise = null;
+    throw error;
+  }
 };
 
 export const getEimzoKeys = async (): Promise<EimzoKey[]> => {
-  try {
-    const module = await getModule();
-    const keys = await module.listAllUserKeys() as EimzoKey[];
-    if (!Array.isArray(keys) || keys.length === 0) {
-      throw new Error('Kalit topilmadi');
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const module = await getModule();
+      const keys = await module.listAllUserKeys() as EimzoKey[];
+      if (!Array.isArray(keys) || keys.length === 0) {
+        throw new Error('Kalit topilmadi');
+      }
+      return keys;
+    } catch (error) {
+      modulePromise = null;
+      lastError = error;
+      if (attempt === 0) {
+        await wait(700);
+      }
     }
-    return keys;
-  } catch (error) {
-    throw new Error(normalizeErrorMessage(error));
   }
+  throw new Error(normalizeErrorMessage(lastError));
 };
 
 const keyIsExpired = (key: EimzoKey): boolean => {

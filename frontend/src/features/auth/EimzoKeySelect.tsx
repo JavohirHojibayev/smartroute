@@ -1,6 +1,8 @@
+import { dicts, type Language } from '../../i18n';
 import type { EimzoKey } from './eimzo/eimzo.types';
 
 type EimzoKeySelectProps = {
+  lang: Language;
   keys: EimzoKey[];
   selectedIndex: number;
   disabled?: boolean;
@@ -15,7 +17,7 @@ const formatDisplayName = (value: string): string =>
     .toLocaleLowerCase('uz-UZ')
     .replace(/(^|\s)(\S)/g, (match) => match.toLocaleUpperCase('uz-UZ'));
 
-const getKeyOwnerName = (key: EimzoKey): string => {
+const getKeyOwnerName = (key: EimzoKey, fallback: string): string => {
   const directName = key.CN || key.alias;
   if (directName?.trim()) return formatDisplayName(directName);
 
@@ -25,42 +27,46 @@ const getKeyOwnerName = (key: EimzoKey): string => {
     return formatDisplayName(afterUnderscore || rawName);
   }
 
-  return 'E-IMZO kalit';
+  return fallback;
 };
 
-export const EimzoKeySelect = ({ keys, selectedIndex, disabled, onChange }: EimzoKeySelectProps) => (
-  <label className="block">
-    <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">Sertifikatni tanlang</span>
-    <select
-      value={selectedIndex}
-      disabled={disabled || keys.length === 0}
-      onChange={(event) => onChange(Number.parseInt(event.target.value, 10))}
-      className="w-full rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-3 text-sm font-semibold text-slate-100 outline-none transition-colors [color-scheme:dark] focus:border-blue-500/60 disabled:cursor-not-allowed disabled:opacity-60"
-      style={{ colorScheme: 'dark' }}
-    >
-      {keys.length === 0 ? (
-        <option value={-1} style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
-          Kalit topilmadi
-        </option>
-      ) : (
-        <>
-          <option value={-1} disabled style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
-            Sertifikatni tanlang
+export const EimzoKeySelect = ({ lang, keys, selectedIndex, disabled, onChange }: EimzoKeySelectProps) => {
+  const t = dicts[lang];
+
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">{t.eimzoSelectLabel}</span>
+      <select
+        value={selectedIndex}
+        disabled={disabled || keys.length === 0}
+        onChange={(event) => onChange(Number.parseInt(event.target.value, 10))}
+        className="w-full rounded-xl border border-slate-700/60 bg-slate-900/60 px-3 py-3 text-sm font-semibold text-slate-100 outline-none transition-colors [color-scheme:dark] focus:border-blue-500/60 disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ colorScheme: 'dark' }}
+      >
+        {keys.length === 0 ? (
+          <option value={-1} style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+            {t.eimzoKeyNotFound}
           </option>
-          {keys.map((key, index) => (
-            <option
-              key={`${key.serialNumber ?? key.alias ?? index}-${index}`}
-              value={index}
-              style={{
-                backgroundColor: selectedIndex === index ? '#2563eb' : '#ffffff',
-                color: selectedIndex === index ? '#ffffff' : '#0f172a',
-              }}
-            >
-              {getKeyOwnerName(key)}
+        ) : (
+          <>
+            <option value={-1} disabled style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+              {t.eimzoSelectPlaceholder}
             </option>
-          ))}
-        </>
-      )}
-    </select>
-  </label>
-);
+            {keys.map((key, index) => (
+              <option
+                key={`${key.serialNumber ?? key.alias ?? index}-${index}`}
+                value={index}
+                style={{
+                  backgroundColor: selectedIndex === index ? '#2563eb' : '#ffffff',
+                  color: selectedIndex === index ? '#ffffff' : '#0f172a',
+                }}
+              >
+                {getKeyOwnerName(key, t.eimzoKeyFallback)}
+              </option>
+            ))}
+          </>
+        )}
+      </select>
+    </label>
+  );
+};

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartRoute E-IMZO Bridge</title>
+  </head>
+  <body>
+    <script>
+      (() => {
+        'use strict';
+
+        const MESSAGE_REQUEST = 'smartroute:eimzo:request';
+        const MESSAGE_RESPONSE = 'smartroute:eimzo:response';
+        const MESSAGE_READY = 'smartroute:eimzo:ready';
+        const parentOrigin = (() => {
+          try {
+            return document.referrer ? new URL(document.referrer).origin : '';
+          } catch {
+            return '';
+          }
+        })();
+        const allowedOrigins = new Set([
+          parentOrigin,
+          window.location.origin,
+          'http://localhost:5173',
+          'http://127.0.0.1:5173',
+          'http://192.168.0.3:5173',
+        ].filter(Boolean));
+
+        const sendCapiws = (request, timeoutMs) => new Promise((resolve, reject) => {
+          if (!window.WebSocket) {
+            reject(new Error('WebSocket mavjud emas'));
+            return;
+          }
+
+          let settled = false;
+          let socket;
+          const finish = (callback) => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timeout);
+            try {
+              socket?.close();
+            } catch {
+              // Socket may already be closed.
+            }
+            callback();
+          };
+          const timeout = window.setTimeout(() => {
+            finish(() => reject(new Error('E-IMZO ulanish vaqti tugadi')));
+          }, timeoutMs);
+
+          try {
+            socket = new WebSocket('ws://127.0.0.1:64646/service/cryptapi');
+          } catch (error) {
+            window.clearTimeout(timeout);
+            reject(error);
+            return;
+          }
+
+          socket.onerror = () => finish(() => reject(new Error('E-IMZO WebSocket ulanishida xatolik')));
+          socket.onmessage = (event) => {
+            finish(() => {
+              try {
+                resolve(JSON.parse(String(event.data)));
+              } catch {
+                reject(new Error('E-IMZO javobi JSON formatida emas'));
+              }
+            });
+          };
+          socket.onopen = () => {
+            socket.send(JSON.stringify(request));
+          };
+        });
+
+        window.addEventListener('message', async (event) => {
+          const data = event.data || {};
+          if (!allowedOrigins.has(event.origin) || data.type !== MESSAGE_REQUEST) {
+            return;
+          }
+
+          try {
+            const response = await sendCapiws(data.request, Number(data.timeoutMs) || 15000);
+            event.source?.postMessage({
+              type: MESSAGE_RESPONSE,
+              id: data.id,
+              ok: true,
+              response,
+            }, event.origin);
+          } catch (error) {
+            event.source?.postMessage({
+              type: MESSAGE_RESPONSE,
+              id: data.id,
+              ok: false,
+              error: error instanceof Error ? error.message : String(error ?? 'E-IMZO xatosi'),
+            }, event.origin);
+          }
+        });
+
+        if (window.parent && parentOrigin) {
+          window.parent.postMessage({ type: MESSAGE_READY }, parentOrigin);
+        }
+      })();
+    </script>
+  </body>
+</html>

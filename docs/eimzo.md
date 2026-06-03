@@ -18,12 +18,18 @@ extension orqali chaqiradi:
 - `pfx.verify_password`
 - `pkcs7.create_pkcs7`
 
-`localhost` va `127.0.0.1` default API-key bilan ishlaydi. LAN IP yoki production
-domen uchun rasmiy E-IMZO API-key kerak:
+`localhost` va `127.0.0.1` default API-key bilan ishlaydi. Dev rejimida sahifa
+`192.168.0.3:5173` kabi LAN IP orqali ochilganda frontend
+`/eimzo-bridge.html` iframe bridge orqali CAPIWS chaqiruvlarini `localhost`
+originida bajaradi. Bu E-IMZO desktopning default localhost API-key cheklovini
+dev kompyuterda buzmasdan ishlatadi.
+
+Production domen uchun rasmiy E-IMZO API-key kerak:
 
 ```env
 VITE_EIMZO_API_KEY=domain-uchun-rasmiy-api-key
 VITE_EIMZO_API_KEYS=192.168.0.3=api-key;example.uz=api-key
+VITE_EIMZO_DISABLE_LOCALHOST_BRIDGE=false
 ```
 
 ## Backend
