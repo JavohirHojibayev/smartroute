@@ -657,23 +657,23 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
     return (
         <div className="flex h-full min-w-0 flex-col gap-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="min-w-0">
-                    <h3 className="app-module-heading">Tezkor xarita (Garvex GPS)</h3>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-300">
-                        <span className="h-2 w-2 rounded-full bg-cyan-400" /> {counters.total} Transport
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">
-                        {counters.moving} Harakatda
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
-                        {counters.stopped} To`xtagan
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-slate-500/30 bg-slate-700/25 px-3 py-1 text-xs font-bold text-slate-300">
-                        {counters.offline} Aloqa yo`q
-                    </span>
+            <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4 sm:items-center sm:p-5">
+                <h3 className="app-module-heading">Tezkor xarita (Garvex GPS)</h3>
+                <div className="flex w-full md:w-auto">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-300">
+                            <span className="h-2 w-2 rounded-full bg-cyan-400" /> {counters.total} Transport
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">
+                            {counters.moving} Harakatda
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+                            {counters.stopped} To`xtagan
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-slate-500/30 bg-slate-700/25 px-3 py-1 text-xs font-bold text-slate-300">
+                            {counters.offline} Aloqa yo`q
+                        </span>
+                    </div>
                 </div>
             </div>
 

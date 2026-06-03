@@ -42,6 +42,8 @@ const MESSAGE_RESPONSE = 'smartroute:eimzo:response';
 const MESSAGE_READY = 'smartroute:eimzo:ready';
 const LOCAL_EIMZO_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const bridgeDisabled = String(import.meta.env.VITE_EIMZO_DISABLE_LOCALHOST_BRIDGE ?? '').trim().toLowerCase() === 'true';
+const DEFAULT_CAPIWS_TIMEOUT_MS = 15000;
+const PASSWORD_DIALOG_TIMEOUT_MS = 70000;
 
 const ensureBrowserWebSocket = () => {
   if (!window.WebSocket) {
@@ -378,7 +380,7 @@ export class SmartRouteCapiwsClient {
       plugin: 'pkcs7',
       name: 'create_pkcs7',
       arguments: [base64EncodeUtf8(content), keyId, 'no'],
-    });
+    }, PASSWORD_DIALOG_TIMEOUT_MS);
     if (!data.success || !data.pkcs7_64) {
       throw new Error(String(data.reason ?? 'Imzo bekor qilindi'));
     }
@@ -422,7 +424,7 @@ export class SmartRouteCapiwsClient {
         plugin: 'pfx',
         name: 'verify_password',
         arguments: [loaded.keyId],
-      });
+      }, PASSWORD_DIALOG_TIMEOUT_MS);
       if (!verified.success) {
         throw new Error(String(verified.reason ?? 'INVALID PASSWORD'));
       }
@@ -442,7 +444,7 @@ export class SmartRouteCapiwsClient {
         plugin: 'ftjc',
         name: 'verify_pin',
         arguments: [loaded.keyId, '1'],
-      });
+      }, PASSWORD_DIALOG_TIMEOUT_MS);
       if (!verified.success) {
         throw new Error(String(verified.reason ?? 'INVALID PASSWORD'));
       }
@@ -452,17 +454,17 @@ export class SmartRouteCapiwsClient {
     throw new Error('Kalit turi qo\'llab-quvvatlanmaydi');
   }
 
-  private async call(request: CapiwsRequest): Promise<CapiwsResponse> {
+  private async call(request: CapiwsRequest, timeoutMs = DEFAULT_CAPIWS_TIMEOUT_MS): Promise<CapiwsResponse> {
     if (!this.url && !this.nativeClient && !this.bridge) {
       await this.selectWorkingUrl();
     }
     if (this.bridge) {
-      return this.bridge.call(request, 15000);
+      return this.bridge.call(request, timeoutMs);
     }
     if (this.nativeClient) {
-      return this.callNative(this.nativeClient, request, 15000);
+      return this.callNative(this.nativeClient, request, timeoutMs);
     }
-    return this.send(this.url as string, request, 15000);
+    return this.send(this.url as string, request, timeoutMs);
   }
 
   private shouldUseLocalhostBridge(): boolean {

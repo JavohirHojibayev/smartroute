@@ -33,6 +33,7 @@ const errorToText = (error: unknown): string => {
 const normalizeErrorMessage = (error: unknown): string => {
   const text = errorToText(error);
   const lower = text.toLowerCase();
+  if (lower.includes('timeout') || lower.includes('vaqti tugadi') || lower.includes('javob bermadi')) return 'Parol kiritish vaqti tugadi';
   if (lower.includes('парол') || lower.includes('пин')) return "Parol noto'g'ri";
   if (lower.includes('отмен')) return 'Imzo bekor qilindi';
   if (lower.includes('домен') || lower.includes('недействител')) {
