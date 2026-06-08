@@ -103,20 +103,28 @@ const statusBadgeClass = (status: InspectionStatus): string => {
   return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
 };
 
-const formatDateTime = (iso: string | null): string => {
+const formatInspectionDate = (iso: string | null): string => {
   if (!iso) return '-';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   const pad = (value: number) => String(value).padStart(2, '0');
-  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
 };
 
-const toInputDateTime = (iso: string | null): string => {
+const toInputDate = (iso: string | null): string => {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   const pad = (value: number) => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const toInspectionDateIso = (inputDate: string): string | undefined => {
+  if (!inputDate) return undefined;
+  const match = inputDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0).toISOString();
 };
 
 const normalizeErrorMessage = (payload: any, fallback: string): string => {
@@ -189,6 +197,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
       if (dateTo) listParams.set('dateTo', dateTo);
 
       const summaryParams = new URLSearchParams();
+      summaryParams.set('scope', 'all');
       if (dateFrom) summaryParams.set('dateFrom', dateFrom);
       if (dateTo) summaryParams.set('dateTo', dateTo);
 
@@ -303,7 +312,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
       model: row.model || '',
       status: row.status,
       notes: row.notes || '',
-      inspectionTime: toInputDateTime(row.inspectionTime),
+      inspectionTime: toInputDate(row.inspectionTime),
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -365,7 +374,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
         model: formState.model.trim(),
         status: formState.status,
         notes: formState.notes.trim(),
-        inspectionTime: formState.inspectionTime ? new Date(formState.inspectionTime).toISOString() : undefined,
+        inspectionTime: toInspectionDateIso(formState.inspectionTime),
       };
 
       const isEdit = Boolean(editingRow);
@@ -522,7 +531,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
             <h3 className="app-module-heading">
               Texnik ko'rik jurnali
             </h3>
-            <div className="text-xs text-slate-400">Sana: {summary.day || '-'}</div>
+            {summary.day ? <div className="text-xs text-slate-400">Sana: {summary.day}</div> : null}
           </div>
 
           <div className="overflow-x-auto dark-scrollbar">
@@ -531,7 +540,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
                 <tr className="text-slate-400 uppercase text-xs tracking-wider">
                   <th className="px-4 py-3 text-left">Davlat raqami</th>
                   <th className="px-4 py-3 text-left">Model</th>
-                  <th className="px-4 py-3 text-left">Vaqt</th>
+                  <th className="px-4 py-3 text-left">Sana</th>
                   <th className="px-4 py-3 text-left">Holat</th>
                   <th className="px-4 py-3 text-left">Mas'ul</th>
                   <th className="px-4 py-3 text-left">Izoh</th>
@@ -555,7 +564,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
                   >
                     <td className="px-4 py-3 text-slate-100 font-semibold">{row.plate}</td>
                     <td className="px-4 py-3 text-slate-300">{row.model}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{formatDateTime(row.inspectionTime)}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{formatInspectionDate(row.inspectionTime)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border inline-flex items-center gap-1 ${statusBadgeClass(row.status)}`}>
                         {row.status === 'passed' ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
@@ -643,7 +652,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
 
         <div className="space-y-6">
           <div className="glass-panel rounded-2xl border border-slate-700/50 p-5 space-y-3">
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-bold">Kunlik statistika</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-bold">Umumiy statistika</h4>
             <div className="flex justify-between text-sm">
               <span className="text-slate-400">Jami</span>
               <span className="font-bold text-white">{summary.totalToday}</span>
@@ -753,9 +762,9 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
               </label>
 
               <label>
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tekshiruv vaqti</span>
+                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tekshiruv sanasi</span>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={formState.inspectionTime}
                   onChange={(event) => setFormState((prev) => ({ ...prev, inspectionTime: event.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"

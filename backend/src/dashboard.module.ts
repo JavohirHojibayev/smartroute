@@ -161,6 +161,8 @@ export class DashboardService {
         fleetReadinessPercent: 91,
         flowToday: 1240,
         checksPassed: 126,
+        checksPending: 4,
+        checksFailed: 2,
         checksTotal: 132,
         serviceQueue: [
           { plate: '10 O 001 OO', issue: 'Dvigatel moy sizishi', eta: '2 soat', priority: 'high' as ServicePriority },
@@ -399,6 +401,8 @@ export class DashboardService {
         fleetReadinessPercent,
         flowToday: totalMovementToday,
         checksPassed: passedMechanical,
+        checksPending: warningMechanical,
+        checksFailed: failedMechanical,
         checksTotal,
         serviceQueue,
       },

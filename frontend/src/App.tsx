@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Car,
   Map,
@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
   LogOut,
+  Bell,
   Menu,
   X,
 } from 'lucide-react';
@@ -108,6 +109,8 @@ type DashboardOverview = {
     fleetReadinessPercent: number;
     flowToday: number;
     checksPassed: number;
+    checksPending: number;
+    checksFailed: number;
     checksTotal: number;
     serviceQueue: Array<{
       plate: string;
@@ -183,6 +186,7 @@ function App() {
     return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'users' | 'roles'>('users');
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -196,6 +200,7 @@ function App() {
   const [dashboardFuelError, setDashboardFuelError] = useState<string | null>(null);
   const userRole: AppRole = authSession?.user.role ?? 'admin';
   const authToken = authSession?.token ?? '';
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -220,6 +225,32 @@ function App() {
 
     window.localStorage.setItem(LANG_STORAGE_KEY, lang);
   }, [lang]);
+
+  useEffect(() => {
+    if (!notificationsOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (notificationsRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setNotificationsOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [notificationsOpen]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -501,6 +532,15 @@ function App() {
   const userPermissionSelections = normalizePermissionMap(authSession?.user.permissions, userRole);
   const userPermissions = toEffectivePermissionMap(userPermissionSelections);
 
+  const openAlertTarget = (targetTab: PermissionModule | null | undefined) => {
+    if (!targetTab || !canViewModule(userPermissions, targetTab)) {
+      setNotificationsOpen(false);
+      return;
+    }
+    setActiveTab(targetTab);
+    setNotificationsOpen(false);
+  };
+
   const allNavItems: Array<{ id: PermissionModule; icon: ReactNode; label: string }> = [
     { id: 'dashboard', icon: <Activity />, label: t('dashboard') },
     { id: 'access', icon: <ScanFace />, label: t('accessControl') },
@@ -618,6 +658,8 @@ function App() {
   })();
 
   const serviceQueue = dashboardData?.pulse?.serviceQueue ?? [];
+  const mechanicInspectionCount = Number(dashboardData?.pulse?.checksPending ?? 0);
+  const faultyVehicleCount = Number(dashboardData?.pulse?.checksFailed ?? 0);
   const criticalServiceCount = serviceQueue.filter((item) => String(item.priority || '').toLowerCase() === 'high').length;
   const documentIssueCount = serviceQueue.filter((item) =>
     /hujjat|guvohnoma|pasport|id|license|litsenziya/i.test(String(item.issue || '')),
@@ -631,44 +673,65 @@ function App() {
   if (fuelHealthStatus && fuelHealthStatus !== 'online' && fuelHealthStatus !== 'syncing') {
     integrationIssues.push(`AZS ${fuelHealthStatus}`);
   }
+  const integrationAlertTarget: PermissionModule = integrationIssues.some((item) => /azs|yoqilg'i|fuel/i.test(item)) ? 'fuel' : 'dashboard';
 
   const dashboardAlerts = (() => {
     const existingAlerts = [
+      {
+        count: mechanicInspectionCount,
+        type: 'danger',
+        message: `Texnik ko'rikdagi avtomobillar: ${formatCount(mechanicInspectionCount)} ta`,
+        time: 'Bugun',
+        targetTab: 'mechanic' as PermissionModule,
+      },
+      {
+        count: faultyVehicleCount,
+        type: 'danger',
+        message: `Nosoz avtomobillar: ${formatCount(faultyVehicleCount)} ta`,
+        time: 'Bugun',
+        targetTab: 'mechanic' as PermissionModule,
+      },
       {
         count: criticalServiceCount,
         type: 'danger',
         message: `Texnik ko'rik muddati o'tgan transportlar: ${formatCount(criticalServiceCount)} ta`,
         time: 'Bugun',
+        targetTab: 'mechanic' as PermissionModule,
       },
       {
         count: esmoRejectedCount,
         type: 'danger',
         message: `ESMO rad holatlari: ${formatCount(esmoRejectedCount)} ta`,
         time: 'Bugun',
+        targetTab: 'medical' as PermissionModule,
       },
       {
         count: turnstileSuspiciousCount,
         type: 'danger',
         message: `Turniketda shubhali kirish/chiqishlar: ${formatCount(turnstileSuspiciousCount)} ta`,
         time: 'Bugun',
+        targetTab: 'access' as PermissionModule,
       },
       {
         count: documentIssueCount,
         type: 'danger',
         message: `Hujjati tugagan transport/haydovchi: ${formatCount(documentIssueCount)} ta`,
         time: 'Bugun',
+        targetTab: 'fleet' as PermissionModule,
       },
       {
         count: criticalServiceCount,
         type: 'danger',
         message: t('dashboardCriticalIssuesToday').replace('{count}', formatCount(criticalServiceCount)),
         time: t('fuelPresetToday'),
+        targetTab: 'mechanic' as PermissionModule,
       },
       {
         count: integrationIssues.length,
         type: 'danger',
         message: `Integratsiya uzilishlari: ${formatCount(integrationIssues.length)} ta (${integrationIssues.join(', ')})`,
         time: t('refresh'),
+        targetTab: integrationAlertTarget,
       },
     ]
       .filter((item) => item.count > 0)
@@ -677,19 +740,22 @@ function App() {
         type: item.type,
         message: item.message,
         time: item.time,
+        targetTab: item.targetTab,
       }));
 
     if (existingAlerts.length > 0) {
       return existingAlerts;
     }
 
-    return [{
-      id: 1,
-      type: 'warning',
-      message: t('dashboardNoAlerts'),
-      time: t('fuelPresetToday'),
-    }];
+      return [{
+        id: 1,
+        type: 'warning',
+        message: t('dashboardNoAlerts'),
+        time: t('fuelPresetToday'),
+        targetTab: null,
+      }];
   })();
+  const notificationsCount = dashboardAlerts[0]?.message === t('dashboardNoAlerts') ? 0 : dashboardAlerts.length;
 
   const dashboardActivity = [
     {
@@ -887,7 +953,17 @@ function App() {
                   </h3>
                   <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {dashboardAlerts.map((alert) => (
-                      <div key={alert.id} className="p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex gap-3">
+                      <button
+                        key={alert.id}
+                        type="button"
+                        onClick={() => openAlertTarget(alert.targetTab)}
+                        disabled={!alert.targetTab}
+                        className={`w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex gap-3 text-left transition-colors ${
+                          alert.targetTab
+                            ? 'hover:border-blue-500/40 hover:bg-slate-900/70 cursor-pointer'
+                            : 'cursor-default'
+                        }`}
+                      >
                         <div className={`mt-0.5 p-1 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
                           <AlertTriangle size={12} />
                         </div>
@@ -895,7 +971,7 @@ function App() {
                           <p className="text-xs text-slate-300 font-medium">{alert.message}</p>
                           <span className="text-[10px] text-slate-500">{alert.time}</span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1205,12 +1281,93 @@ function App() {
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-4 h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer"
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-4 h-10 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-100 hover:border-red-500/50 hover:text-red-500 transition-colors cursor-pointer"
               title={t('exit')}
             >
-              <LogOut className="text-slate-300 w-[18px] h-[18px] shrink-0" />
+              <LogOut className="w-[18px] h-[18px] shrink-0" />
               <span className="hidden sm:inline font-medium">{t('exit')}</span>
             </button>
+            <div ref={notificationsRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((prev) => !prev)}
+                className={`relative flex items-center justify-center px-2 sm:px-3 h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer ${
+                  notificationsOpen
+                    ? 'border-blue-500/50 text-slate-200'
+                    : 'border-slate-700 hover:border-blue-500/50 text-slate-300'
+                }`}
+                title={t('notifications')}
+                aria-label={t('notifications')}
+                aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
+              >
+                <Bell className="text-blue-400 w-[18px] h-[18px] shrink-0" />
+                {notificationsCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold inline-flex items-center justify-center shadow-lg shadow-red-500/20">
+                    {notificationsCount > 9 ? '9+' : notificationsCount}
+                  </span>
+                ) : null}
+              </button>
+
+              <AnimatePresence>
+                {notificationsOpen ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute right-0 top-full mt-3 w-[min(92vw,24rem)] rounded-2xl border border-slate-700/70 bg-slate-900/95 backdrop-blur-xl shadow-2xl shadow-slate-950/50 overflow-hidden z-50"
+                    role="dialog"
+                    aria-label={t('dashboardAlerts')}
+                  >
+                    <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-300 inline-flex items-center justify-center">
+                          <Bell size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-100 truncate">{t('dashboardAlerts')}</p>
+                          <p className="text-[11px] text-slate-500">
+                            {notificationsCount > 0 ? `${notificationsCount} ${t('dashboardTotalPrefix').toLowerCase()}` : t('dashboardNoAlerts')}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="w-8 h-8 rounded-lg border border-slate-700/70 text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-colors inline-flex items-center justify-center"
+                        aria-label={t('menuClose')}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                      {dashboardAlerts.map((alert) => (
+                        <button
+                          key={alert.id}
+                          type="button"
+                          onClick={() => openAlertTarget(alert.targetTab)}
+                          disabled={!alert.targetTab}
+                          className={`w-full rounded-xl border border-slate-800 bg-slate-950/50 p-3 flex gap-3 text-left transition-colors ${
+                            alert.targetTab
+                              ? 'hover:border-blue-500/40 hover:bg-slate-950/70 cursor-pointer'
+                              : 'cursor-default'
+                          }`}
+                        >
+                          <div className={`mt-0.5 p-1.5 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            <AlertTriangle size={12} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs text-slate-200 font-medium leading-5">{alert.message}</p>
+                            <span className="text-[10px] text-slate-500">{alert.time}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
             <button
               type="button"
               onClick={openRoleManagement}

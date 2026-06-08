@@ -174,16 +174,22 @@ export class MechanicService {
     };
   }
 
-  async getSummary(dateFromRaw?: string, dateToRaw?: string) {
+  async getSummary(dateFromRaw?: string, dateToRaw?: string, scopeRaw?: string) {
+    const scope = this.normalizeWhitespace(scopeRaw).toLowerCase();
+    const showAllByDefault = scope === 'all';
     const dayBounds = this.getCurrentDayBoundsTashkent();
-    const start = dateFromRaw ? this.parseDate(dateFromRaw, dayBounds.start) : dayBounds.start;
-    const end = dateToRaw ? new Date(this.parseDate(dateToRaw, dayBounds.end).getTime() + 24 * 60 * 60 * 1000) : dayBounds.end;
+    const start = dateFromRaw ? this.parseDate(dateFromRaw, dayBounds.start) : (showAllByDefault ? null : dayBounds.start);
+    const end = dateToRaw ? new Date(this.parseDate(dateToRaw, dayBounds.end).getTime() + 24 * 60 * 60 * 1000) : (showAllByDefault ? null : dayBounds.end);
 
-    const rows = await this.mechanicalRepo
-      .createQueryBuilder('inspection')
-      .where('datetime(inspection.inspection_time) >= datetime(:start)', { start: start.toISOString() })
-      .andWhere('datetime(inspection.inspection_time) < datetime(:end)', { end: end.toISOString() })
-      .getMany();
+    let query = this.mechanicalRepo.createQueryBuilder('inspection');
+    if (start) {
+      query = query.andWhere('datetime(inspection.inspection_time) >= datetime(:start)', { start: start.toISOString() });
+    }
+    if (end) {
+      query = query.andWhere('datetime(inspection.inspection_time) < datetime(:end)', { end: end.toISOString() });
+    }
+
+    const rows = await query.getMany();
 
     let passedToday = 0;
     let pendingToday = 0;
@@ -195,7 +201,7 @@ export class MechanicService {
     }
 
     return {
-      day: dayBounds.dayKey,
+      day: showAllByDefault && !dateFromRaw && !dateToRaw ? '' : dayBounds.dayKey,
       totalToday: rows.length,
       passedToday,
       pendingToday,
@@ -365,9 +371,10 @@ export class MechanicController {
     @Headers('authorization') authorization: string | undefined,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
+    @Query('scope') scope?: string,
   ) {
     await this.authService.requireUserFromAuthorization(authorization);
-    return this.mechanicService.getSummary(dateFrom, dateTo);
+    return this.mechanicService.getSummary(dateFrom, dateTo, scope);
   }
 
   @Get('inspections')
