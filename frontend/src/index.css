@@ -537,7 +537,7 @@
   display: inline-block;
   max-width: 100%;
   color: transparent;
-  background-image: linear-gradient(90deg, #60a5fa, #22d3ee);
+  background-image: linear-gradient(90deg, #93c5fd 0%, #60a5fa 38%, #22d3ee 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -545,19 +545,43 @@
 
 .theme-dark .app-module-heading {
   color: transparent !important;
-  background-image: linear-gradient(90deg, #60a5fa, #22d3ee) !important;
+  background-image: linear-gradient(90deg, #93c5fd 0%, #60a5fa 38%, #22d3ee 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
+}
+
+.fuel-tab-heading {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.08;
+  color: transparent;
+  background-image: linear-gradient(90deg, #93c5fd 0%, #60a5fa 38%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 @media (min-width: 768px) {
   .app-module-heading {
     font-size: 30px;
   }
+
+  .fuel-tab-heading {
+    font-size: 1.2rem;
+  }
 }
 
 .theme-light .app-module-heading {
+  color: var(--export-green-text) !important;
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.theme-light .fuel-tab-heading {
   color: var(--export-green-text) !important;
   background-image: none !important;
   -webkit-background-clip: border-box !important;

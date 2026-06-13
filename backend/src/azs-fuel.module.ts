@@ -1920,6 +1920,27 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const limitType = this.parseNumber(limit.limitType);
     const limitState = this.parseNumber(limit.limitState);
     const cards = Array.isArray(row?.cards) ? row.cards : [];
+    const cardRows = cards.map((card: any, cardIndex: number) => {
+      const safeCard = card && typeof card === 'object' ? (card as Record<string, any>) : {};
+      const typeRaw = this.normalizeWhitespace(
+        String(
+          this.pickFirst(safeCard, ['cardTypeName', 'typeName', 'cardKindName', 'kindName', 'type', 'cardType']) ?? '',
+        ),
+      );
+      return {
+        no: cardIndex + 1,
+        cardId: this.parseNumber(safeCard.cardId ?? safeCard.id),
+        cardName:
+          this.normalizeWhitespace(
+            String(this.pickFirst(safeCard, ['cardName', 'name', 'vehicleNumber', 'objectName']) ?? ''),
+          ) || '—',
+        cardNumber:
+          this.normalizeWhitespace(
+            String(this.pickFirst(safeCard, ['idCard', 'cardNumber', 'number', 'cardNo']) ?? ''),
+          ) || '—',
+        cardType: typeRaw && !/^\d+$/.test(typeRaw) ? typeRaw : 'MIFARE',
+      };
+    });
     return {
       id: this.normalizeWhitespace(String(row?.groupId ?? `group-${page}-${index}`)),
       no: (page - 1) * pageSize + index + 1,
@@ -1936,6 +1957,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       limitStateLabel: this.azsLimitStateLabel(limitState, language),
       syncAt: this.azsUnixIso(limit.syncTime),
       cardsCount: cards.length,
+      cards: cardRows,
     };
   }
 
@@ -1989,7 +2011,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const pageSize = Math.max(10, Math.min(500, Number.parseInt(pageSizeRaw ?? '100', 10) || 100));
     const search = this.normalizeWhitespace(searchRaw || '');
     const language = this.azsClientLanguage(languageRaw);
-    const cacheKey = `${view}|${page}|${pageSize}|${search}|${language}`;
+    const cacheKey = `v3|${view}|${page}|${pageSize}|${search}|${language}`;
     const now = Date.now();
     const cached = this.azsFuelCardsCache.get(cacheKey);
     if (cached && now - cached.at < this.AZS_FUEL_CARDS_CACHE_MS) {
@@ -2296,6 +2318,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const sectionVolumeLiters = this.reservoirVolumeLiters(row);
     const dutAvailableLiters = this.parseNumber(
       this.pickFirst(row, [
+        'sectionAvailableLevelDut',
+        'sectionAvailableLevel',
         'levelDutLevel',
         'dutLevel',
         'dutAvailableLiters',
@@ -3253,6 +3277,19 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     return this.issuedLitersSql(alias);
   }
 
+  /** Operations table AZS counter mode: value -> issuedValue -> DUT/virtual fallback. */
+  private issuedLitersOperationsSql(alias: string): string {
+    const mode = this.normalizeWhitespace(process.env.AZS_OPERATIONS_LITERS_MODE || 'counter').toLowerCase();
+    const j = (path: string) => `CAST(json_extract(${alias}.payload, '${path}') AS REAL)`;
+    if (mode === 'dut') {
+      return `COALESCE(${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${alias}.liters, 0)`;
+    }
+    if (mode === 'hybrid') {
+      return `COALESCE(${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${j('$.differenceRefuel')}, ${j('$.issuedValue')}, ${j('$.value')}, ${alias}.liters, 0)`;
+    }
+    return `COALESCE(${j('$.value')}, ${j('$.issuedValue')}, ${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${j('$.differenceRefuel')}, ${alias}.liters, 0)`;
+  }
+
   private sqlDatetimeShiftHoursSqlite(columnSql: string): string {
     const h = this.getAzsCalendarOffsetHours();
     if (h === 0) return `datetime(${columnSql})`;
@@ -3407,6 +3444,11 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     }
 
     const total = await query.getCount();
+    const totalLitersRow = await query
+      .clone()
+      .select(`COALESCE(SUM(${this.issuedLitersOperationsSql('entry')}), 0)`, 'liters')
+      .getRawOne<{ liters: string }>();
+    const totalLiters = Math.round((Number.parseFloat(String(totalLitersRow?.liters ?? '0')) || 0) * 100) / 100;
     const rows = await query
       .offset((page - 1) * pageSize)
       .limit(pageSize)
@@ -3484,6 +3526,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         page,
         pageSize,
         totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+      summary: {
+        liters: totalLiters,
       },
     };
   }

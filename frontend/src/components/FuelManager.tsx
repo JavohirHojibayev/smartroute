@@ -14,8 +14,6 @@ import {
     FileText,
     Users,
     Database,
-    Search,
-    RefreshCw,
     Table2,
     type LucideIcon,
 } from 'lucide-react';
@@ -33,7 +31,7 @@ type FuelSummaryResponse = {
     window?: {
         records?: number;
         totalLiters?: number;
-        /** AZS "РС‚РѕРіРѕ" butun liter bilan moslashish */
+        /** AZS jami qiymati bilan moslashish */
         totalLitersRounded?: number;
         totalAmount?: number;
         liveLevelGaugeLiters?: number | null;
@@ -79,6 +77,9 @@ type FuelOperationsResponse = {
         page: number;
         pageSize: number;
         totalPages: number;
+    };
+    summary?: {
+        liters?: number;
     };
 };
 
@@ -136,9 +137,11 @@ type FuelCardsView = 'groups' | 'limits';
 type FuelCardRow = {
     id: string;
     no: number;
+    cardId?: number | null;
     groupName?: string;
     cardNumber?: string;
     cardName?: string;
+    devicePostId?: number | null;
     devicePostName?: string;
     limitType: number | null;
     limitTypeLabel: string;
@@ -151,6 +154,13 @@ type FuelCardRow = {
     limitStateLabel: string;
     syncAt: string | null;
     cardsCount?: number | null;
+    cards?: Array<{
+        no: number;
+        cardId?: number | null;
+        cardName: string;
+        cardNumber: string;
+        cardType: string;
+    }>;
 };
 
 type FuelCardsResponse = {
@@ -167,7 +177,7 @@ type FuelCardsResponse = {
     enabled?: boolean;
 };
 
-/** AZS yuqori menyu вЂ” Р“Р»Р°РІРЅР°СЏ / РћС‚С‡РµС‚С‹ faqat to'liq kontent */
+/** AZS yuqori menyu: asosiy bo'limlar uchun to'liq kontent */
 type FuelNavTab = 'main' | 'reports' | 'objects' | 'fuelCards' | 'reservoirs';
 
 const FUEL_NAV_ITEMS: ReadonlyArray<{ id: FuelNavTab; labelKey: keyof typeof uz; icon: LucideIcon }> = [
@@ -200,7 +210,7 @@ const azsCalendarYmdToday = () => {
     return `${y}-${m}-${d}`;
 };
 
-/** Gradient matn вЂ” glass-panel + overflow muhitida ham ishonchli (WebKit clip) */
+/** Gradient matn: glass-panel + overflow muhitida ham ishonchli (WebKit clip) */
 const FuelPanelGradientHeading = ({ children, className }: { children: ReactNode; className?: string }) => (
     <h3 className={`app-module-heading inline-block max-w-full text-balance ${className ?? ''}`.trim()}>
         {children}
@@ -226,13 +236,42 @@ const formatDateTime = (value: string | null | undefined) => {
     return `${day}.${month}.${year} ${hours}:${minutes}`;
 };
 
+const formatDateOnly = (value: string | null | undefined) => {
+    if (!value) return '---';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+};
+
+const formatTimeOnly = (value: string | null | undefined) => {
+    if (!value) return '---';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+};
+
+const formatLimitPeriod = (start: string | null | undefined, end: string | null | undefined) =>
+    start || end ? `${formatTimeOnly(start)} - ${formatTimeOnly(end)}` : '---';
+
+const formatDateInputDisplay = (value: string) => {
+    const [year, month, day] = value.split('-');
+    if (!year || !month || !day) return value;
+    return `${day}.${month}.${year}`;
+};
+
 const formatLiters = (value: number | null | undefined, locale: string) => {
     const numeric = Number(value ?? 0);
     if (!Number.isFinite(numeric)) return '0';
     return numeric.toLocaleString(locale, { maximumFractionDigits: 2 });
 };
 
-/** AZS "РС‚РѕРіРѕ: вЂ¦ Р»" вЂ” odatda butun liter */
+/** AZS jami liter ko'rsatkichi: odatda butun liter */
 /** `summary.stations` va AZS `stats.posts` nomlarini bir xil kalitga keltirish (bo‘sh joy / tartib) */
 const normStationLabel = (value: string | null | undefined) =>
     String(value ?? '')
@@ -246,15 +285,34 @@ const formatLitersInt = (value: number | null | undefined, locale: string) => {
     return numeric.toLocaleString(locale, { maximumFractionDigits: 0 });
 };
 
-/** AZS В«РћР±СЉРµРј, Р»В» вЂ” 3 xona qoldiq */
+/** AZS hajm/litr qiymatlari: 3 xona qoldiq */
 const formatVolumeAzs = (value: number | null | undefined, locale: string) => {
-    if (value == null || !Number.isFinite(Number(value))) return 'вЂ”';
+    if (value == null || !Number.isFinite(Number(value))) return '---';
     return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
 const formatFuelCardLiters = (value: number | null | undefined, locale: string) => {
     if (value == null || !Number.isFinite(Number(value))) return '---';
     return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+};
+
+const AZS_LIMITS_NUMBER_LOCALE = 'ru-RU';
+
+const formatFuelCardLimitBalanceLiters = (value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(Number(value))) return '---';
+    const numeric = Number(value);
+    return numeric.toLocaleString(AZS_LIMITS_NUMBER_LOCALE, {
+        minimumFractionDigits: Number.isInteger(numeric) ? 0 : 3,
+        maximumFractionDigits: 3,
+    });
+};
+
+const formatFuelCardLimitIssuedLiters = (value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(Number(value))) return '---';
+    return Number(value).toLocaleString(AZS_LIMITS_NUMBER_LOCALE, {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3,
+    });
 };
 
 const formatAzsChartDateTimeLabel = (day: string, dateFrom: string, dateTo: string) => {
@@ -299,11 +357,11 @@ const clampPct = (value: number | null | undefined) => {
 
 const formatPctAzs = (value: number | null | undefined, locale: string) => {
     const p = clampPct(value);
-    if (p == null) return 'вЂ”';
+    if (p == null) return '---';
     return `${p.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 };
 
-/** Rezervuar foizlari вЂ” tekis (3D gradient / ichki soyasiz) */
+/** Rezervuar foizlari: tekis (3D gradient / ichki soyasiz) */
 const AzsReservoirLevelBar = ({
     fillPercent,
     text,
@@ -353,12 +411,12 @@ const AzsReservoirLevelBar = ({
 };
 
 const formatMassAzs = (value: number | null | undefined, locale: string) => {
-    if (value == null || !Number.isFinite(Number(value))) return 'вЂ”';
+    if (value == null || !Number.isFinite(Number(value))) return '---';
     return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
 const formatTempAzs = (value: number | null | undefined, locale: string) => {
-    if (value == null || !Number.isFinite(Number(value))) return 'вЂ”';
+    if (value == null || !Number.isFinite(Number(value))) return '---';
     return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
@@ -366,7 +424,7 @@ const ReservoirPctCell = ({ value, numberLocale }: { value: number | null | unde
     <AzsReservoirLevelBar fillPercent={value} text={formatPctAzs(value, numberLocale)} size="md" />
 );
 
-/** Ichki jadval вЂ” AZS В«РќР° СЃРІСЏР·Рё : N,N%В» (onlayn) / aloqa yoвЂq (oflayn) */
+/** Ichki jadval: online/offline seksiyalar foizlari */
 const ReservoirSectionLevelCell = ({
     isOnline,
     percent,
@@ -380,8 +438,8 @@ const ReservoirSectionLevelCell = ({
     disconnectedLabel: string;
     numberLocale: string;
 }) => {
-    /** AZS matni: В«РќР° СЃРІСЏР·Рё : 58,1%В» вЂ” ikki nuqta atrofida bo'shliq */
-    const label = isOnline ? `${connectedLabel} : ${formatPctAzs(percent, numberLocale)}` : `${disconnectedLabel}: вЂ”`;
+    /** AZSga yaqin label: "Tarmoqda: 58.1%" */
+    const label = isOnline ? `${connectedLabel}: ${formatPctAzs(percent, numberLocale)}` : `${disconnectedLabel}: ---`;
     if (!isOnline) {
         return (
             <div className="flex h-7 min-h-[1.75rem] w-full min-w-[148px] max-w-[300px] items-center justify-center overflow-hidden rounded-full border border-slate-600/45 bg-slate-800/55 px-1.5 text-center text-[11px] font-semibold leading-tight text-slate-400">
@@ -436,6 +494,8 @@ export const FuelManager = () => {
     const [fuelNavTab, setFuelNavTab] = useState<FuelNavTab>('main');
     const [summary, setSummary] = useState<FuelSummaryResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [operationsDateFrom, setOperationsDateFrom] = useState('');
+    const [operationsDateTo, setOperationsDateTo] = useState('');
     const [operationsPage, setOperationsPage] = useState(1);
     const [operationsRowsPerPage, setOperationsRowsPerPage] = useState(15);
     const [todayRecordsCount, setTodayRecordsCount] = useState(0);
@@ -444,11 +504,11 @@ export const FuelManager = () => {
     const [operationsRows, setOperationsRows] = useState<FuelOperationsResponse['items']>([]);
     const [operationsTotalRows, setOperationsTotalRows] = useState(0);
     const [operationsTotalPages, setOperationsTotalPages] = useState(1);
+    const [operationsTotalLiters, setOperationsTotalLiters] = useState(0);
     const [azsObjects, setAzsObjects] = useState<AzsListPayload<AzsObjectRow> | null>(null);
     const [azsReservoirs, setAzsReservoirs] = useState<AzsListPayload<AzsReservoirRow> | null>(null);
     const [fuelCardsView, setFuelCardsView] = useState<FuelCardsView>('groups');
-    const [fuelCardsSearchInput, setFuelCardsSearchInput] = useState('');
-    const [fuelCardsSearch, setFuelCardsSearch] = useState('');
+    const fuelCardsSearch = '';
     const [fuelCardsRows, setFuelCardsRows] = useState<FuelCardRow[]>([]);
     const [fuelCardsPage, setFuelCardsPage] = useState(1);
     const [fuelCardsRowsPerPage, setFuelCardsRowsPerPage] = useState(100);
@@ -456,15 +516,29 @@ export const FuelManager = () => {
     const [fuelCardsTotalPages, setFuelCardsTotalPages] = useState(1);
     const [fuelCardsLoading, setFuelCardsLoading] = useState(false);
     const [fuelCardsError, setFuelCardsError] = useState<string | null>(null);
+    const [expandedFuelCardGroupIds, setExpandedFuelCardGroupIds] = useState<Set<string>>(() => new Set());
     const [expandedObjectIds, setExpandedObjectIds] = useState<Set<string>>(() => new Set());
     const [expandedReservoirIds, setExpandedReservoirIds] = useState<Set<string>>(() => new Set());
 
-    useEffect(() => {
-        const timer = window.setTimeout(() => {
-            setFuelCardsSearch(fuelCardsSearchInput.trim());
-        }, 300);
-        return () => window.clearTimeout(timer);
-    }, [fuelCardsSearchInput]);
+    const fuelCardLimitGroups = useMemo(() => {
+        const groups = new Map<string, { key: string; no: number; cardName: string; rows: FuelCardRow[] }>();
+        for (const row of fuelCardsRows) {
+            const key = String(row.cardId ?? row.cardNumber ?? row.cardName ?? row.id);
+            const current = groups.get(key);
+            if (current) {
+                current.rows.push(row);
+                current.no = Math.min(current.no, row.no);
+                continue;
+            }
+            groups.set(key, {
+                key,
+                no: row.no,
+                cardName: row.cardName || '—',
+                rows: [row],
+            });
+        }
+        return Array.from(groups.values()).sort((a, b) => a.no - b.no);
+    }, [fuelCardsRows]);
 
     useEffect(() => {
         setFuelCardsPage(1);
@@ -475,6 +549,16 @@ export const FuelManager = () => {
             setFuelCardsPage(fuelCardsTotalPages);
         }
     }, [fuelCardsPage, fuelCardsTotalPages]);
+
+    useEffect(() => {
+        if (fuelCardsView !== 'groups') return;
+        setExpandedFuelCardGroupIds((previous) => {
+            const available = new Set(fuelCardsRows.map((row) => row.id));
+            const next = new Set(Array.from(previous).filter((id) => available.has(id)));
+            if (next.size === 0 && fuelCardsRows[0]) next.add(fuelCardsRows[0].id);
+            return next;
+        });
+    }, [fuelCardsRows, fuelCardsView]);
 
     useEffect(() => {
         if (fuelNavTab !== 'fuelCards') return;
@@ -679,8 +763,8 @@ export const FuelManager = () => {
                 const params = new URLSearchParams();
                 params.set('page', String(operationsPage));
                 params.set('pageSize', String(operationsRowsPerPage));
-                if (dateFrom) params.set('dateFrom', dateFrom);
-                if (dateTo) params.set('dateTo', dateTo);
+                if (operationsDateFrom) params.set('dateFrom', operationsDateFrom);
+                if (operationsDateTo) params.set('dateTo', operationsDateTo);
                 if (selectedStation !== 'all') params.set('station', selectedStation);
 
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/operations?${params.toString()}`);
@@ -690,10 +774,12 @@ export const FuelManager = () => {
 
                 const total = Number(payload?.pagination?.total ?? 0);
                 const totalPages = Number(payload?.pagination?.totalPages ?? 1);
+                const totalLiters = Number(payload?.summary?.liters ?? 0);
                 startTransition(() => {
                     setOperationsRows(Array.isArray(payload?.items) ? payload.items : []);
                     setOperationsTotalRows(Number.isFinite(total) ? total : 0);
                     setOperationsTotalPages(Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1);
+                    setOperationsTotalLiters(Number.isFinite(totalLiters) ? totalLiters : 0);
                 });
             } catch {
                 if (!active) return;
@@ -701,6 +787,7 @@ export const FuelManager = () => {
                     setOperationsRows([]);
                     setOperationsTotalRows(0);
                     setOperationsTotalPages(1);
+                    setOperationsTotalLiters(0);
                 });
             }
         };
@@ -724,7 +811,7 @@ export const FuelManager = () => {
             active = false;
             clearInterval(interval);
         };
-    }, [fuelNavTab, dateFrom, dateTo, selectedStation, operationsPage, operationsRowsPerPage]);
+    }, [fuelNavTab, operationsDateFrom, operationsDateTo, selectedStation, operationsPage, operationsRowsPerPage]);
 
     useEffect(() => {
         if (fuelNavTab !== 'main') return;
@@ -854,7 +941,7 @@ export const FuelManager = () => {
 
     useEffect(() => {
         setOperationsPage(1);
-    }, [dateFrom, dateTo, selectedStation, operationsRowsPerPage]);
+    }, [operationsDateFrom, operationsDateTo, selectedStation, operationsRowsPerPage]);
 
     useEffect(() => {
         if (operationsPage > operationsTotalPages) {
@@ -863,10 +950,17 @@ export const FuelManager = () => {
     }, [operationsPage, operationsTotalPages]);
 
     const buildOperationsExportFileName = (ext: 'xls' | 'pdf') => {
-        const from = dateFrom || azsCalendarYmdToday();
-        const to = dateTo || from;
+        const from = operationsDateFrom || azsCalendarYmdToday();
+        const to = operationsDateTo || from;
         return `fuel_operations_${from}_${to}.${ext}`;
     };
+
+    const operationsSummaryFrom = operationsDateFrom || azsCalendarYmdToday();
+    const operationsSummaryTo = operationsDateTo || operationsSummaryFrom;
+    const operationsSummaryPeriod =
+        operationsSummaryFrom === operationsSummaryTo
+            ? formatDateInputDisplay(operationsSummaryFrom)
+            : `${formatDateInputDisplay(operationsSummaryFrom)} - ${formatDateInputDisplay(operationsSummaryTo)}`;
 
     const operationExportHeaders = () => [
         t('fuelOpsColStartTime'),
@@ -901,8 +995,8 @@ export const FuelManager = () => {
             const params = new URLSearchParams();
             params.set('page', String(page));
             params.set('pageSize', String(FUEL_OPERATIONS_EXPORT_PAGE_SIZE));
-            if (dateFrom) params.set('dateFrom', dateFrom);
-            if (dateTo) params.set('dateTo', dateTo);
+            if (operationsDateFrom) params.set('dateFrom', operationsDateFrom);
+            if (operationsDateTo) params.set('dateTo', operationsDateTo);
             if (selectedStation !== 'all') params.set('station', selectedStation);
 
             const response = await fetch(`${API_BASE}/integrations/fuel/azs/operations?${params.toString()}`);
@@ -958,7 +1052,11 @@ export const FuelManager = () => {
             doc.text(t('fuelReportsTitle'), 14, 18);
             doc.setFontSize(10);
             doc.setTextColor(100);
-            doc.text(`${dateFrom || azsCalendarYmdToday()} - ${dateTo || dateFrom || azsCalendarYmdToday()}`, 14, 25);
+            doc.text(
+                `${operationsDateFrom || azsCalendarYmdToday()} - ${operationsDateTo || operationsDateFrom || azsCalendarYmdToday()}`,
+                14,
+                25,
+            );
 
             autoTable(doc, {
                 head: [operationExportHeaders()],
@@ -1013,7 +1111,7 @@ export const FuelManager = () => {
 
     return (
         <div className="min-w-0 space-y-4 sm:space-y-6">
-            {/* AZS uslubidagi yuqori navigatsiya вЂ” mobil: gorizontal scroll, desktop: teng kenglik */}
+            {/* AZS uslubidagi yuqori navigatsiya: mobil scroll, desktop teng kenglik */}
             <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
                 <nav
                     className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-slate-700/60 dark-scrollbar [-webkit-overflow-scrolling:touch] md:overflow-x-visible"
@@ -1050,7 +1148,7 @@ export const FuelManager = () => {
             {showFuelCardsPanel && (
                 <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
                     <div className="border-b border-slate-700/50">
-                        <div className="flex min-w-0 overflow-x-auto overscroll-x-contain px-3 pt-2 dark-scrollbar sm:px-4">
+                        <div className="flex min-w-0 overflow-x-auto overscroll-x-contain px-4 pt-3 dark-scrollbar sm:px-5">
                             {([
                                 ['groups', t('fuelCardsGroupsTab'), CreditCard],
                                 ['limits', t('fuelCardsLimitsTab'), Layers],
@@ -1061,71 +1159,50 @@ export const FuelManager = () => {
                                         key={view}
                                         type="button"
                                         onClick={() => setFuelCardsView(view)}
-                                        className={`inline-flex min-h-[2.75rem] min-w-[9rem] items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${
+                                        className={`inline-flex min-h-[3.4rem] min-w-[11rem] items-center justify-center gap-2.5 border-b-2 px-5 text-base font-semibold transition-colors sm:min-h-[3.7rem] sm:px-6 sm:text-lg ${
                                             active
                                                 ? 'border-blue-500 text-blue-300'
                                                 : 'border-transparent text-slate-400 hover:text-slate-200'
                                         }`}
                                     >
-                                        <Icon size={17} />
-                                        <span>{label}</span>
+                                        <Icon size={19} />
+                                        <span className={`fuel-tab-heading ${active ? '' : 'opacity-80'}`.trim()}>{label}</span>
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 border-b border-slate-700/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                        <label className="relative min-w-0 flex-1 sm:max-w-md" htmlFor="fuel-cards-search">
-                            <Search
-                                size={17}
-                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                            />
-                            <input
-                                id="fuel-cards-search"
-                                value={fuelCardsSearchInput}
-                                onChange={(event) => setFuelCardsSearchInput(event.target.value)}
-                                placeholder={t('fuelCardsSearchPlaceholder')}
-                                className="h-10 w-full rounded-lg border border-slate-700/70 bg-slate-950/45 pl-9 pr-3 text-sm font-medium text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-500/70 focus:bg-slate-950/70"
-                            />
-                        </label>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setFuelCardsSearch(fuelCardsSearchInput.trim());
-                                setFuelCardsPage(1);
-                            }}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700/70 bg-slate-900/55 px-3 text-sm font-semibold text-slate-200 transition-colors hover:border-blue-500/50 hover:text-blue-300"
-                        >
-                            <RefreshCw size={16} className={fuelCardsLoading ? 'animate-spin' : ''} />
-                            {t('fuelObjectsRefresh')}
-                        </button>
-                    </div>
-
                     <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
                         <table className="w-full min-w-[1160px] text-left text-xs sm:text-sm">
                             <thead>
                                 <tr className="border-b border-slate-700/50 bg-slate-900/50 text-[10px] uppercase tracking-wide text-slate-400 sm:text-xs">
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelObjectsColNo')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">
-                                        {fuelCardsView === 'groups' ? t('fuelCardsColGroupName') : t('fuelCardsColCardName')}
-                                    </th>
-                                    {fuelCardsView === 'limits' && (
+                                    {fuelCardsView === 'groups' ? (
                                         <>
-                                            <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColCardNumber')}</th>
-                                            <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColPost')}</th>
+                                            <th className="w-10 px-2 py-2.5 font-semibold sm:px-3 sm:py-3" />
+                                            <th className="w-14 px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelObjectsColNo')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColGroupName')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitType')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitStart')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitEnd')}</th>
+                                            <th className="px-2 py-2.5 text-right font-semibold sm:px-3 sm:py-3">{t('fuelCardsColSet')}</th>
+                                            <th className="px-2 py-2.5 pr-8 text-right font-semibold sm:px-3 sm:py-3 sm:pr-10">{t('fuelCardsColAvailable')}</th>
+                                            <th className="px-2 py-2.5 pr-8 text-right font-semibold sm:px-3 sm:py-3 sm:pr-10">{t('fuelCardsColIssued')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitStatus')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelObjectsColSync')}</th>
                                         </>
-                                    )}
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitType')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitStart')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitEnd')}</th>
-                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColSet')}</th>
-                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColAvailable')}</th>
-                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColIssued')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitStatus')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelObjectsColSync')}</th>
-                                    {fuelCardsView === 'groups' && (
-                                        <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColCards')}</th>
+                                    ) : (
+                                        <>
+                                            <th className="w-10 px-2 py-2.5 font-semibold sm:px-3 sm:py-3" />
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColPost')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitType')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitStart')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitEnd')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColPeriod')}</th>
+                                            <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelCardsColLimitStatus')}</th>
+                                            <th className="w-[8.5rem] px-2 py-2.5 text-left font-semibold sm:px-3 sm:py-3">{t('fuelCardsColAvailable')}</th>
+                                            <th className="w-[8.5rem] px-2 py-2.5 text-left font-semibold sm:px-3 sm:py-3">{t('fuelCardsColIssued')}</th>
+                                        </>
                                     )}
                                 </tr>
                             </thead>
@@ -1133,63 +1210,162 @@ export const FuelManager = () => {
                                 {fuelCardsRows.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={fuelCardsView === 'groups' ? 11 : 12}
+                                            colSpan={fuelCardsView === 'groups' ? 11 : 9}
                                             className="px-3 py-8 text-center text-xs text-slate-500 sm:text-sm"
                                         >
                                             {fuelCardsLoading ? t('syncing') : fuelCardsError ? t('fuelCardsError') : t('fuelCardsNoData')}
                                         </td>
                                     </tr>
-                                ) : (
-                                    fuelCardsRows.map((row, index) => (
-                                        <tr
-                                            key={row.id || `${fuelCardsView}-${index}`}
-                                            className={`${index % 2 === 0 ? 'bg-slate-900/20' : 'bg-slate-800/10'} text-slate-200 transition-colors hover:bg-slate-800/35`}
-                                        >
-                                            <td className="px-2 py-2 tabular-nums text-slate-400 sm:px-3">{row.no}</td>
-                                            <td className="min-w-[14rem] px-2 py-2 font-medium text-slate-100 sm:px-3">
-                                                {fuelCardsView === 'groups' ? row.groupName || '—' : row.cardName || '—'}
-                                            </td>
-                                            {fuelCardsView === 'limits' && (
-                                                <>
-                                                    <td className="px-2 py-2 font-medium tabular-nums text-slate-300 sm:px-3">{row.cardNumber || '—'}</td>
-                                                    <td className="px-2 py-2 text-slate-300 sm:px-3">{row.devicePostName || '—'}</td>
-                                                </>
-                                            )}
-                                            <td className="px-2 py-2 sm:px-3">
-                                                <span className="inline-flex rounded-full border border-emerald-500/15 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">
-                                                    {row.limitTypeLabel || '—'}
-                                                </span>
-                                            </td>
-                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
-                                                {row.limitStartAt ? formatDateTime(row.limitStartAt) : '---'}
-                                            </td>
-                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
-                                                {row.limitEndAt ? formatDateTime(row.limitEndAt) : '---'}
-                                            </td>
-                                            <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
-                                                {formatFuelCardLiters(row.setLiters, numLocale)}
-                                            </td>
-                                            <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
-                                                {formatFuelCardLiters(row.availableLiters, numLocale)}
-                                            </td>
-                                            <td className="px-2 py-2 text-right tabular-nums text-blue-200 sm:px-3">
-                                                {formatFuelCardLiters(row.issuedLiters, numLocale)}
-                                            </td>
-                                            <td className="px-2 py-2 sm:px-3">
-                                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${fuelCardLimitStatusClass(row.limitState)}`}>
-                                                    {row.limitStateLabel || '—'}
-                                                </span>
-                                            </td>
-                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
-                                                {row.syncAt ? formatDateTime(row.syncAt) : '---'}
-                                            </td>
-                                            {fuelCardsView === 'groups' && (
-                                                <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
-                                                    {row.cardsCount ?? 0}
+                                ) : fuelCardsView === 'limits' ? (
+                                    fuelCardLimitGroups.map((group) => (
+                                        <Fragment key={group.key}>
+                                            <tr className="border-t border-blue-400/10 bg-blue-500/10 text-slate-200">
+                                                <td className="w-10 px-2 py-2 text-center text-slate-300 sm:px-3">
+                                                    <ChevronDown size={16} className="inline-block" />
                                                 </td>
-                                            )}
-                                        </tr>
+                                                <td colSpan={8} className="px-2 py-2 font-semibold text-slate-100 sm:px-3">
+                                                    {t('fuelCardsColCardName')}: {group.cardName}
+                                                </td>
+                                            </tr>
+                                            {group.rows.map((row, index) => (
+                                                <tr
+                                                    key={row.id || `${group.key}-${index}`}
+                                                    className={`${index % 2 === 0 ? 'bg-slate-900/10' : 'bg-slate-800/10'} text-slate-200 transition-colors hover:bg-slate-800/35`}
+                                                >
+                                                    <td className="px-2 py-2 text-slate-500 sm:px-3" />
+                                                    <td className="px-2 py-2 text-slate-300 sm:px-3">{row.devicePostName || '—'}</td>
+                                                    <td className="px-2 py-2 sm:px-3">
+                                                        <span className="inline-flex rounded-full border border-blue-500/15 bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-300">
+                                                            {row.limitTypeLabel || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {formatDateOnly(row.limitStartAt)}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {formatDateOnly(row.limitEndAt)}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {formatLimitPeriod(row.limitStartAt, row.limitEndAt)}
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3">
+                                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${fuelCardLimitStatusClass(row.limitState)}`}>
+                                                            {row.limitStateLabel || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="w-[8.5rem] px-2 py-2 text-left tabular-nums text-slate-300 sm:px-3">
+                                                        {formatFuelCardLimitBalanceLiters(row.availableLiters)}
+                                                    </td>
+                                                    <td className="w-[8.5rem] px-2 py-2 text-left tabular-nums text-blue-200 sm:px-3">
+                                                        {formatFuelCardLimitIssuedLiters(row.issuedLiters)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </Fragment>
                                     ))
+                                ) : (
+                                    fuelCardsRows.map((row, index) => {
+                                        const expanded = expandedFuelCardGroupIds.has(row.id);
+                                        const cards = Array.isArray(row.cards) ? row.cards : [];
+                                        const visibleCards = cards.slice(0, 10);
+                                        return (
+                                            <Fragment key={row.id || `${fuelCardsView}-${index}`}>
+                                                <tr
+                                                    onClick={() => {
+                                                        setExpandedFuelCardGroupIds((previous) => {
+                                                            const next = new Set(previous);
+                                                            if (next.has(row.id)) next.delete(row.id);
+                                                            else next.add(row.id);
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className={`${expanded ? 'bg-blue-500/15' : index % 2 === 0 ? 'bg-slate-900/20' : 'bg-slate-800/10'} cursor-pointer text-slate-200 transition-colors hover:bg-blue-500/10`}
+                                                >
+                                                    <td className="w-10 px-2 py-2 text-center text-slate-300 sm:px-3">
+                                                        {expanded ? <ChevronDown size={16} className="inline-block" /> : <ChevronRight size={16} className="inline-block" />}
+                                                    </td>
+                                                    <td className="px-2 py-2 tabular-nums text-slate-400 sm:px-3">{row.no}</td>
+                                                    <td className="min-w-[14rem] px-2 py-2 font-medium text-slate-100 sm:px-3">
+                                                        {row.groupName || '—'}
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3">
+                                                        <span className="inline-flex rounded-full border border-emerald-500/15 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                                                            {row.limitTypeLabel || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {row.limitStartAt ? formatDateTime(row.limitStartAt) : '---'}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {row.limitEndAt ? formatDateTime(row.limitEndAt) : '---'}
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
+                                                        {formatFuelCardLiters(row.setLiters, numLocale)}
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
+                                                        {formatFuelCardLiters(row.availableLiters, numLocale)}
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right tabular-nums text-blue-200 sm:px-3">
+                                                        {formatFuelCardLiters(row.issuedLiters, numLocale)}
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3">
+                                                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${fuelCardLimitStatusClass(row.limitState)}`}>
+                                                            {row.limitStateLabel || '—'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                        {row.syncAt ? formatDateTime(row.syncAt) : '---'}
+                                                    </td>
+                                                </tr>
+                                                {expanded && (
+                                                    <tr className="bg-slate-950/20">
+                                                        <td colSpan={11} className="p-0">
+                                                            <div className="border-y border-slate-700/45 bg-slate-950/10">
+                                                                <table className="w-full text-left text-xs sm:text-sm">
+                                                                    <thead>
+                                                                        <tr className="border-b border-slate-700/45 bg-slate-900/35 text-[10px] uppercase tracking-wide text-slate-400 sm:text-xs">
+                                                                            <th className="w-10 px-2 py-2 sm:px-3" />
+                                                                            <th className="w-24 px-2 py-2 font-semibold sm:px-3">{t('fuelObjectsColNo')}</th>
+                                                                            <th className="px-2 py-2 font-semibold sm:px-3">{t('fuelCardsColCardName')}</th>
+                                                                            <th className="px-2 py-2 font-semibold sm:px-3">{t('fuelCardsColCardNumber')}</th>
+                                                                            <th className="px-2 py-2 font-semibold sm:px-3">{t('fuelCardsColCardType')}</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-slate-700/35">
+                                                                        {visibleCards.length === 0 ? (
+                                                                            <tr>
+                                                                                <td colSpan={5} className="px-3 py-5 text-center text-slate-500">
+                                                                                    {t('fuelCardsNoData')}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ) : (
+                                                                            visibleCards.map((card, cardIndex) => (
+                                                                                <tr
+                                                                                    key={`${row.id}-card-${card.cardId ?? card.cardNumber ?? cardIndex}`}
+                                                                                    className={cardIndex % 2 === 0 ? 'bg-slate-900/10' : 'bg-slate-800/10'}
+                                                                                >
+                                                                                    <td className="px-2 py-2 sm:px-3" />
+                                                                                    <td className="px-2 py-2 tabular-nums text-slate-300 sm:px-3">{card.no}</td>
+                                                                                    <td className="px-2 py-2 text-slate-200 sm:px-3">{card.cardName || '—'}</td>
+                                                                                    <td className="px-2 py-2 tabular-nums text-slate-300 sm:px-3">{card.cardNumber || '—'}</td>
+                                                                                    <td className="px-2 py-2 text-slate-300 sm:px-3">{card.cardType || '—'}</td>
+                                                                                </tr>
+                                                                            ))
+                                                                        )}
+                                                                    </tbody>
+                                                                </table>
+                                                                {cards.length > 0 && (
+                                                                    <div className="flex items-center justify-end border-t border-slate-700/40 px-3 py-2 text-xs font-semibold text-slate-300">
+                                                                        1-{Math.min(10, cards.length)} / {cards.length}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </Fragment>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -1247,7 +1423,7 @@ export const FuelManager = () => {
 
             {showObjectsPanel && (
                 <div className="glass-panel rounded-2xl border border-slate-700/50">
-                    <div className="flex flex-col gap-1.5 border-b border-slate-700/40 px-3 py-2.5 md:px-4">
+                    <div className="flex min-h-[88px] flex-col justify-center gap-2 border-b border-slate-700/40 px-4 py-4 md:px-5">
                         <FuelPanelGradientHeading>{t('fuelObjectsTitle')}</FuelPanelGradientHeading>
                     </div>
                     <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
@@ -1316,7 +1492,7 @@ export const FuelManager = () => {
                                                         </span>
                                                     </td>
                                                     <td className="px-2 py-1.5 whitespace-nowrap text-slate-300 sm:px-3 sm:py-2">
-                                                        {row.lastSyncAt ? formatDateTime(row.lastSyncAt) : 'вЂ”'}
+                                                        {row.lastSyncAt ? formatDateTime(row.lastSyncAt) : '---'}
                                                     </td>
                                                 </tr>
                                                 {open && hasChildren && (
@@ -1364,19 +1540,19 @@ export const FuelManager = () => {
 
             {showReservoirsPanel && (
                 <div className="glass-panel rounded-2xl border border-slate-700/50">
-                    <div className="flex flex-col gap-1.5 border-b border-slate-700/40 px-3 py-2.5 md:px-4">
+                    <div className="flex min-h-[88px] flex-col justify-center gap-2 border-b border-slate-700/40 px-4 py-5 md:px-5">
                         <FuelPanelGradientHeading>{t('fuelReservoirsTitle')}</FuelPanelGradientHeading>
                     </div>
                     <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
                         <table className="w-full min-w-[680px] text-left text-xs sm:text-sm">
                             <thead>
                                 <tr className="border-b border-slate-700/50 bg-slate-900/50 text-[10px] uppercase tracking-wide text-slate-400 sm:text-xs">
-                                    <th className="w-8 px-1 py-1.5 sm:w-9 sm:px-2 sm:py-2" aria-hidden />
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelObjectsColNo')}</th>
-                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelResColReservoirName')}</th>
-                                    <th className="min-w-[7rem] whitespace-nowrap px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelResColVolume')}</th>
-                                    <th className="min-w-[9rem] px-2 py-1.5 font-semibold sm:min-w-[10rem] sm:px-3 sm:py-2">{t('fuelResColLevelCalcPct')}</th>
-                                    <th className="min-w-[9rem] px-2 py-1.5 font-semibold sm:min-w-[10rem] sm:px-3 sm:py-2">{t('fuelResColLevelPct')}</th>
+                                    <th className="w-8 px-1 py-2.5 sm:w-9 sm:px-2 sm:py-3" aria-hidden />
+                                    <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelObjectsColNo')}</th>
+                                    <th className="px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelResColReservoirName')}</th>
+                                    <th className="min-w-[7rem] whitespace-nowrap px-2 py-2.5 font-semibold sm:px-3 sm:py-3">{t('fuelResColVolume')}</th>
+                                    <th className="min-w-[9rem] px-2 py-2.5 font-semibold sm:min-w-[10rem] sm:px-3 sm:py-3">{t('fuelResColLevelCalcPct')}</th>
+                                    <th className="min-w-[9rem] px-2 py-2.5 font-semibold sm:min-w-[10rem] sm:px-3 sm:py-3">{t('fuelResColLevelPct')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700/40">
@@ -1487,9 +1663,9 @@ export const FuelManager = () => {
                                                                                 <td className="px-2 py-1 tabular-nums text-slate-300 sm:px-2.5 sm:py-1.5">{formatMassAzs(ch.dutMassKg, numLocale)}</td>
                                                                                 <td className="px-2 py-1 tabular-nums text-slate-300 sm:px-2.5 sm:py-1.5">{formatTempAzs(ch.temperature, numLocale)}</td>
                                                                                 <td className="px-2 py-1 whitespace-nowrap text-slate-300 sm:px-2.5 sm:py-1.5">
-                                                                                    {ch.lastSyncAt ? formatDateTime(ch.lastSyncAt) : 'вЂ”'}
+                                                                                    {ch.lastSyncAt ? formatDateTime(ch.lastSyncAt) : '---'}
                                                                                 </td>
-                                                                                <td className="px-2 py-1 text-slate-300 sm:px-2.5 sm:py-1.5">{ch.fuelTypeName || 'вЂ”'}</td>
+                                                                                <td className="px-2 py-1 text-slate-300 sm:px-2.5 sm:py-1.5">{ch.fuelTypeName || '---'}</td>
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
@@ -1511,7 +1687,7 @@ export const FuelManager = () => {
                 </div>
             )}
 
-            {/* 4 ta info card вЂ” AZS В«Р“Р»Р°РІРЅР°СЏВ» */}
+            {/* 4 ta info card: AZS asosiy sahifasi */}
             {showMainDashboard && (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
                 {/* Kolonnalar */}
@@ -1623,7 +1799,7 @@ export const FuelManager = () => {
 
             {showMainDashboard && (
             <div className="glass-panel rounded-2xl border border-slate-700/50 p-4 md:p-5">
-                {/* Sarlavha chapda, filtrlar qator oxirida (oвЂngda) */}
+                {/* Sarlavha chapda, filtrlar qator oxirida */}
                 <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
                     <div className="min-w-0 shrink-0 lg:max-w-[min(100%,32rem)] lg:pr-2">
                         <FuelPanelGradientHeading>
@@ -1742,7 +1918,7 @@ export const FuelManager = () => {
                                 formatter={(value) => {
                                     const n = typeof value === 'number' ? value : Number(value);
                                     const issued = t('fuelChartSeriesIssued');
-                                    if (value == null || Number.isNaN(n)) return ['вЂ”', issued];
+                                    if (value == null || Number.isNaN(n)) return ['---', issued];
                                     return [`${n.toLocaleString(numLocale, { maximumFractionDigits: 2 })}${t('fuelYAxisLiter')}`, issued];
                                 }}
                             />
@@ -1890,9 +2066,9 @@ export const FuelManager = () => {
                                 }
                                 formatter={(value) => {
                                     const level = t('fuelChartSeriesLevel');
-                                    if (value == null) return ['вЂ”', level];
+                                    if (value == null) return ['---', level];
                                     const n = typeof value === 'number' ? value : Number(value);
-                                    if (Number.isNaN(n)) return ['вЂ”', level];
+                                    if (Number.isNaN(n)) return ['---', level];
                                     return [
                                         `${n.toLocaleString(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${t('fuelYAxisLiter')}`,
                                         level,
@@ -1919,33 +2095,27 @@ export const FuelManager = () => {
 
             {showReports && (
             <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className="flex flex-col gap-3 border-b border-slate-700/40 px-3 py-2.5 2xl:flex-row 2xl:items-center 2xl:justify-between 2xl:px-4">
-                    <FuelPanelGradientHeading className="min-w-0 max-w-full flex-1 2xl:min-w-[420px]">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
-                    <div className="flex w-full flex-wrap items-center gap-2 2xl:w-auto 2xl:justify-end">
-                        <span className="inline-flex min-h-10 w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:w-auto sm:text-sm">
-                            {t('fuelReportsTodayCount')}{' '}
-                            <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
-                        </span>
+                <div className="flex min-h-[96px] flex-col gap-4 border-b border-slate-700/50 bg-slate-800/20 px-5 py-5 sm:px-6 sm:py-6 xl:flex-row xl:items-center xl:justify-between">
+                    <FuelPanelGradientHeading className="min-w-0 max-w-full flex-1 xl:min-w-[520px]">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
+                    <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
                         <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
                             <LocalizedDateInput
                                 label={t('dateFromSanadan')}
-                                value={dateFrom}
-                                maxDate={dateTo || undefined}
+                                value={operationsDateFrom}
+                                maxDate={operationsDateTo || undefined}
                                 onChange={(v) => {
-                                    setPreset('today');
-                                    setDateFrom(v);
-                                    if (dateTo && v > dateTo) setDateTo(v);
+                                    setOperationsDateFrom(v);
+                                    if (v && operationsDateTo && v > operationsDateTo) setOperationsDateTo(v);
                                 }}
                                 minWidth={152}
                             />
                             <LocalizedDateInput
                                 label={t('dateToSanagacha')}
-                                value={dateTo}
-                                minDate={dateFrom || undefined}
+                                value={operationsDateTo}
+                                minDate={operationsDateFrom || undefined}
                                 onChange={(v) => {
-                                    setPreset('today');
-                                    setDateTo(v);
-                                    if (dateFrom && v < dateFrom) setDateFrom(v);
+                                    setOperationsDateTo(v);
+                                    if (v && operationsDateFrom && v < operationsDateFrom) setOperationsDateFrom(v);
                                 }}
                                 minWidth={152}
                             />
@@ -1968,6 +2138,26 @@ export const FuelManager = () => {
                             <FileText size={16} />
                             {operationsExportingPdf ? t('exportingPdf') : t('exportPdf')}
                         </button>
+                    </div>
+                </div>
+                <div className="border-b border-slate-700/45 bg-slate-950/15 px-5 py-3 sm:px-6">
+                    <div className="flex flex-col gap-2 text-sm text-slate-200 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                            <p className="text-sm text-slate-300">
+                                <span className="font-bold text-slate-100">{t('fuelOpsSummaryTitle')}</span>{' '}
+                                <span className="tabular-nums">{operationsSummaryPeriod}</span>
+                            </p>
+                            <div className="mt-2 grid max-w-5xl grid-cols-1 items-center gap-2 text-sm sm:grid-cols-[minmax(220px,1fr)_minmax(120px,220px)]">
+                                <span className="text-slate-300">{t('fuelOpsCounterIssued')}</span>
+                                <strong className="text-left text-base font-bold tabular-nums text-slate-100 sm:text-center">
+                                    {formatLiters(operationsTotalLiters, numLocale)}
+                                </strong>
+                            </div>
+                        </div>
+                        <span className="inline-flex min-h-9 w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:w-auto sm:text-sm">
+                            {t('fuelReportsTodayCount')}{' '}
+                            <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
+                        </span>
                     </div>
                 </div>
                 <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
@@ -2040,7 +2230,6 @@ export const FuelManager = () => {
                                 className="rounded-md border border-slate-700/70 bg-slate-900/70 px-1.5 py-1 text-xs text-slate-200 outline-none focus:border-blue-500/60 sm:px-2 sm:py-1.5 sm:text-sm"
                             >
                                 <option value={15}>15</option>
-                                <option value={10}>10</option>
                                 <option value={20}>20</option>
                                 <option value={50}>50</option>
                                 <option value={100}>100</option>
