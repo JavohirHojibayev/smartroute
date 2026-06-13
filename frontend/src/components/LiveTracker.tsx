@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition } from 'react';
 import {
     Check,
     ChevronDown,
@@ -17,14 +18,13 @@ import {
     RotateCw,
     Satellite,
     Search,
-    Settings,
-    SlidersHorizontal,
     Truck,
     Wrench,
     X,
 } from 'lucide-react';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { divIcon, latLngBounds, type Map as LeafletMap } from 'leaflet';
+import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import 'leaflet/dist/leaflet.css';
 
@@ -104,7 +104,9 @@ type LiveTrackerProps = {
 
 const API_BASE = resolveApiBaseUrl();
 const LIVE_AFTER_MS = 15 * 60 * 1000;
-const SYNC_INTERVAL_MS = 10_000;
+const SYNC_INTERVAL_MS = 15_000;
+const HEALTH_REFRESH_MS = 60_000;
+const SYNC_TRIGGER_MS = 45_000;
 const MAP_FALLBACK_CENTER: [number, number] = [38.34, 66.44];
 
 const vehicleSvgByKind: Record<VehicleKind, string> = {
@@ -522,7 +524,24 @@ const VehicleMarkers = ({
     );
 };
 
+const buildVehicleSignature = (vehicles: TrackingVehicle[]): string =>
+    vehicles
+        .map((vehicle) =>
+            [
+                vehicle.id,
+                vehicle.status,
+                vehicle.lat.toFixed(5),
+                vehicle.lng.toFixed(5),
+                vehicle.speed,
+                vehicle.fuelLevel ?? '',
+                vehicle.lastMessageAt ?? '',
+                vehicle.syncedAt ?? '',
+            ].join(':'),
+        )
+        .join('|');
+
 export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
+    const t = useI18n((state) => state.t);
     const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
     const [vehicles, setVehicles] = useState<TrackingVehicle[]>([]);
     const [query, setQuery] = useState('');
@@ -531,23 +550,35 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const cacheAtRef = useRef<number>(0);
     const inFlightRef = useRef(false);
     const syncInFlightRef = useRef(false);
+    const lastHealthFetchAtRef = useRef(0);
+    const lastSyncRequestAtRef = useRef(0);
+    const healthRef = useRef<GarvexHealthResponse | null>(null);
+    const vehiclesSignatureRef = useRef('');
+    const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-    const load = async () => {
+    const load = async (includeHealth = false) => {
         if (inFlightRef.current) return;
         inFlightRef.current = true;
 
         try {
             const [healthResponse, vehiclesResponse] = await Promise.all([
-                fetch(`${API_BASE}/integrations/tracking/garvex/health`, { cache: 'no-store' }),
+                includeHealth
+                    ? fetch(`${API_BASE}/integrations/tracking/garvex/health`, { cache: 'no-store' })
+                    : Promise.resolve(null),
                 fetch(`${API_BASE}/integrations/tracking/garvex/vehicles`, { cache: 'no-store' }),
             ]);
 
-            const health = healthResponse.ok
+            const health = healthResponse && healthResponse.ok
                 ? await healthResponse.json().catch(() => null) as GarvexHealthResponse | null
-                : null;
+                : healthRef.current;
             const payload = vehiclesResponse.ok
                 ? await vehiclesResponse.json().catch(() => null) as GarvexVehiclesResponse | null
                 : null;
+
+            if (includeHealth) {
+                healthRef.current = health;
+                lastHealthFetchAtRef.current = Date.now();
+            }
 
             const mapped = (payload?.items || [])
                 .map(mapApiVehicle)
@@ -560,7 +591,13 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 });
 
             if (mapped.length > 0) {
-                setVehicles(mapped);
+                const nextSignature = buildVehicleSignature(mapped);
+                if (nextSignature !== vehiclesSignatureRef.current) {
+                    vehiclesSignatureRef.current = nextSignature;
+                    startTransition(() => {
+                        setVehicles(mapped);
+                    });
+                }
                 setSyncMessage(null);
                 cacheRef.current = mapped;
                 cacheAtRef.current = Date.now();
@@ -570,12 +607,17 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
             const canUseCache = cacheRef.current.length > 0 && (Date.now() - cacheAtRef.current) <= (5 * 60 * 1000);
             if (canUseCache) {
-                setVehicles(cacheRef.current);
+                startTransition(() => {
+                    setVehicles(cacheRef.current);
+                });
                 setSyncMessage('Vaqtincha so`nggi ishonchli GPS nuqtalari ko`rsatilmoqda.');
                 return;
             }
 
-            setVehicles([]);
+            vehiclesSignatureRef.current = '';
+            startTransition(() => {
+                setVehicles([]);
+            });
 
             if (!health?.enabled) {
                 setSyncMessage('Garvex integratsiyasi o`chiq.');
@@ -589,10 +631,15 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         } catch {
             const canUseCache = cacheRef.current.length > 0 && (Date.now() - cacheAtRef.current) <= (5 * 60 * 1000);
             if (canUseCache) {
-                setVehicles(cacheRef.current);
+                startTransition(() => {
+                    setVehicles(cacheRef.current);
+                });
                 setSyncMessage('Tarmoq uzilishi: so`nggi GPS nuqtalari saqlandi.');
             } else {
-                setVehicles([]);
+                vehiclesSignatureRef.current = '';
+                startTransition(() => {
+                    setVehicles([]);
+                });
                 setSyncMessage('Garvex bilan ulanishda tarmoq xatosi.');
             }
         } finally {
@@ -603,6 +650,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const syncInBackground = () => {
         if (syncInFlightRef.current) return;
         syncInFlightRef.current = true;
+        lastSyncRequestAtRef.current = Date.now();
         void fetch(`${API_BASE}/integrations/tracking/garvex/sync`, {
             cache: 'no-store',
             priority: 'low',
@@ -610,16 +658,22 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             .catch(() => null)
             .finally(() => {
                 syncInFlightRef.current = false;
-                void load();
             });
     };
 
     useEffect(() => {
-        void load();
+        void load(true);
         syncInBackground();
         const timer = window.setInterval(() => {
-            syncInBackground();
-            void load();
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+                return;
+            }
+            const now = Date.now();
+            const includeHealth = now - lastHealthFetchAtRef.current >= HEALTH_REFRESH_MS;
+            if (now - lastSyncRequestAtRef.current >= SYNC_TRIGGER_MS) {
+                syncInBackground();
+            }
+            void load(includeHealth);
         }, SYNC_INTERVAL_MS);
         return () => window.clearInterval(timer);
     }, []);
@@ -658,7 +712,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     return (
         <div className="flex h-full min-w-0 flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4 sm:items-center sm:p-5">
-                <h3 className="app-module-heading">Tezkor xarita (Garvex GPS)</h3>
+                <h3 className="app-module-heading">{t('liveTracking')}</h3>
                 <div className="flex w-full md:w-auto">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-300">
@@ -686,27 +740,31 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[570px_minmax(0,1fr)]">
                 <aside className="sr-garvex-sidebar">
                     <div className="sr-sidebar-tab">
-                        <button type="button" className="sr-sidebar-tab-button">
-                            <Truck size={20} />
-                            <span>OBYEKTLAR</span>
-                        </button>
+                        <div className="sr-sidebar-tab-content">
+                            <button type="button" className="sr-sidebar-tab-button">
+                                <Truck size={20} />
+                                <span>{t('trackingObjects')}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="sr-sidebar-tab-search"
+                                aria-label={t('trackingSearchPlaceholder')}
+                                onClick={() => searchInputRef.current?.focus()}
+                            >
+                                <Search size={18} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="sr-sidebar-search-row">
                         <label className="sr-sidebar-search">
-                            <Search size={17} />
                             <input
+                                ref={searchInputRef}
                                 value={query}
                                 onChange={(event) => setQuery(event.target.value)}
-                                placeholder="Poisk"
+                                placeholder={t('trackingSearchPlaceholder')}
                             />
                         </label>
-                        <button type="button" className="sr-sidebar-icon-button" aria-label="Filter">
-                            <SlidersHorizontal size={18} />
-                        </button>
-                        <button type="button" className="sr-sidebar-icon-button is-plain" aria-label="Settings">
-                            <Settings size={20} />
-                        </button>
                     </div>
 
                     <div className="sr-sidebar-toolbar">
@@ -738,7 +796,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     <div className="sr-sidebar-list">
                         {filteredVehicles.length === 0 ? (
                             <div className="sr-sidebar-empty">
-                                Transport topilmadi.
+                                {t('trackingNotFound')}
                             </div>
                         ) : (
                             filteredVehicles.map((vehicle) => {
@@ -813,11 +871,12 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     min-height: 520px;
                     flex-direction: column;
                     overflow: hidden;
-                    border: 1px solid #d9dde4;
-                    border-radius: 5px;
-                    background: #ffffff;
-                    color: #2f3744;
-                    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+                    border: 1px solid rgba(71, 85, 105, 0.6);
+                    border-radius: 1rem;
+                    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.98) 100%);
+                    color: #e2e8f0;
+                    box-shadow: 0 22px 42px rgba(2, 6, 23, 0.28);
+                    color-scheme: dark;
                 }
                 @media (min-width: 1280px) {
                     .sr-garvex-sidebar {
@@ -827,70 +886,78 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 }
                 .sr-sidebar-tab {
                     display: flex;
-                    height: 46px;
-                    align-items: flex-end;
+                    height: 58px;
+                    align-items: center;
                     justify-content: center;
-                    border-bottom: 1px solid #d9dde4;
-                    background: #ffffff;
+                    border-bottom: 1px solid rgba(71, 85, 105, 0.55);
+                    background: rgba(15, 23, 42, 0.24);
+                    padding: 0 12px;
+                }
+                .sr-sidebar-tab-content {
+                    display: flex;
+                    width: 100%;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
                 }
                 .sr-sidebar-tab-button {
                     display: inline-flex;
                     align-items: center;
-                    gap: 6px;
-                    height: 46px;
-                    border-bottom: 2px solid #1169ff;
-                    color: #1169ff;
-                    font-size: 16px;
-                    font-weight: 500;
+                    gap: 8px;
+                    height: 58px;
+                    border-bottom: 2px solid #38bdf8;
+                    color: #60a5fa;
+                    font-size: 15px;
+                    font-weight: 700;
                     line-height: 1;
+                    letter-spacing: 0;
+                }
+                .sr-sidebar-tab-search {
+                    display: inline-flex;
+                    height: 38px;
+                    width: 38px;
+                    flex: 0 0 auto;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid rgba(71, 85, 105, 0.7);
+                    border-radius: 0.875rem;
+                    background: rgba(15, 23, 42, 0.72);
+                    color: #60a5fa;
+                    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+                }
+                .sr-sidebar-tab-search:hover {
+                    border-color: rgba(96, 165, 250, 0.85);
+                    background: rgba(30, 41, 59, 0.92);
                 }
                 .sr-sidebar-search-row {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1fr) 32px 30px;
-                    align-items: center;
-                    gap: 0;
-                    padding: 8px 8px 7px;
-                    border-bottom: 1px solid #e3e6eb;
-                    background: #ffffff;
+                    display: block;
+                    padding: 12px;
+                    border-bottom: 1px solid rgba(71, 85, 105, 0.45);
+                    background: rgba(15, 23, 42, 0.12);
                 }
                 .sr-sidebar-search {
                     display: flex;
-                    height: 32px;
+                    height: 42px;
                     align-items: center;
-                    gap: 8px;
                     min-width: 0;
-                    border: 1px solid #d7dbe1;
-                    border-radius: 5px 0 0 5px;
-                    background: #ffffff;
-                    padding: 0 9px;
-                    color: #9aa2ad;
+                    border: 1px solid rgba(71, 85, 105, 0.7);
+                    border-radius: 0.875rem;
+                    background: rgba(15, 23, 42, 0.72);
+                    padding: 0 12px;
+                    color: #94a3b8;
                 }
                 .sr-sidebar-search input {
                     width: 100%;
                     min-width: 0;
                     border: 0;
                     outline: none;
-                    color: #2f3744;
+                    color: #e2e8f0;
                     font-size: 14px;
+                    font-weight: 500;
                     background: transparent;
                 }
                 .sr-sidebar-search input::placeholder {
-                    color: #b2b8c1;
-                }
-                .sr-sidebar-icon-button {
-                    display: inline-flex;
-                    height: 32px;
-                    width: 32px;
-                    align-items: center;
-                    justify-content: center;
-                    border: 1px solid #d7dbe1;
-                    border-left: 0;
-                    color: #126bff;
-                    background: #ffffff;
-                }
-                .sr-sidebar-icon-button.is-plain {
-                    border: 0;
-                    color: #6b7280;
+                    color: #94a3b8;
                 }
                 .sr-sidebar-toolbar {
                     display: flex;
@@ -898,10 +965,10 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     align-items: center;
                     justify-content: space-between;
                     gap: 10px;
-                    border-bottom: 1px solid #d9dde4;
-                    background: #ffffff;
-                    color: #7b828c;
-                    padding: 0 9px;
+                    border-bottom: 1px solid rgba(71, 85, 105, 0.45);
+                    background: rgba(15, 23, 42, 0.08);
+                    color: #94a3b8;
+                    padding: 0 12px;
                 }
                 .sr-sidebar-toolbar-left,
                 .sr-sidebar-toolbar-right {
@@ -914,7 +981,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     gap: 13px;
                 }
                 .sr-sort-icon {
-                    color: #656d78;
+                    color: #cbd5e1;
                     font-size: 12px;
                     font-weight: 800;
                     letter-spacing: 0;
@@ -926,30 +993,30 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     flex: 0 0 auto;
                     align-items: center;
                     justify-content: center;
-                    border-radius: 2px;
-                    background: #1169ff;
+                    border-radius: 4px;
+                    background: #2563eb;
                     color: #ffffff;
                 }
                 .sr-sidebar-group-row {
                     display: flex;
-                    height: 38px;
+                    height: 44px;
                     align-items: center;
                     gap: 8px;
-                    border-bottom: 1px solid #e3e6eb;
-                    background: #eaf2ff;
-                    padding: 0 10px;
-                    color: #2f3744;
+                    border-bottom: 1px solid rgba(71, 85, 105, 0.45);
+                    background: rgba(37, 99, 235, 0.12);
+                    padding: 0 12px;
+                    color: #e2e8f0;
                 }
                 .sr-group-title {
-                    font-size: 16px;
-                    font-weight: 500;
+                    font-size: 15px;
+                    font-weight: 700;
                 }
                 .sr-group-count {
-                    border: 1px solid #c7d3e4;
+                    border: 1px solid rgba(96, 165, 250, 0.3);
                     border-radius: 999px;
-                    background: #f8fbff;
-                    color: #6d7785;
-                    padding: 2px 7px;
+                    background: rgba(15, 23, 42, 0.42);
+                    color: #cbd5e1;
+                    padding: 2px 8px;
                     font-size: 12px;
                     line-height: 1.15;
                 }
@@ -957,27 +1024,34 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     min-height: 0;
                     flex: 1;
                     overflow-y: auto;
-                    background: #ffffff;
-                    scrollbar-color: #b5bbc5 #f2f4f7;
+                    background: transparent;
+                    --scrollbar-thumb: rgba(100, 116, 139, 0.85);
+                    --scrollbar-track: rgba(15, 23, 42, 0.55);
+                    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
                     scrollbar-width: thin;
+                    scrollbar-gutter: stable;
                 }
-                .sr-sidebar-list::-webkit-scrollbar {
-                    width: 8px;
-                }
-                .sr-sidebar-list::-webkit-scrollbar-track {
-                    background: #f2f4f7;
-                }
-                .sr-sidebar-list::-webkit-scrollbar-thumb {
-                    border-radius: 8px;
-                    background: #aeb5bf;
+                @supports not (scrollbar-color: auto) {
+                    .sr-sidebar-list::-webkit-scrollbar {
+                        width: 10px;
+                    }
+                    .sr-sidebar-list::-webkit-scrollbar-track {
+                        background: var(--scrollbar-track);
+                    }
+                    .sr-sidebar-list::-webkit-scrollbar-thumb {
+                        border-radius: 999px;
+                        border: 2px solid var(--scrollbar-track);
+                        background: var(--scrollbar-thumb);
+                    }
                 }
                 .sr-sidebar-empty {
                     margin: 12px;
-                    border: 1px dashed #cfd5de;
-                    border-radius: 5px;
-                    color: #7b828c;
+                    border: 1px dashed rgba(100, 116, 139, 0.6);
+                    border-radius: 0.875rem;
+                    color: #94a3b8;
                     padding: 14px;
                     font-size: 14px;
+                    background: rgba(15, 23, 42, 0.36);
                 }
                 .sr-object-row {
                     position: relative;
@@ -987,22 +1061,23 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     grid-template-columns: 17px 16px 23px minmax(0, 1fr) 198px;
                     align-items: center;
                     column-gap: 8px;
-                    min-height: 40px;
+                    min-height: 52px;
                     border-bottom: 0;
-                    background: #ffffff;
-                    padding: 4px 8px 4px 9px;
+                    background: transparent;
+                    padding: 6px 12px 6px 12px;
                     text-align: left;
+                    transition: background-color 0.16s ease;
                 }
                 .sr-object-row:hover,
                 .sr-object-row.is-selected {
-                    background: #eef5ff;
+                    background: rgba(37, 99, 235, 0.16);
                 }
                 .sr-tree-branch {
                     position: relative;
                     display: block;
                     width: 17px;
-                    height: 40px;
-                    border-left: 1px solid #d9dde4;
+                    height: 52px;
+                    border-left: 1px solid rgba(71, 85, 105, 0.55);
                 }
                 .sr-tree-branch::after {
                     content: '';
@@ -1010,7 +1085,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     left: 0;
                     top: 50%;
                     width: 12px;
-                    border-top: 1px solid #d9dde4;
+                    border-top: 1px solid rgba(71, 85, 105, 0.55);
                 }
                 .sr-list-vehicle-icon {
                     display: inline-flex;
@@ -1046,16 +1121,16 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
-                    color: #2f3744;
+                    color: #f8fafc;
                     font-size: 15px;
-                    font-weight: 500;
+                    font-weight: 700;
                     line-height: 1.15;
                 }
                 .sr-object-address {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
-                    color: #9aa2ad;
+                    color: #94a3b8;
                     font-size: 12px;
                     line-height: 1.2;
                     margin-top: 2px;
@@ -1066,26 +1141,26 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     align-items: center;
                     justify-items: center;
                     gap: 7px;
-                    color: #8b93a0;
+                    color: #94a3b8;
                     font-size: 12px;
                     font-weight: 500;
                 }
                 .sr-muted-icon,
                 .sr-muted-text {
-                    color: #8b93a0;
+                    color: #94a3b8;
                 }
                 .sr-green-icon,
                 .sr-green-text {
-                    color: #00c853;
+                    color: #22c55e;
                 }
                 .sr-red-icon {
-                    color: #f00000;
+                    color: #f87171;
                 }
                 .sr-blue-text {
-                    color: #1169ff;
+                    color: #60a5fa;
                 }
                 .sr-slate-text {
-                    color: #4b5563;
+                    color: #cbd5e1;
                 }
                 @media (max-width: 700px) {
                     .sr-object-row {

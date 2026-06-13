@@ -1,4 +1,7 @@
 ﻿import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { startTransition } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
     ArrowRight,
     ChevronDown,
@@ -11,11 +14,15 @@ import {
     FileText,
     Users,
     Database,
+    Search,
+    RefreshCw,
+    Table2,
     type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import { useI18n, numberLocaleFor, uz } from '../i18n';
+import { downloadXls } from '../utils/exportXls';
 import { LocalizedDateInput } from './LocalizedDateInput';
 
 type FuelSummaryResponse = {
@@ -124,6 +131,42 @@ type AzsListPayload<T> = {
     enabled?: boolean;
 };
 
+type FuelCardsView = 'groups' | 'limits';
+
+type FuelCardRow = {
+    id: string;
+    no: number;
+    groupName?: string;
+    cardNumber?: string;
+    cardName?: string;
+    devicePostName?: string;
+    limitType: number | null;
+    limitTypeLabel: string;
+    limitStartAt: string | null;
+    limitEndAt: string | null;
+    setLiters: number | null;
+    availableLiters: number | null;
+    issuedLiters: number | null;
+    limitState: number | null;
+    limitStateLabel: string;
+    syncAt: string | null;
+    cardsCount?: number | null;
+};
+
+type FuelCardsResponse = {
+    view?: FuelCardsView;
+    items?: FuelCardRow[];
+    pagination?: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+    };
+    fetchedAt?: string | null;
+    error?: string;
+    enabled?: boolean;
+};
+
 /** AZS yuqori menyu вЂ” Р“Р»Р°РІРЅР°СЏ / РћС‚С‡РµС‚С‹ faqat to'liq kontent */
 type FuelNavTab = 'main' | 'reports' | 'objects' | 'fuelCards' | 'reservoirs';
 
@@ -136,11 +179,13 @@ const FUEL_NAV_ITEMS: ReadonlyArray<{ id: FuelNavTab; labelKey: keyof typeof uz;
 ];
 
 const API_BASE = resolveApiBaseUrl();
-const FUEL_SUMMARY_REFRESH_MS = 15_000;
-const FUEL_LEVEL_REFRESH_MS = 30_000;
-const FUEL_REPORTS_REFRESH_MS = 30_000;
-const FUEL_OBJECTS_REFRESH_MS = 30_000;
-const FUEL_RESERVOIRS_REFRESH_MS = 15_000;
+const FUEL_SUMMARY_REFRESH_MS = 30_000;
+const FUEL_LEVEL_REFRESH_MS = 45_000;
+const FUEL_REPORTS_REFRESH_MS = 45_000;
+const FUEL_OBJECTS_REFRESH_MS = 60_000;
+const FUEL_RESERVOIRS_REFRESH_MS = 30_000;
+const FUEL_CARDS_REFRESH_MS = 60_000;
+const FUEL_OPERATIONS_EXPORT_PAGE_SIZE = 500;
 
 /** Backend `AZS_CALENDAR_UTC_OFFSET_HOURS` bilan mos (standart 5 = Toshkent) */
 const AZS_CALENDAR_OFFSET_H = Number.isFinite(Number(import.meta.env.VITE_AZS_CALENDAR_OFFSET_HOURS))
@@ -207,6 +252,46 @@ const formatVolumeAzs = (value: number | null | undefined, locale: string) => {
     return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
+const formatFuelCardLiters = (value: number | null | undefined, locale: string) => {
+    if (value == null || !Number.isFinite(Number(value))) return '---';
+    return Number(value).toLocaleString(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+};
+
+const formatAzsChartDateTimeLabel = (day: string, dateFrom: string, dateTo: string) => {
+    if (/^\d{2}:\d{2}$/.test(day) && dateFrom && dateFrom === dateTo) {
+        const [year, month, date] = dateFrom.split('-');
+        if (year && month && date) {
+            return `${date}.${month}.${year} ${day}`;
+        }
+    }
+    return day;
+};
+
+const buildNiceAxis = (values: number[], intervalCount = 5) => {
+    const safeValues = values.filter((value) => Number.isFinite(value) && value >= 0);
+    const maxValue = safeValues.length ? Math.max(...safeValues) : 0;
+    if (maxValue <= 0) {
+        const ticks = Array.from({ length: intervalCount + 1 }, (_, index) => index);
+        return { max: intervalCount, ticks };
+    }
+
+    const rawStep = maxValue / intervalCount;
+    const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+    const normalized = rawStep / magnitude;
+    const candidates = [1, 2, 2.5, 4, 5, 8, 10];
+    const stepBase = candidates.find((candidate) => normalized <= candidate) ?? 10;
+    const step = stepBase * magnitude;
+    const max = step * intervalCount;
+    const ticks = Array.from({ length: intervalCount + 1 }, (_, index) => index * step);
+    return { max, ticks };
+};
+
+const fuelCardLimitStatusClass = (state: number | null | undefined) => {
+    if (state === 0) return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400';
+    if (state === 4) return 'border-slate-500/25 bg-slate-500/10 text-slate-300';
+    return 'border-red-500/25 bg-red-500/10 text-red-300';
+};
+
 const clampPct = (value: number | null | undefined) => {
     if (value == null || !Number.isFinite(value)) return null;
     return Math.min(100, Math.max(0, value));
@@ -255,7 +340,8 @@ const AzsReservoirLevelBar = ({
     return (
         <div className={`relative ${h} ${minW} w-full ${trackCls}`}>
             <div
-                className={`absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-200 ease-out w-[${wInt}%]`}
+                className="absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-200 ease-out"
+                style={{ width: `${wInt}%` }}
             />
             <div
                 className={`relative z-10 flex h-full w-full items-center justify-center px-2 text-center font-semibold tabular-nums text-slate-100 ${textCls}`}
@@ -328,8 +414,9 @@ const getPresetRange = (preset: RangePreset) => {
         return { dateFrom: toDateInput(start), dateTo: toDateInput(today) };
     }
 
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { dateFrom: toDateInput(startOfMonth), dateTo: toDateInput(today) };
+    const rollingMonthStart = new Date(today);
+    rollingMonthStart.setDate(rollingMonthStart.getDate() - 29);
+    return { dateFrom: toDateInput(rollingMonthStart), dateTo: toDateInput(today) };
 };
 
 export const FuelManager = () => {
@@ -350,15 +437,96 @@ export const FuelManager = () => {
     const [summary, setSummary] = useState<FuelSummaryResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [operationsPage, setOperationsPage] = useState(1);
-    const [operationsRowsPerPage, setOperationsRowsPerPage] = useState(10);
+    const [operationsRowsPerPage, setOperationsRowsPerPage] = useState(15);
     const [todayRecordsCount, setTodayRecordsCount] = useState(0);
+    const [operationsExportingXls, setOperationsExportingXls] = useState(false);
+    const [operationsExportingPdf, setOperationsExportingPdf] = useState(false);
     const [operationsRows, setOperationsRows] = useState<FuelOperationsResponse['items']>([]);
     const [operationsTotalRows, setOperationsTotalRows] = useState(0);
     const [operationsTotalPages, setOperationsTotalPages] = useState(1);
     const [azsObjects, setAzsObjects] = useState<AzsListPayload<AzsObjectRow> | null>(null);
     const [azsReservoirs, setAzsReservoirs] = useState<AzsListPayload<AzsReservoirRow> | null>(null);
+    const [fuelCardsView, setFuelCardsView] = useState<FuelCardsView>('groups');
+    const [fuelCardsSearchInput, setFuelCardsSearchInput] = useState('');
+    const [fuelCardsSearch, setFuelCardsSearch] = useState('');
+    const [fuelCardsRows, setFuelCardsRows] = useState<FuelCardRow[]>([]);
+    const [fuelCardsPage, setFuelCardsPage] = useState(1);
+    const [fuelCardsRowsPerPage, setFuelCardsRowsPerPage] = useState(100);
+    const [fuelCardsTotalRows, setFuelCardsTotalRows] = useState(0);
+    const [fuelCardsTotalPages, setFuelCardsTotalPages] = useState(1);
+    const [fuelCardsLoading, setFuelCardsLoading] = useState(false);
+    const [fuelCardsError, setFuelCardsError] = useState<string | null>(null);
     const [expandedObjectIds, setExpandedObjectIds] = useState<Set<string>>(() => new Set());
     const [expandedReservoirIds, setExpandedReservoirIds] = useState<Set<string>>(() => new Set());
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => {
+            setFuelCardsSearch(fuelCardsSearchInput.trim());
+        }, 300);
+        return () => window.clearTimeout(timer);
+    }, [fuelCardsSearchInput]);
+
+    useEffect(() => {
+        setFuelCardsPage(1);
+    }, [fuelCardsView, fuelCardsSearch, fuelCardsRowsPerPage]);
+
+    useEffect(() => {
+        if (fuelCardsPage > fuelCardsTotalPages) {
+            setFuelCardsPage(fuelCardsTotalPages);
+        }
+    }, [fuelCardsPage, fuelCardsTotalPages]);
+
+    useEffect(() => {
+        if (fuelNavTab !== 'fuelCards') return;
+        let active = true;
+        let busy = false;
+        const load = async () => {
+            if (busy) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+            busy = true;
+            if (active) setFuelCardsLoading(true);
+            try {
+                const params = new URLSearchParams();
+                params.set('view', fuelCardsView);
+                params.set('page', String(fuelCardsPage));
+                params.set('pageSize', String(fuelCardsRowsPerPage));
+                params.set('language', lang);
+                if (fuelCardsSearch) params.set('search', fuelCardsSearch);
+
+                const response = await fetch(`${API_BASE}/integrations/fuel/azs/fuel-cards?${params.toString()}`);
+                if (!response.ok) throw new Error('fuel_cards_failed');
+                const payload = (await response.json()) as FuelCardsResponse;
+                if (!active) return;
+
+                const total = Number(payload?.pagination?.total ?? 0);
+                const totalPages = Number(payload?.pagination?.totalPages ?? 1);
+                startTransition(() => {
+                    setFuelCardsRows(Array.isArray(payload?.items) ? payload.items : []);
+                    setFuelCardsTotalRows(Number.isFinite(total) ? total : 0);
+                    setFuelCardsTotalPages(Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1);
+                    setFuelCardsError(payload?.error ?? null);
+                });
+            } catch {
+                if (!active) return;
+                startTransition(() => {
+                    setFuelCardsRows([]);
+                    setFuelCardsTotalRows(0);
+                    setFuelCardsTotalPages(1);
+                    setFuelCardsError('fetch_failed');
+                });
+            } finally {
+                busy = false;
+                if (active) setFuelCardsLoading(false);
+            }
+        };
+
+        void load();
+        const interval = setInterval(() => void load(), FUEL_CARDS_REFRESH_MS);
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, [fuelNavTab, fuelCardsView, fuelCardsPage, fuelCardsRowsPerPage, fuelCardsSearch, lang]);
 
     useEffect(() => {
         if (fuelNavTab !== 'objects') return;
@@ -366,18 +534,25 @@ export const FuelManager = () => {
         let busy = false;
         const load = async () => {
             if (busy) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             busy = true;
             try {
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/objects`);
                 const payload = (await response.json().catch(() => null)) as AzsListPayload<AzsObjectRow> | null;
                 if (!active) return;
-                setAzsObjects(
-                    payload && Array.isArray(payload.items)
-                        ? payload
-                        : { items: [], total: 0, fetchedAt: new Date().toISOString() },
-                );
+                startTransition(() => {
+                    setAzsObjects(
+                        payload && Array.isArray(payload.items)
+                            ? payload
+                            : { items: [], total: 0, fetchedAt: new Date().toISOString() },
+                    );
+                });
             } catch {
-                if (active) setAzsObjects({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+                if (active) {
+                    startTransition(() => {
+                        setAzsObjects({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+                    });
+                }
             } finally {
                 busy = false;
             }
@@ -400,18 +575,25 @@ export const FuelManager = () => {
         let busy = false;
         const load = async () => {
             if (busy) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             busy = true;
             try {
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/reservoirs`);
                 const payload = (await response.json().catch(() => null)) as AzsListPayload<AzsReservoirRow> | null;
                 if (!active) return;
-                setAzsReservoirs(
-                    payload && Array.isArray(payload.items)
-                        ? payload
-                        : { items: [], total: 0, fetchedAt: new Date().toISOString() },
-                );
+                startTransition(() => {
+                    setAzsReservoirs(
+                        payload && Array.isArray(payload.items)
+                            ? payload
+                            : { items: [], total: 0, fetchedAt: new Date().toISOString() },
+                    );
+                });
             } catch {
-                if (active) setAzsReservoirs({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+                if (active) {
+                    startTransition(() => {
+                        setAzsReservoirs({ items: [], total: 0, error: 'fetch_failed', fetchedAt: new Date().toISOString() });
+                    });
+                }
             } finally {
                 busy = false;
             }
@@ -425,24 +607,28 @@ export const FuelManager = () => {
     }, [fuelNavTab]);
 
     useEffect(() => {
+        if (fuelNavTab !== 'main' && fuelNavTab !== 'reports') return;
         let active = true;
         let busy = false;
 
         const loadSummary = async () => {
             if (busy) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             busy = true;
             try {
                 const params = new URLSearchParams();
                 if (dateFrom) params.set('dateFrom', dateFrom);
                 if (dateTo) params.set('dateTo', dateTo);
                 if (selectedStation !== 'all') params.set('station', selectedStation);
-                params.set('recentLimit', '1000');
+                params.set('compact', '1');
 
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/summary?${params.toString()}`);
                 if (!response.ok) throw new Error('fuel_summary_failed');
                 const payload = await response.json();
                 if (!active) return;
-                setSummary(payload as FuelSummaryResponse);
+                startTransition(() => {
+                    setSummary(payload as FuelSummaryResponse);
+                });
                 setError(null);
             } catch {
                 if (active) setError("Yoqilg'i integratsiyasi bilan aloqa yo'q");
@@ -460,7 +646,7 @@ export const FuelManager = () => {
             active = false;
             clearInterval(interval);
         };
-    }, [dateFrom, dateTo, selectedStation]);
+    }, [fuelNavTab, dateFrom, dateTo, selectedStation]);
 
     useEffect(() => {
         if (fuelNavTab !== 'reports') return;
@@ -469,12 +655,13 @@ export const FuelManager = () => {
 
         const loadTodayCount = async () => {
             try {
+                if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 const params = new URLSearchParams();
                 const todayAzs = azsCalendarYmdToday();
                 params.set('dateFrom', todayAzs);
                 params.set('dateTo', todayAzs);
                 if (selectedStation !== 'all') params.set('station', selectedStation);
-                params.set('recentLimit', '1');
+                params.set('compact', '1');
 
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/summary?${params.toString()}`);
                 if (!response.ok) return;
@@ -488,6 +675,7 @@ export const FuelManager = () => {
 
         const loadOperations = async () => {
             try {
+                if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
                 const params = new URLSearchParams();
                 params.set('page', String(operationsPage));
                 params.set('pageSize', String(operationsRowsPerPage));
@@ -500,16 +688,20 @@ export const FuelManager = () => {
                 const payload = (await response.json()) as FuelOperationsResponse;
                 if (!active) return;
 
-                setOperationsRows(Array.isArray(payload?.items) ? payload.items : []);
                 const total = Number(payload?.pagination?.total ?? 0);
                 const totalPages = Number(payload?.pagination?.totalPages ?? 1);
-                setOperationsTotalRows(Number.isFinite(total) ? total : 0);
-                setOperationsTotalPages(Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1);
+                startTransition(() => {
+                    setOperationsRows(Array.isArray(payload?.items) ? payload.items : []);
+                    setOperationsTotalRows(Number.isFinite(total) ? total : 0);
+                    setOperationsTotalPages(Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1);
+                });
             } catch {
                 if (!active) return;
-                setOperationsRows([]);
-                setOperationsTotalRows(0);
-                setOperationsTotalPages(1);
+                startTransition(() => {
+                    setOperationsRows([]);
+                    setOperationsTotalRows(0);
+                    setOperationsTotalPages(1);
+                });
             }
         };
 
@@ -540,6 +732,7 @@ export const FuelManager = () => {
         let busy = false;
         const loadSectionLevel = async () => {
             if (busy) return;
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             busy = true;
             try {
                 const params = new URLSearchParams();
@@ -547,13 +740,15 @@ export const FuelManager = () => {
                 if (levelDateTo) params.set('dateTo', levelDateTo);
                 if (selectedStation !== 'all') params.set('station', selectedStation);
                 if (levelSelectedSection !== 'all') params.set('section', levelSelectedSection);
-                params.set('recentLimit', '10');
+                params.set('compact', '1');
 
                 const response = await fetch(`${API_BASE}/integrations/fuel/azs/summary?${params.toString()}`);
                 if (!response.ok) throw new Error('fuel_section_level_failed');
                 const payload = (await response.json()) as FuelSummaryResponse;
                 if (!active) return;
-                setSectionLevelSummary(payload);
+                startTransition(() => {
+                    setSectionLevelSummary(payload);
+                });
             } catch {
                 if (active) setSectionLevelSummary(null);
             } finally {
@@ -583,25 +778,17 @@ export const FuelManager = () => {
 
     const levelSectionOptions = useMemo(() => {
         const merged = new Set<string>();
-        for (const name of sectionLevelSummary?.stats?.azsSectionNames ?? []) {
-            const n = String(name ?? '').trim();
-            if (n) merged.add(n);
-        }
-        for (const name of summary?.stats?.azsSectionNames ?? []) {
-            const n = String(name ?? '').trim();
-            if (n) merged.add(n);
-        }
-        if (merged.size === 0) {
-            for (const row of sectionLevelSummary?.sections ?? []) {
-                const name = String(row?.name ?? '').trim();
-                if (name) merged.add(name);
-            }
-            for (const row of summary?.sections ?? []) {
-                const name = String(row?.name ?? '').trim();
-                if (name) merged.add(name);
-            }
-        }
-        return Array.from(merged).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        const pushName = (value: string | null | undefined) => {
+            const name = String(value ?? '').trim();
+            if (name) merged.add(name);
+        };
+
+        for (const name of sectionLevelSummary?.stats?.azsSectionNames ?? []) pushName(name);
+        for (const name of summary?.stats?.azsSectionNames ?? []) pushName(name);
+        for (const row of sectionLevelSummary?.sections ?? []) pushName(row?.name);
+        for (const row of summary?.sections ?? []) pushName(row?.name);
+
+        return Array.from(merged);
     }, [summary, sectionLevelSummary]);
 
     const levelSectionSelectOptions = useMemo(() => {
@@ -614,6 +801,28 @@ export const FuelManager = () => {
 
     const chartData = useMemo(() => summary?.chart ?? [], [summary]);
     const levelChartData = useMemo(() => sectionLevelSummary?.levelChart ?? [], [sectionLevelSummary]);
+    const levelChartAxis = useMemo(
+        () => buildNiceAxis(levelChartData.map((point) => Number(point?.level ?? 0)), 5),
+        [levelChartData],
+    );
+    const chartYAxisMax = useMemo(() => {
+        const seriesMax = chartData.reduce((max, point) => {
+            const value = Number(point?.consumption ?? 0);
+            return Number.isFinite(value) ? Math.max(max, value) : max;
+        }, 0);
+        const step = seriesMax > 1000 ? 1000 : 200;
+        const paddedMax = seriesMax > 0 ? seriesMax * 1.1 : step;
+        const roundedMax = Math.ceil(paddedMax / step) * step;
+        return Math.max(step * 4, roundedMax);
+    }, [chartData]);
+    const chartYAxisTicks = useMemo(() => {
+        const step = chartYAxisMax > 1000 ? 1000 : 200;
+        const ticks: number[] = [];
+        for (let value = 0; value <= chartYAxisMax; value += step) {
+            ticks.push(value);
+        }
+        return ticks;
+    }, [chartYAxisMax]);
     const totalLiters = Number(summary?.window?.totalLiters ?? 0);
     const totalLitersDisplay =
         summary?.window?.totalLitersRounded != null
@@ -653,6 +862,121 @@ export const FuelManager = () => {
         }
     }, [operationsPage, operationsTotalPages]);
 
+    const buildOperationsExportFileName = (ext: 'xls' | 'pdf') => {
+        const from = dateFrom || azsCalendarYmdToday();
+        const to = dateTo || from;
+        return `fuel_operations_${from}_${to}.${ext}`;
+    };
+
+    const operationExportHeaders = () => [
+        t('fuelOpsColStartTime'),
+        t('fuelOpsColCardNumber'),
+        t('fuelOpsColCardName'),
+        t('fuelOpsColGroup'),
+        t('fuelOpsColPost'),
+        t('fuelOpsColSection'),
+        t('fuelOpsColStartDut'),
+        t('fuelOpsColEndDut'),
+        t('fuelOpsColIssued'),
+    ];
+
+    const operationExportRow = (row: FuelOperationsResponse['items'][number]) => [
+        formatDateTime(row.time),
+        row.cardNumber || row.cardId || '-',
+        row.cardName || row.vehicle || '-',
+        row.groupName || '-',
+        row.station || '-',
+        row.fuelSectionName || '-',
+        row.levelStartDut != null ? formatLiters(row.levelStartDut, numLocale) : '-',
+        row.levelEndDut != null ? formatLiters(row.levelEndDut, numLocale) : '-',
+        `${formatLiters(row.issuedValue ?? row.liters, numLocale)} ${t('fuelUnitL')}`,
+    ];
+
+    const fetchOperationsForExport = async () => {
+        const rows: FuelOperationsResponse['items'] = [];
+        let page = 1;
+        let totalPages = 1;
+
+        while (page <= totalPages) {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('pageSize', String(FUEL_OPERATIONS_EXPORT_PAGE_SIZE));
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+            if (selectedStation !== 'all') params.set('station', selectedStation);
+
+            const response = await fetch(`${API_BASE}/integrations/fuel/azs/operations?${params.toString()}`);
+            if (!response.ok) throw new Error('fuel_operations_export_failed');
+            const payload = (await response.json()) as FuelOperationsResponse;
+            const items = Array.isArray(payload?.items) ? payload.items : [];
+            rows.push(...items);
+            totalPages = Math.max(1, Number(payload?.pagination?.totalPages ?? 1) || 1);
+            if (items.length === 0) break;
+            page += 1;
+        }
+
+        return rows;
+    };
+
+    const handleOperationsExportXls = async () => {
+        if (operationsExportingXls || operationsExportingPdf || operationsTotalRows === 0) return;
+        setOperationsExportingXls(true);
+        try {
+            const rows = await fetchOperationsForExport();
+            if (rows.length === 0) return;
+            downloadXls(operationExportHeaders(), rows.map(operationExportRow), buildOperationsExportFileName('xls'));
+        } catch {
+            setError(t('exportDataError'));
+        } finally {
+            setOperationsExportingXls(false);
+        }
+    };
+
+    const handleOperationsExportPdf = async () => {
+        if (operationsExportingPdf || operationsExportingXls || operationsTotalRows === 0) return;
+        setOperationsExportingPdf(true);
+        try {
+            const rows = await fetchOperationsForExport();
+            if (rows.length === 0) return;
+
+            const doc = new jsPDF({ orientation: 'landscape' });
+            try {
+                const fontRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Regular.ttf');
+                const buf = await fontRes.arrayBuffer();
+                const bytes = new Uint8Array(buf);
+                let binary = '';
+                for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+                const base64 = btoa(binary);
+                doc.addFileToVFS('Roboto.ttf', base64);
+                doc.addFont('Roboto.ttf', 'Roboto', 'normal');
+                doc.setFont('Roboto');
+            } catch {
+                // Keep default font if loading fails.
+            }
+
+            doc.setFontSize(16);
+            doc.text(t('fuelReportsTitle'), 14, 18);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`${dateFrom || azsCalendarYmdToday()} - ${dateTo || dateFrom || azsCalendarYmdToday()}`, 14, 25);
+
+            autoTable(doc, {
+                head: [operationExportHeaders()],
+                body: rows.map(operationExportRow),
+                startY: 30,
+                theme: 'grid',
+                headStyles: { fillColor: [37, 99, 235], font: 'Roboto' },
+                styles: { fontSize: 7, font: 'Roboto' },
+            });
+
+            doc.save(buildOperationsExportFileName('pdf'));
+        } catch {
+            setError(t('pdfExportError'));
+        } finally {
+            setOperationsExportingPdf(false);
+        }
+    };
+
     const applyPreset = (nextPreset: RangePreset) => {
         setPreset(nextPreset);
         const range = getPresetRange(nextPreset);
@@ -683,7 +1007,7 @@ export const FuelManager = () => {
 
     const showMainDashboard = fuelNavTab === 'main';
     const showReports = fuelNavTab === 'reports';
-    const showFuelCardsStub = fuelNavTab === 'fuelCards';
+    const showFuelCardsPanel = fuelNavTab === 'fuelCards';
     const showObjectsPanel = fuelNavTab === 'objects';
     const showReservoirsPanel = fuelNavTab === 'reservoirs';
 
@@ -723,24 +1047,200 @@ export const FuelManager = () => {
                 </nav>
             </div>
 
-            {showFuelCardsStub && (
-                <div className="glass-panel rounded-2xl border border-slate-700/50 p-8 text-center text-slate-400">
-                    <p className="mx-auto max-w-xl text-sm leading-relaxed sm:text-base">{t('fuelNavStubHint')}</p>
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            {showFuelCardsPanel && (
+                <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
+                    <div className="border-b border-slate-700/50">
+                        <div className="flex min-w-0 overflow-x-auto overscroll-x-contain px-3 pt-2 dark-scrollbar sm:px-4">
+                            {([
+                                ['groups', t('fuelCardsGroupsTab'), CreditCard],
+                                ['limits', t('fuelCardsLimitsTab'), Layers],
+                            ] as const).map(([view, label, Icon]) => {
+                                const active = fuelCardsView === view;
+                                return (
+                                    <button
+                                        key={view}
+                                        type="button"
+                                        onClick={() => setFuelCardsView(view)}
+                                        className={`inline-flex min-h-[2.75rem] min-w-[9rem] items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${
+                                            active
+                                                ? 'border-blue-500 text-blue-300'
+                                                : 'border-transparent text-slate-400 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <Icon size={17} />
+                                        <span>{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 border-b border-slate-700/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                        <label className="relative min-w-0 flex-1 sm:max-w-md" htmlFor="fuel-cards-search">
+                            <Search
+                                size={17}
+                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                            />
+                            <input
+                                id="fuel-cards-search"
+                                value={fuelCardsSearchInput}
+                                onChange={(event) => setFuelCardsSearchInput(event.target.value)}
+                                placeholder={t('fuelCardsSearchPlaceholder')}
+                                className="h-10 w-full rounded-lg border border-slate-700/70 bg-slate-950/45 pl-9 pr-3 text-sm font-medium text-slate-100 outline-none transition-colors placeholder:text-slate-500 focus:border-blue-500/70 focus:bg-slate-950/70"
+                            />
+                        </label>
                         <button
                             type="button"
-                            onClick={() => setFuelNavTab('main')}
-                            className="rounded-lg border border-blue-500/40 bg-blue-500/15 px-4 py-2 text-sm font-medium text-blue-300 transition-colors hover:bg-blue-500/25 sm:text-base"
+                            onClick={() => {
+                                setFuelCardsSearch(fuelCardsSearchInput.trim());
+                                setFuelCardsPage(1);
+                            }}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700/70 bg-slate-900/55 px-3 text-sm font-semibold text-slate-200 transition-colors hover:border-blue-500/50 hover:text-blue-300"
                         >
-                            {t('fuelNavMain')}
+                            <RefreshCw size={16} className={fuelCardsLoading ? 'animate-spin' : ''} />
+                            {t('fuelObjectsRefresh')}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setFuelNavTab('reports')}
-                            className="rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80 sm:text-base"
-                        >
-                            {t('fuelNavReports')}
-                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
+                        <table className="w-full min-w-[1160px] text-left text-xs sm:text-sm">
+                            <thead>
+                                <tr className="border-b border-slate-700/50 bg-slate-900/50 text-[10px] uppercase tracking-wide text-slate-400 sm:text-xs">
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelObjectsColNo')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">
+                                        {fuelCardsView === 'groups' ? t('fuelCardsColGroupName') : t('fuelCardsColCardName')}
+                                    </th>
+                                    {fuelCardsView === 'limits' && (
+                                        <>
+                                            <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColCardNumber')}</th>
+                                            <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColPost')}</th>
+                                        </>
+                                    )}
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitType')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitStart')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitEnd')}</th>
+                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColSet')}</th>
+                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColAvailable')}</th>
+                                    <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColIssued')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelCardsColLimitStatus')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelObjectsColSync')}</th>
+                                    {fuelCardsView === 'groups' && (
+                                        <th className="px-2 py-1.5 text-right font-semibold sm:px-3 sm:py-2">{t('fuelCardsColCards')}</th>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/40">
+                                {fuelCardsRows.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={fuelCardsView === 'groups' ? 11 : 12}
+                                            className="px-3 py-8 text-center text-xs text-slate-500 sm:text-sm"
+                                        >
+                                            {fuelCardsLoading ? t('syncing') : fuelCardsError ? t('fuelCardsError') : t('fuelCardsNoData')}
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    fuelCardsRows.map((row, index) => (
+                                        <tr
+                                            key={row.id || `${fuelCardsView}-${index}`}
+                                            className={`${index % 2 === 0 ? 'bg-slate-900/20' : 'bg-slate-800/10'} text-slate-200 transition-colors hover:bg-slate-800/35`}
+                                        >
+                                            <td className="px-2 py-2 tabular-nums text-slate-400 sm:px-3">{row.no}</td>
+                                            <td className="min-w-[14rem] px-2 py-2 font-medium text-slate-100 sm:px-3">
+                                                {fuelCardsView === 'groups' ? row.groupName || '—' : row.cardName || '—'}
+                                            </td>
+                                            {fuelCardsView === 'limits' && (
+                                                <>
+                                                    <td className="px-2 py-2 font-medium tabular-nums text-slate-300 sm:px-3">{row.cardNumber || '—'}</td>
+                                                    <td className="px-2 py-2 text-slate-300 sm:px-3">{row.devicePostName || '—'}</td>
+                                                </>
+                                            )}
+                                            <td className="px-2 py-2 sm:px-3">
+                                                <span className="inline-flex rounded-full border border-emerald-500/15 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                                                    {row.limitTypeLabel || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                {row.limitStartAt ? formatDateTime(row.limitStartAt) : '---'}
+                                            </td>
+                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                {row.limitEndAt ? formatDateTime(row.limitEndAt) : '---'}
+                                            </td>
+                                            <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
+                                                {formatFuelCardLiters(row.setLiters, numLocale)}
+                                            </td>
+                                            <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
+                                                {formatFuelCardLiters(row.availableLiters, numLocale)}
+                                            </td>
+                                            <td className="px-2 py-2 text-right tabular-nums text-blue-200 sm:px-3">
+                                                {formatFuelCardLiters(row.issuedLiters, numLocale)}
+                                            </td>
+                                            <td className="px-2 py-2 sm:px-3">
+                                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${fuelCardLimitStatusClass(row.limitState)}`}>
+                                                    {row.limitStateLabel || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="whitespace-nowrap px-2 py-2 text-slate-300 sm:px-3">
+                                                {row.syncAt ? formatDateTime(row.syncAt) : '---'}
+                                            </td>
+                                            {fuelCardsView === 'groups' && (
+                                                <td className="px-2 py-2 text-right tabular-nums text-slate-300 sm:px-3">
+                                                    {row.cardsCount ?? 0}
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="table-pagination-bar border-t border-slate-700/50 bg-slate-900/30 px-3 py-2.5 md:px-4">
+                        <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:justify-between md:text-left">
+                            <p className="w-full text-xs text-slate-400 tabular-nums sm:text-sm md:w-auto">
+                                {fuelCardsTotalRows === 0
+                                    ? '0 / 0'
+                                    : `${(fuelCardsPage - 1) * fuelCardsRowsPerPage + 1}-${Math.min(fuelCardsPage * fuelCardsRowsPerPage, fuelCardsTotalRows)} / ${fuelCardsTotalRows}`}
+                            </p>
+                            <div className="flex w-full max-w-md flex-wrap items-center justify-center gap-1.5 sm:gap-2 md:w-auto md:max-w-none md:justify-end">
+                                <label className="text-xs text-slate-400 sm:text-sm" htmlFor="fuel-cards-rows-per-page">
+                                    {t('rowsPerPage')}:
+                                </label>
+                                <select
+                                    id="fuel-cards-rows-per-page"
+                                    value={fuelCardsRowsPerPage}
+                                    onChange={(event) => {
+                                        const value = Math.max(10, Number.parseInt(event.target.value, 10) || 100);
+                                        setFuelCardsRowsPerPage(value);
+                                    }}
+                                    className="rounded-md border border-slate-700/70 bg-slate-900/70 px-1.5 py-1 text-xs text-slate-200 outline-none focus:border-blue-500/60 sm:px-2 sm:py-1.5 sm:text-sm"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setFuelCardsPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={fuelCardsPage <= 1}
+                                    className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
+                                >
+                                    {t('previous')}
+                                </button>
+                                <span className="min-w-[72px] text-center text-xs text-slate-300 sm:min-w-[80px] sm:text-sm">
+                                    {fuelCardsPage} / {fuelCardsTotalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setFuelCardsPage((prev) => Math.min(fuelCardsTotalPages, prev + 1))}
+                                    disabled={fuelCardsPage >= fuelCardsTotalPages}
+                                    className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
+                                >
+                                    {t('next')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1223,7 +1723,15 @@ export const FuelManager = () => {
                                 height={chartData.length > 12 ? 56 : 28}
                                 interval="preserveStartEnd"
                             />
-                            <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} width={40} unit={t('fuelYAxisLiter')} />
+                            <YAxis
+                                stroke="#94a3b8"
+                                tick={{ fontSize: 11 }}
+                                width={40}
+                                unit={t('fuelYAxisLiter')}
+                                domain={[0, chartYAxisMax]}
+                                ticks={chartYAxisTicks}
+                                allowDecimals={false}
+                            />
                             <Tooltip
                                 contentStyle={{
                                     backgroundColor: '#0f172a',
@@ -1355,12 +1863,20 @@ export const FuelManager = () => {
                                 dataKey="day"
                                 stroke="#94a3b8"
                                 tick={{ fontSize: 10 }}
-                                angle={levelChartData.length > 12 ? -40 : 0}
-                                textAnchor={levelChartData.length > 12 ? 'end' : 'middle'}
-                                height={levelChartData.length > 12 ? 56 : 28}
+                                angle={levelChartData.length > 10 ? -40 : 0}
+                                textAnchor={levelChartData.length > 10 ? 'end' : 'middle'}
+                                height={levelChartData.length > 10 ? 56 : 28}
                                 interval="preserveStartEnd"
                             />
-                            <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} width={40} unit={t('fuelYAxisLiter')} />
+                            <YAxis
+                                stroke="#94a3b8"
+                                tick={{ fontSize: 11 }}
+                                width={68}
+                                domain={[0, levelChartAxis.max]}
+                                ticks={levelChartAxis.ticks}
+                                allowDecimals={false}
+                                tickFormatter={(value) => Number(value).toLocaleString(numLocale, { maximumFractionDigits: 0 })}
+                            />
                             <Tooltip
                                 contentStyle={{
                                     backgroundColor: '#0f172a',
@@ -1368,6 +1884,10 @@ export const FuelManager = () => {
                                     borderRadius: '10px',
                                     color: '#e2e8f0',
                                 }}
+                                cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeOpacity: 0.75 }}
+                                labelFormatter={(label) =>
+                                    formatAzsChartDateTimeLabel(String(label ?? ''), levelDateFrom, levelDateTo)
+                                }
                                 formatter={(value) => {
                                     const level = t('fuelChartSeriesLevel');
                                     if (value == null) return ['вЂ”', level];
@@ -1389,7 +1909,7 @@ export const FuelManager = () => {
                                 fillOpacity={0.2}
                                 strokeWidth={2}
                                 dot={{ r: 3, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 1 }}
-                                activeDot={{ r: 4 }}
+                                activeDot={{ r: 7, fill: '#60a5fa', stroke: '#ffffff', strokeWidth: 2 }}
                             />
                         </AreaChart>
                     </ResponsiveContainer>
@@ -1399,12 +1919,56 @@ export const FuelManager = () => {
 
             {showReports && (
             <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className="flex flex-col gap-2 border-b border-slate-700/40 px-3 py-2.5 md:flex-row md:items-center md:justify-between md:px-4">
-                    <FuelPanelGradientHeading className="min-w-0 max-w-full">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
-                    <span className="inline-flex w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:text-sm md:w-fit md:justify-start md:text-left">
-                        {t('fuelReportsTodayCount')}{' '}
-                        <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
-                    </span>
+                <div className="flex flex-col gap-3 border-b border-slate-700/40 px-3 py-2.5 2xl:flex-row 2xl:items-center 2xl:justify-between 2xl:px-4">
+                    <FuelPanelGradientHeading className="min-w-0 max-w-full flex-1 2xl:min-w-[420px]">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
+                    <div className="flex w-full flex-wrap items-center gap-2 2xl:w-auto 2xl:justify-end">
+                        <span className="inline-flex min-h-10 w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:w-auto sm:text-sm">
+                            {t('fuelReportsTodayCount')}{' '}
+                            <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
+                        </span>
+                        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+                            <LocalizedDateInput
+                                label={t('dateFromSanadan')}
+                                value={dateFrom}
+                                maxDate={dateTo || undefined}
+                                onChange={(v) => {
+                                    setPreset('today');
+                                    setDateFrom(v);
+                                    if (dateTo && v > dateTo) setDateTo(v);
+                                }}
+                                minWidth={152}
+                            />
+                            <LocalizedDateInput
+                                label={t('dateToSanagacha')}
+                                value={dateTo}
+                                minDate={dateFrom || undefined}
+                                onChange={(v) => {
+                                    setPreset('today');
+                                    setDateTo(v);
+                                    if (dateFrom && v < dateFrom) setDateFrom(v);
+                                }}
+                                minWidth={152}
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => void handleOperationsExportXls()}
+                            disabled={operationsTotalRows === 0 || operationsExportingXls || operationsExportingPdf}
+                            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                        >
+                            <Table2 size={16} />
+                            {operationsExportingXls ? t('exportingXls') : t('exportXls')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void handleOperationsExportPdf()}
+                            disabled={operationsTotalRows === 0 || operationsExportingPdf || operationsExportingXls}
+                            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                        >
+                            <FileText size={16} />
+                            {operationsExportingPdf ? t('exportingPdf') : t('exportPdf')}
+                        </button>
+                    </div>
                 </div>
                 <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
                     <table className="w-full min-w-[1080px] text-left text-xs sm:text-sm">
@@ -1470,11 +2034,12 @@ export const FuelManager = () => {
                                 aria-label="Har sahifadagi yozuvlar soni"
                                 value={operationsRowsPerPage}
                                 onChange={(event) => {
-                                    const value = Math.max(10, Number.parseInt(event.target.value, 10) || 10);
+                                    const value = Math.max(1, Number.parseInt(event.target.value, 10) || 15);
                                     setOperationsRowsPerPage(value);
                                 }}
                                 className="rounded-md border border-slate-700/70 bg-slate-900/70 px-1.5 py-1 text-xs text-slate-200 outline-none focus:border-blue-500/60 sm:px-2 sm:py-1.5 sm:text-sm"
                             >
+                                <option value={15}>15</option>
                                 <option value={10}>10</option>
                                 <option value={20}>20</option>
                                 <option value={50}>50</option>

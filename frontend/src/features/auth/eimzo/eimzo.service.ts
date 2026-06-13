@@ -37,7 +37,7 @@ const normalizeErrorMessage = (error: unknown): string => {
   if (lower.includes('парол') || lower.includes('пин')) return "Parol noto'g'ri";
   if (lower.includes('отмен')) return 'Imzo bekor qilindi';
   if (lower.includes('домен') || lower.includes('недействител')) {
-    return `${window.location.hostname} uchun E-IMZO API-key kerak. E-IMZO default kalitlari faqat localhost/127.0.0.1 uchun ishlaydi. E-IMZO bilan ishlash uchun ${getEimzoLocalhostUrl()} manzilidan kiring yoki 192.168.0.3 uchun rasmiy API-key qo'shing.`;
+    return `${window.location.host} uchun E-IMZO API-key kerak. E-IMZO default kalitlari faqat localhost/127.0.0.1 uchun ishlaydi. E-IMZO bilan ishlash uchun ${getEimzoLocalhostUrl()} manzilidan kiring yoki joriy host uchun rasmiy API-key qo'shing.`;
   }
   if (
     lower.includes('парол') ||
@@ -61,7 +61,7 @@ const normalizeErrorMessage = (error: unknown): string => {
     lower.includes('недействител') ||
     lower.includes('not registered')
   ) {
-    return `${window.location.hostname} uchun E-IMZO API-key kerak. E-IMZO default kalitlari faqat localhost/127.0.0.1 uchun ishlaydi. E-IMZO bilan ishlash uchun ${getEimzoLocalhostUrl()} manzilidan kiring yoki 192.168.0.3 uchun rasmiy API-key qo'shing.`;
+    return `${window.location.host} uchun E-IMZO API-key kerak. E-IMZO default kalitlari faqat localhost/127.0.0.1 uchun ishlaydi. E-IMZO bilan ishlash uchun ${getEimzoLocalhostUrl()} manzilidan kiring yoki joriy host uchun rasmiy API-key qo'shing.`;
   }
   if (lower.includes('websocket') || lower.includes('e-imzo') || lower.includes('connection')) {
     return 'E-IMZO dasturi topilmadi';

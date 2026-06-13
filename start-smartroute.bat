@@ -1,5 +1,10 @@
 @echo off
 echo Starting SmartRoute System [SQLite Mode]...
+if "%HOST_IP%"=="" (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$route = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue ^| Sort-Object RouteMetric, InterfaceMetric ^| Select-Object -First 1; if ($route) { Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $route.ifIndex -ErrorAction SilentlyContinue ^| Where-Object { $_.IPAddress -and $_.IPAddress -notmatch '^(127^|169\.254)\.' } ^| Select-Object -ExpandProperty IPAddress -First 1 }"`) do (
+        set "HOST_IP=%%I"
+    )
+)
 if "%HOST_IP%"=="" set "HOST_IP=localhost"
 
 echo Releasing occupied ports (3000, 5173) if needed...

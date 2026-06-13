@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Suspense, lazy, startTransition, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Car,
   Map,
@@ -36,20 +36,6 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { useI18n } from './i18n';
-import { SmartStartWorkflow } from './components/SmartStartWorkflow';
-import { FleetManager } from './components/FleetManager';
-import { DriverManager } from './components/DriverManager';
-import { FuelManager } from './components/FuelManager';
-import { WaybillManager } from './components/WaybillManager';
-import { ReportsManager } from './components/ReportsManager';
-import { LiveTracker } from './components/LiveTracker';
-import { AccessControlManager } from './components/AccessControlManager';
-import { MedicalManager } from './components/MedicalManager';
-import { ShiftScheduleManager } from './components/ShiftScheduleManager';
-import { MechanicManager } from './components/MechanicManager';
-import { MobileAppSimulation } from './components/MobileAppSimulation';
-import { CargoManager } from './components/CargoManager';
-import { UserManager } from './components/UserManager';
 import { LoginPage } from './components/LoginPage';
 import { resolveApiBaseUrl } from './utils/apiBase';
 import type { EimzoLoginResponse } from './features/auth/eimzo/eimzo.types';
@@ -62,6 +48,49 @@ import {
   normalizePermissionMap,
   toEffectivePermissionMap,
 } from './permissions';
+
+const SmartStartWorkflow = lazy(() =>
+  import('./components/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
+);
+const FleetManager = lazy(() =>
+  import('./components/FleetManager').then((module) => ({ default: module.FleetManager })),
+);
+const DriverManager = lazy(() =>
+  import('./components/DriverManager').then((module) => ({ default: module.DriverManager })),
+);
+const FuelManager = lazy(() =>
+  import('./components/FuelManager').then((module) => ({ default: module.FuelManager })),
+);
+const WaybillManager = lazy(() =>
+  import('./components/WaybillManager').then((module) => ({ default: module.WaybillManager })),
+);
+const ReportsManager = lazy(() =>
+  import('./components/ReportsManager').then((module) => ({ default: module.ReportsManager })),
+);
+const LiveTracker = lazy(() =>
+  import('./components/LiveTracker').then((module) => ({ default: module.LiveTracker })),
+);
+const AccessControlManager = lazy(() =>
+  import('./components/AccessControlManager').then((module) => ({ default: module.AccessControlManager })),
+);
+const MedicalManager = lazy(() =>
+  import('./components/MedicalManager').then((module) => ({ default: module.MedicalManager })),
+);
+const ShiftScheduleManager = lazy(() =>
+  import('./components/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
+);
+const MechanicManager = lazy(() =>
+  import('./components/MechanicManager').then((module) => ({ default: module.MechanicManager })),
+);
+const MobileAppSimulation = lazy(() =>
+  import('./components/MobileAppSimulation').then((module) => ({ default: module.MobileAppSimulation })),
+);
+const CargoManager = lazy(() =>
+  import('./components/CargoManager').then((module) => ({ default: module.CargoManager })),
+);
+const UserManager = lazy(() =>
+  import('./components/UserManager').then((module) => ({ default: module.UserManager })),
+);
 
 type AuthUser = {
   id: number;
@@ -343,7 +372,9 @@ function App() {
         throw new Error(extractErrorMessage(payload, 'Dashboard ma\'lumotlarini olishda xatolik'));
       }
 
-      setDashboardData(payload as DashboardOverview);
+      startTransition(() => {
+        setDashboardData(payload as DashboardOverview);
+      });
       setDashboardError(null);
     } catch (error) {
       setDashboardError(error instanceof Error ? error.message : 'Dashboard ma\'lumotlarini olishda xatolik');
@@ -365,13 +396,15 @@ function App() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/integrations/fuel/azs/summary`);
+      const response = await fetch(`${API_BASE}/integrations/fuel/azs/summary?compact=1`);
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload) {
         throw new Error(extractErrorMessage(payload, "Yoqilg'i grafigi ma'lumotini olishda xatolik"));
       }
 
-      setDashboardFuelSummary(payload as DashboardFuelSummary);
+      startTransition(() => {
+        setDashboardFuelSummary(payload as DashboardFuelSummary);
+      });
       setDashboardFuelError(null);
     } catch (error) {
       setDashboardFuelError(error instanceof Error ? error.message : "Yoqilg'i grafigi ma'lumotini olishda xatolik");
@@ -405,6 +438,9 @@ function App() {
 
     const refreshSeconds = Math.max(10, dashboardData?.insight?.nextRefreshSeconds ?? 30);
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
       void loadDashboardOverview(true);
     }, refreshSeconds * 1000);
 
@@ -417,6 +453,9 @@ function App() {
     }
 
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
       void loadDashboardFuelSummary(true);
     }, 30000);
 
@@ -934,7 +973,7 @@ function App() {
                           itemStyle={{ color: fuelChartTheme.tooltipText, fontSize: 12 }}
                           labelStyle={{ color: fuelChartTheme.tooltipLabel }}
                         />
-                        <Area type="monotone" name={`${t('fuelChartSeriesIssued')} (${t('fuelUnitL')})`} dataKey="consumption" stroke={fuelChartTheme.consumption} strokeWidth={2.6} fillOpacity={1} fill="url(#colorFuelConsumptionDash)" />
+                        <Area type="monotone" name={`${t('fuelChartSeriesIssued')} (${t('fuelUnitL')})`} dataKey="consumption" stroke={fuelChartTheme.consumption} strokeWidth={2.6} fillOpacity={1} fill="url(#colorFuelConsumptionDash)" isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -1465,9 +1504,17 @@ function App() {
               Read rejimi: sahifa ko'rinadi, lekin ma'lumot kiritish va o'zgartirish amallari bloklangan.
             </div>
           ) : null}
-          <AnimatePresence mode="wait">
-            {renderContent()}
-          </AnimatePresence>
+          <Suspense
+            fallback={
+              <div className="glass-panel rounded-2xl border border-slate-700/50 p-6 text-sm font-medium text-slate-300">
+                {t('syncing')}
+              </div>
+            }
+          >
+            <AnimatePresence mode="wait">
+              {renderContent()}
+            </AnimatePresence>
+          </Suspense>
         </div>
       </main>
     </div>

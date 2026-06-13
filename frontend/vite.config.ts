@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       strictPort: true,
-      // Cursor / VS Code Dev Tunnels va telefon brauzeri uchun Host tekshiruvi
-      allowedHosts: ['.devtunnels.ms', '.cursor.sh', 'localhost', '192.168.0.3'],
+      // IP manzillar Vite tomonidan default ruxsat etiladi; bu yerda faqat kerakli hostname'lar turadi.
+      allowedHosts: ['.devtunnels.ms', '.cursor.sh', 'localhost'],
       proxy: {
         '/api': {
           target: devApiTarget,
