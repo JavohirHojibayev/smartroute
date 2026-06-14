@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { startTransition } from 'react';
 import {
     ChevronDown,
@@ -154,6 +154,18 @@ type GarvexDashboardResponse = {
         objectCount?: number;
         top?: GarvexDashboardRouteStat[];
         items?: GarvexDashboardRouteStat[];
+        chart?: {
+            series?: Array<{
+                key: string;
+                name: string;
+            }>;
+            buckets?: Array<{
+                label: string;
+                startIso?: string;
+                endIso?: string;
+                values?: Record<string, number>;
+            }>;
+        };
     };
     fuel?: {
         refueled?: number;
@@ -192,6 +204,32 @@ const DASHBOARD_COLORS = {
     red: '#f44336',
     gray: '#9ca3af',
 };
+const DASHBOARD_BAR_COLORS = ['#174ea6', '#1f67c2', '#287bd4', '#2f8ee6', '#35a4f5'];
+const DASHBOARD_TOOLTIP_CONTENT_STYLE: CSSProperties = {
+    background: 'rgba(15, 23, 42, 0.96)',
+    border: '1px solid rgba(96, 165, 250, 0.35)',
+    borderRadius: 10,
+    boxShadow: '0 16px 36px rgba(0, 0, 0, 0.34)',
+    color: '#e2e8f0',
+    fontWeight: 800,
+};
+const DASHBOARD_TOOLTIP_ITEM_STYLE: CSSProperties = {
+    color: '#60a5fa',
+    fontWeight: 800,
+};
+const DASHBOARD_TOOLTIP_LABEL_STYLE: CSSProperties = {
+    color: '#f8fafc',
+    fontWeight: 900,
+};
+const DASHBOARD_TOOLTIP_CURSOR = {
+    fill: 'rgba(59, 130, 246, 0.12)',
+};
+const DASHBOARD_TOOLTIP_PROPS = {
+    contentStyle: DASHBOARD_TOOLTIP_CONTENT_STYLE,
+    itemStyle: DASHBOARD_TOOLTIP_ITEM_STYLE,
+    labelStyle: DASHBOARD_TOOLTIP_LABEL_STYLE,
+    cursor: DASHBOARD_TOOLTIP_CURSOR,
+};
 
 type DashboardPreset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
@@ -213,14 +251,11 @@ const getDashboardRange = (preset: DashboardPreset) => {
     } else if (preset === 'week') {
         start.setDate(start.getDate() - 6);
         start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 0, 0);
     } else if (preset === 'month') {
-        start.setDate(start.getDate() - 30);
+        start.setMonth(start.getMonth() - 1);
         start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 0, 0);
     } else {
         start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 0, 0);
     }
 
     return {
@@ -836,6 +871,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             const params = new URLSearchParams();
             const from = new Date(dashboardRange.from);
             const to = new Date(dashboardRange.to);
+            params.set('preset', dashboardPreset);
             if (!Number.isNaN(from.getTime())) params.set('dateFrom', from.toISOString());
             if (!Number.isNaN(to.getTime())) params.set('dateTo', to.toISOString());
 
@@ -898,7 +934,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     useEffect(() => {
         if (trackingNavTab !== 'dashboard') return;
         void loadDashboard();
-    }, [trackingNavTab, dashboardRange.from, dashboardRange.to]);
+    }, [trackingNavTab, dashboardPreset, dashboardRange.from, dashboardRange.to]);
 
     useEffect(() => {
         if (selectedVehicleId == null) return;
@@ -949,13 +985,31 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             parking: counters.stopped,
             offline: counters.offline,
         };
-        const mileageTop = (dashboardData?.mileage?.top || [])
+        const mileageChart = (dashboardData?.mileage?.top?.length ? dashboardData.mileage.top : dashboardData?.mileage?.items || [])
             .filter((item) => item.mileage > 0)
+            .sort((a, b) => b.mileage - a.mileage)
             .slice(0, 5)
             .map((item) => ({
                 ...item,
                 shortName: shortChartLabel(item.name),
+                mileage: Number(item.mileage.toFixed(1)),
             }));
+        const mileageTimeSeries = (dashboardData?.mileage?.chart?.series || mileageChart.map((item, index) => ({
+            key: `fallback_${index}`,
+            name: item.name,
+        }))).slice(0, 5);
+        const mileageTimeBuckets = (dashboardData?.mileage?.chart?.buckets || [])
+            .map((bucket) => ({
+                label: bucket.label,
+                ...(bucket.values || {}),
+            }))
+            .filter((bucket) => mileageTimeSeries.some((series) => Number(bucket[series.key as keyof typeof bucket] || 0) > 0));
+        const fallbackMileageBucket = mileageChart.length > 0
+            ? [{
+                label: 'Jami',
+                ...Object.fromEntries(mileageTimeSeries.map((series, index) => [series.key, mileageChart[index]?.mileage ?? 0])),
+            }]
+            : [];
         const fuel = dashboardData?.fuel ?? {
             refueled: 0,
             drained: 0,
@@ -977,7 +1031,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 { name: "To'xtagan", value: movement.parking ?? 0, color: DASHBOARD_COLORS.blue },
                 { name: "Aloqa yo'q", value: movement.offline ?? 0, color: DASHBOARD_COLORS.red },
             ].filter((item) => item.value > 0),
-            mileageTop,
+            mileageChart,
+            mileageTimeSeries,
+            mileageTimeBuckets: mileageTimeBuckets.length > 0 ? mileageTimeBuckets : fallbackMileageBucket,
             fuelDonut: [
                 { name: 'Zapravka', value: fuel.refueled ?? 0, color: DASHBOARD_COLORS.green },
                 { name: 'Sliv', value: fuel.drained ?? 0, color: DASHBOARD_COLORS.red },
@@ -1048,7 +1104,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             </div>
 
             {trackingNavTab === 'dashboard' ? (
-                <div className="space-y-4">
+                <div className="space-y-4 pb-10">
                     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-3 sm:p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex flex-wrap gap-1.5">
@@ -1126,7 +1182,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                                     <Cell key={entry.name} fill={entry.color} />
                                                 ))}
                                             </Pie>
-                                            <ChartTooltip formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
+                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1158,7 +1214,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                                     <Cell key={entry.name} fill={entry.color} />
                                                 ))}
                                             </Pie>
-                                            <ChartTooltip formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
+                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1178,20 +1234,20 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <h3 className="mb-2 text-lg font-semibold text-slate-100">Top obyektlar probegi</h3>
-                            {dashboardChartData.mileageTop.length > 0 ? (
-                                <div className="h-[270px]">
+                            {dashboardChartData.mileageChart.length > 0 ? (
+                                <div className="h-[285px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dashboardChartData.mileageTop} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
+                                        <BarChart data={dashboardChartData.mileageChart} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
                                             <CartesianGrid stroke="rgba(148,163,184,.18)" horizontal={false} />
                                             <XAxis type="number" tick={{ fill: '#cbd5e1', fontSize: 11 }} tickFormatter={(value) => `${formatChartNumber(Number(value), 0)} km`} />
                                             <YAxis type="category" dataKey="shortName" width={104} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                                            <ChartTooltip formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
+                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} km`, String(name)]} />
                                             <Bar dataKey="mileage" fill="#1752ad" radius={[0, 4, 4, 0]} barSize={38} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             ) : (
-                                <div className="flex h-[270px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
+                                <div className="flex h-[285px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
                                     Probeg ma'lumoti yo'q
                                 </div>
                             )}
@@ -1207,21 +1263,30 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                     <span>O'rtacha tezlik: {formatChartNumber(dashboardChartData.averageSpeed, 1)} km/h</span>
                                 </div>
                             </div>
-                            {dashboardChartData.mileageTop.length > 0 ? (
-                                <div className="h-[330px]">
+                            {dashboardChartData.mileageTimeBuckets.length > 0 ? (
+                                <div className="h-[340px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dashboardChartData.mileageTop} margin={{ top: 18, right: 24, left: 8, bottom: 28 }}>
+                                        <BarChart data={dashboardChartData.mileageTimeBuckets} margin={{ top: 20, right: 24, left: 8, bottom: 34 }}>
                                             <CartesianGrid stroke="rgba(148,163,184,.2)" vertical={false} />
-                                            <XAxis dataKey="shortName" tick={{ fill: '#cbd5e1', fontSize: 12 }} interval={0} />
+                                            <XAxis dataKey="label" tick={{ fill: '#cbd5e1', fontSize: 12 }} interval={0} />
                                             <YAxis tick={{ fill: '#cbd5e1', fontSize: 12 }} tickFormatter={(value) => formatChartNumber(Number(value), 0)} />
-                                            <ChartTooltip formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
+                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
                                             <ChartLegend wrapperStyle={{ color: '#cbd5e1', fontSize: 12 }} />
-                                            <Bar dataKey="mileage" name="Probeg" fill="#2476d3" radius={[3, 3, 0, 0]} barSize={90} />
+                                            {dashboardChartData.mileageTimeSeries.map((series, index) => (
+                                                <Bar
+                                                    key={series.key}
+                                                    dataKey={series.key}
+                                                    name={series.name}
+                                                    fill={DASHBOARD_BAR_COLORS[index % DASHBOARD_BAR_COLORS.length]}
+                                                    radius={[3, 3, 0, 0]}
+                                                    maxBarSize={36}
+                                                />
+                                            ))}
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             ) : (
-                                <div className="flex h-[330px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
+                                <div className="flex h-[340px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
                                     Tanlangan davrda probeg ma'lumoti yo'q
                                 </div>
                             )}
@@ -1229,7 +1294,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <h3 className="mb-2 text-lg font-semibold text-slate-100">Zapravka / Sliv</h3>
-                            <div className="grid h-[260px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
+                            <div className="grid h-[280px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 {dashboardChartData.fuelDonut.length > 0 ? (
                                     <>
                                         <div className="relative h-full min-w-0 overflow-visible">
@@ -1240,7 +1305,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                                             <Cell key={entry.name} fill={entry.color} />
                                                         ))}
                                                     </Pie>
-                                                    <ChartTooltip formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} l`, String(name)]} />
+                                                    <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} l`, String(name)]} />
                                                 </PieChart>
                                             </ResponsiveContainer>
                                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
