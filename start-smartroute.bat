@@ -1,11 +1,12 @@
 @echo off
+setlocal EnableExtensions
+
+set "APP_ROOT=%~dp0"
+
 echo Starting SmartRoute System [SQLite Mode]...
-if "%HOST_IP%"=="" (
-    for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$route = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue ^| Sort-Object RouteMetric, InterfaceMetric ^| Select-Object -First 1; if ($route) { Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $route.ifIndex -ErrorAction SilentlyContinue ^| Where-Object { $_.IPAddress -and $_.IPAddress -notmatch '^(127^|169\.254)\.' } ^| Select-Object -ExpandProperty IPAddress -First 1 }"`) do (
-        set "HOST_IP=%%I"
-    )
-)
-if "%HOST_IP%"=="" set "HOST_IP=localhost"
+
+if not defined HOST_IP call :DetectHostIp
+if not defined HOST_IP set "HOST_IP=localhost"
 
 echo Releasing occupied ports (3000, 5173) if needed...
 for %%P in (3000 5173) do (
@@ -18,13 +19,24 @@ for %%P in (3000 5173) do (
 )
 
 echo Initializing Frontend Server (Vite)...
-start cmd /k "cd frontend && npm run dev"
+start "SmartRoute Frontend" /D "%APP_ROOT%frontend" cmd /k "npm run dev"
 
 echo Initializing Backend NestJS Server (SQLite)...
-start cmd /k "cd backend && set \"HOST=localhost\" && set \"PORT=3000\" && npm run start:dev"
+start "SmartRoute Backend" /D "%APP_ROOT%backend" cmd /k "set HOST=0.0.0.0&& set PORT=3000&& npm run start:dev"
 
 echo Startup Complete!
 echo Frontend: http://localhost:5173
 echo Frontend (LAN): http://%HOST_IP%:5173
 echo Backend:  http://localhost:3000
 echo Backend  (LAN): http://%HOST_IP%:3000
+
+exit /b 0
+
+:DetectHostIp
+for /f "tokens=2 delims=:" %%I in ('ipconfig ^| findstr /I "IPv4"') do (
+    for /f "tokens=* delims= " %%J in ("%%I") do (
+        set "HOST_IP=%%J"
+        exit /b 0
+    )
+)
+exit /b 0

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { startTransition } from 'react';
 import {
-    Check,
     ChevronDown,
     CircleDot,
     Copy,
@@ -9,10 +8,12 @@ import {
     Fuel,
     Gauge,
     KeyRound,
+    LayoutGrid,
     List,
     LocateFixed,
     MessageSquare,
     MoreVertical,
+    Navigation,
     Pencil,
     Radio,
     RotateCw,
@@ -21,11 +22,26 @@ import {
     Truck,
     Wrench,
     X,
+    type LucideIcon,
 } from 'lucide-react';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import { divIcon, latLngBounds, type Map as LeafletMap } from 'leaflet';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Legend as ChartLegend,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip as ChartTooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
+import { LocalizedDateInput } from './LocalizedDateInput';
 import 'leaflet/dist/leaflet.css';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
@@ -98,9 +114,71 @@ type GarvexHealthResponse = {
     } | null;
 };
 
+type GarvexDashboardRouteStat = {
+    unitId?: number | null;
+    name: string;
+    mileage: number;
+    avgSpeed: number;
+    refueled: number;
+    drained: number;
+    refuelCount: number;
+    drainCount: number;
+    moveTime: number;
+    parkTime: number;
+    stopTime: number;
+};
+
+type GarvexDashboardResponse = {
+    source?: string;
+    generatedAt?: string;
+    reportError?: string | null;
+    period?: {
+        startIso?: string;
+        endIso?: string;
+    };
+    connection?: {
+        total?: number;
+        online?: number;
+        offline?: number;
+        noData?: number;
+    };
+    movement?: {
+        total?: number;
+        moving?: number;
+        parking?: number;
+        offline?: number;
+    };
+    mileage?: {
+        total?: number;
+        averageSpeed?: number;
+        objectCount?: number;
+        top?: GarvexDashboardRouteStat[];
+        items?: GarvexDashboardRouteStat[];
+    };
+    fuel?: {
+        refueled?: number;
+        drained?: number;
+        total?: number;
+        refuelCount?: number;
+        drainCount?: number;
+    };
+    current?: {
+        fuelKnown?: number;
+        latestSyncAt?: string | null;
+    };
+};
+
 type LiveTrackerProps = {
     lang?: string;
 };
+
+type TrackingNavTab = 'dashboard' | 'monitoring';
+type TrackingStatusFilter = VehicleState | 'all';
+
+const TRACKING_NAV_ITEMS: ReadonlyArray<{ id: TrackingNavTab; label: string; icon: LucideIcon }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'monitoring', label: 'GPS Monitoring', icon: Navigation },
+];
 
 const API_BASE = resolveApiBaseUrl();
 const LIVE_AFTER_MS = 15 * 60 * 1000;
@@ -108,32 +186,100 @@ const SYNC_INTERVAL_MS = 15_000;
 const HEALTH_REFRESH_MS = 60_000;
 const SYNC_TRIGGER_MS = 45_000;
 const MAP_FALLBACK_CENTER: [number, number] = [38.34, 66.44];
+const DASHBOARD_COLORS = {
+    green: '#4caf50',
+    blue: '#2d9bf0',
+    red: '#f44336',
+    gray: '#9ca3af',
+};
+
+type DashboardPreset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+
+const padDatePart = (value: number) => String(value).padStart(2, '0');
+
+const toDateTimeLocalInput = (date: Date) =>
+    `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+
+const getDashboardRange = (preset: DashboardPreset) => {
+    const now = new Date();
+    const end = new Date(now);
+    const start = new Date(now);
+
+    if (preset === 'yesterday') {
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() - 1);
+        end.setHours(23, 59, 0, 0);
+    } else if (preset === 'week') {
+        start.setDate(start.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 0, 0);
+    } else if (preset === 'month') {
+        start.setDate(start.getDate() - 30);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 0, 0);
+    } else {
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 0, 0);
+    }
+
+    return {
+        from: toDateTimeLocalInput(start),
+        to: toDateTimeLocalInput(end),
+    };
+};
 
 const vehicleSvgByKind: Record<VehicleKind, string> = {
     car: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6.1 10.7 7.4 7.2C7.8 6.1 8.8 5.4 10 5.4h4c1.2 0 2.2.7 2.6 1.8l1.3 3.5h.8c.9 0 1.6.7 1.6 1.6v3.2c0 .6-.5 1.1-1.1 1.1h-1.1a2.7 2.7 0 0 1-5.2 0H11a2.7 2.7 0 0 1-5.2 0H4.7c-.6 0-1.1-.5-1.1-1.1v-3.2c0-.9.7-1.6 1.6-1.6h.9Zm3.6-3.2c-.3 0-.6.2-.8.6l-.9 2.6h8l-.9-2.6c-.2-.4-.5-.6-.8-.6H9.7Z"></path>
-            <path d="M7.6 16.8a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Zm8.8 0a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"></path>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="39.5" rx="15" ry="3.8" fill="rgba(15,23,42,.16)"></ellipse>
+            <path d="M16 9.5h16l4.5 9v17.2c0 2.1-1.7 3.8-3.8 3.8H15.3a3.8 3.8 0 0 1-3.8-3.8V18.5L16 9.5Z" fill="#f8fafc" stroke="#263849" stroke-width="2"></path>
+            <path d="M18.2 12.7h11.6l2.7 6.1h-17l2.7-6.1Z" fill="#1f9d55"></path>
+            <path d="M15.6 22h16.8v10.8H15.6V22Z" fill="#22c55e"></path>
+            <path d="M16.5 34.7h15" stroke="#0f172a" stroke-width="2" stroke-linecap="round"></path>
+            <rect x="9.4" y="19.4" width="4" height="9.2" rx="1.3" fill="#111827"></rect>
+            <rect x="34.6" y="19.4" width="4" height="9.2" rx="1.3" fill="#111827"></rect>
+            <path d="M19.5 15.3h9" stroke="#e0f2fe" stroke-width="2.4" stroke-linecap="round"></path>
         </svg>
     `,
     truck: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3.4 6.4h10.4c.5 0 .9.4.9.9v8.2H10a2.8 2.8 0 0 0-5.4 0H3.4c-.5 0-.9-.4-.9-.9V7.3c0-.5.4-.9.9-.9Z"></path>
-            <path d="M15.7 9.4h3l2.8 3.3v2.8h-1.2a2.8 2.8 0 0 0-5.4 0h-.2V10.4c0-.6.4-1 1-1Z"></path>
-            <path d="M7.3 18.2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10.3 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="40" rx="17" ry="4" fill="rgba(15,23,42,.16)"></ellipse>
+            <rect x="10" y="12" width="28" height="25" rx="3.5" fill="#f8fafc" stroke="#263849" stroke-width="2"></rect>
+            <path d="M14 16h20v13H14V16Z" fill="#16a34a"></path>
+            <path d="M16.5 17.8h15" stroke="#dcfce7" stroke-width="1.6" stroke-linecap="round"></path>
+            <path d="M16.5 22.2h15" stroke="#dcfce7" stroke-width="1.6" stroke-linecap="round"></path>
+            <path d="M14 31.2h20v3.3H14v-3.3Z" fill="#111827"></path>
+            <path d="M17.5 9.5h13L34 16H14l3.5-6.5Z" fill="#f1f5f9" stroke="#263849" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M19.2 12.2h9.6" stroke="#38bdf8" stroke-width="2.3" stroke-linecap="round"></path>
+            <rect x="6.6" y="18.6" width="4" height="11" rx="1.4" fill="#111827"></rect>
+            <rect x="37.4" y="18.6" width="4" height="11" rx="1.4" fill="#111827"></rect>
         </svg>
     `,
     forklift: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6.2 9.4h4.5c.5 0 .9.4.9.9v4.2h2.2V6.6c0-.6.5-1 1-1s1 .4 1 1v9.8h3.4c.6 0 1 .5 1 1s-.4 1-1 1H15c-.6 0-1-.4-1-1v-.9H9.7a2.7 2.7 0 0 1-5.3-.1H3.2c-.5 0-.9-.4-.9-.9v-2.7c0-.5.4-.9.9-.9H5V10.6c0-.7.5-1.2 1.2-1.2Z"></path>
-            <path d="M11.6 9.4h-3l1.8-2.6h2.7v2.6h-1.5Zm-4.6 8a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"></path>
-            <path d="M18.9 5.8c.6 0 1 .4 1 1v8.5h-2V6.8c0-.6.4-1 1-1Z"></path>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="39.5" rx="16" ry="4" fill="rgba(15,23,42,.16)"></ellipse>
+            <path d="M13 15h17.5c2.2 0 4 1.8 4 4v12.4c0 2.2-1.8 4-4 4H13a4 4 0 0 1-4-4V19c0-2.2 1.8-4 4-4Z" fill="#f97316" stroke="#263849" stroke-width="2"></path>
+            <path d="M17 10.5h10.5L31.6 17H14.4L17 10.5Z" fill="#fff7ed" stroke="#263849" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M18.2 13.4h8.2" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"></path>
+            <path d="M13.2 23.2h15.6v7.5H13.2v-7.5Z" fill="#fed7aa"></path>
+            <path d="M34.5 14.5h3.3v22h-3.3z" fill="#111827"></path>
+            <path d="M37.8 34.8h6.2" stroke="#111827" stroke-width="3" stroke-linecap="round"></path>
+            <rect x="6" y="21" width="4.3" height="9.4" rx="1.4" fill="#111827"></rect>
+            <rect x="29.5" y="21" width="4.3" height="9.4" rx="1.4" fill="#111827"></rect>
         </svg>
     `,
     loader: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3.4 13.1h4.2l1.6-3.7h3.7l2.8 3.7h2.1l1.3-3h2.4l-1.2 5.3h-3.5a3 3 0 0 0-5.8 0H9.8a3 3 0 0 0-5.8 0H2.5c-.5 0-.9-.4-.9-.9v-.5c0-.5.4-.9.9-.9h.9Z"></path>
-            <path d="M6.9 17.7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm7 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM4.5 12.1l-1.7-3h4.7l.8 3H4.5Z"></path>
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+            <ellipse cx="24" cy="39.5" rx="16" ry="4" fill="rgba(15,23,42,.16)"></ellipse>
+            <path d="M10.5 17.5h21.2a5 5 0 0 1 5 5v9.2a5 5 0 0 1-5 5H10.5a5 5 0 0 1-5-5v-9.2a5 5 0 0 1 5-5Z" fill="#f97316" stroke="#263849" stroke-width="2"></path>
+            <path d="M16 11.2h11.5l5 7.3H12.8l3.2-7.3Z" fill="#fff7ed" stroke="#263849" stroke-width="2" stroke-linejoin="round"></path>
+            <path d="M18 14.2h8.2" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"></path>
+            <path d="M12.2 25h18.2v6.5H12.2V25Z" fill="#fed7aa"></path>
+            <path d="M36.5 20.5 43 15.8l1.5 3.4-6 5.3" fill="#f59e0b" stroke="#263849" stroke-width="1.7" stroke-linejoin="round"></path>
+            <path d="M38.3 25.2H45l-1.6 5.5h-6.1" fill="#f59e0b" stroke="#263849" stroke-width="1.7" stroke-linejoin="round"></path>
+            <rect x="6.2" y="23" width="4.4" height="9.4" rx="1.4" fill="#111827"></rect>
+            <rect x="29.7" y="23" width="4.4" height="9.4" rx="1.4" fill="#111827"></rect>
         </svg>
     `,
 };
@@ -161,9 +307,10 @@ const stateStyles: Record<VehicleState, { label: string; marker: string; badge: 
 
 const vehicleIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
-const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = false, count = 1) => {
+const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = false, count = 1, direction: number | null = null) => {
     const countLabel = count > 1 ? String(count) : '';
-    const cacheKey = `${state}:${kind}:${isSelected ? 'selected' : 'normal'}:${countLabel}`;
+    const rotation = Number.isFinite(Number(direction)) ? Math.round(Number(direction)) : 0;
+    const cacheKey = `${state}:${kind}:${isSelected ? 'selected' : 'normal'}:${countLabel}:${rotation}`;
     const cached = vehicleIconCache.get(cacheKey);
     if (cached) return cached;
 
@@ -173,7 +320,7 @@ const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = f
         iconAnchor: count > 1 ? [22, 22] : [19, 19],
         html: `
             <div class="sr-garvex-marker ${stateStyles[state].marker} kind-${kind} ${isSelected ? 'is-selected' : ''}">
-                <span class="sr-garvex-marker-icon">${vehicleSvgByKind[kind]}</span>
+                <span class="sr-garvex-marker-icon" style="--sr-vehicle-rotation:${rotation}deg">${vehicleSvgByKind[kind]}</span>
                 ${countLabel ? `<span class="sr-cluster-count">${countLabel}</span>` : ''}
             </div>
         `,
@@ -182,8 +329,8 @@ const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = f
     return icon;
 };
 
-const getVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected: boolean, count = 1) =>
-    buildVehicleIcon(state, kind, isSelected, count);
+const getVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected: boolean, count = 1, direction: number | null = null) =>
+    buildVehicleIcon(state, kind, isSelected, count, direction);
 
 const extractRegion = (address: string | null | undefined): string => {
     const normalized = String(address || '').trim();
@@ -253,6 +400,20 @@ const formatAgo = (value: string | null | undefined) => {
 const formatMetric = (value: number | null | undefined, suffix = '') => {
     if (value == null || !Number.isFinite(Number(value))) return '-';
     return `${Number(value).toLocaleString('uz-UZ', { maximumFractionDigits: 1 })}${suffix}`;
+};
+
+const formatChartNumber = (value: number | null | undefined, digits = 1) => {
+    if (value == null || !Number.isFinite(Number(value))) return '0';
+    return Number(value).toLocaleString('uz-UZ', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: digits,
+    });
+};
+
+const shortChartLabel = (value: string) => {
+    const clean = String(value || '').trim();
+    if (clean.length <= 16) return clean;
+    return `${clean.slice(0, 15)}...`;
 };
 
 const getVehicleKind = (nameRaw: string): VehicleKind => {
@@ -435,7 +596,7 @@ const VehicleMarkers = ({
                     <Marker
                         key={cluster.id}
                         position={[cluster.lat, cluster.lng]}
-                        icon={getVehicleIcon(markerState, markerKind, isSelected, cluster.vehicles.length)}
+                        icon={getVehicleIcon(markerState, markerKind, isSelected, cluster.vehicles.length, isCluster ? null : representative.direction)}
                         eventHandlers={{
                             click: () => {
                                 if (isCluster) {
@@ -542,6 +703,8 @@ const buildVehicleSignature = (vehicles: TrackingVehicle[]): string =>
 
 export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const t = useI18n((state) => state.t);
+    const [trackingNavTab, setTrackingNavTab] = useState<TrackingNavTab>('dashboard');
+    const [statusFilter, setStatusFilter] = useState<TrackingStatusFilter>('all');
     const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
     const [vehicles, setVehicles] = useState<TrackingVehicle[]>([]);
     const [query, setQuery] = useState('');
@@ -555,6 +718,12 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const healthRef = useRef<GarvexHealthResponse | null>(null);
     const vehiclesSignatureRef = useRef('');
     const searchInputRef = useRef<HTMLInputElement | null>(null);
+    const [dashboardPreset, setDashboardPreset] = useState<DashboardPreset>('today');
+    const [dashboardRange, setDashboardRange] = useState(() => getDashboardRange('today'));
+    const [dashboardDraftDates, setDashboardDraftDates] = useState({ from: '', to: '' });
+    const [dashboardData, setDashboardData] = useState<GarvexDashboardResponse | null>(null);
+    const [dashboardLoading, setDashboardLoading] = useState(false);
+    const [dashboardError, setDashboardError] = useState<string | null>(null);
 
     const load = async (includeHealth = false) => {
         if (inFlightRef.current) return;
@@ -661,6 +830,54 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
             });
     };
 
+    const loadDashboard = async () => {
+        setDashboardLoading(true);
+        try {
+            const params = new URLSearchParams();
+            const from = new Date(dashboardRange.from);
+            const to = new Date(dashboardRange.to);
+            if (!Number.isNaN(from.getTime())) params.set('dateFrom', from.toISOString());
+            if (!Number.isNaN(to.getTime())) params.set('dateTo', to.toISOString());
+
+            const response = await fetch(`${API_BASE}/integrations/tracking/garvex/dashboard?${params.toString()}`, {
+                cache: 'no-store',
+            });
+            if (!response.ok) {
+                throw new Error(`Dashboard API xatoligi: ${response.status}`);
+            }
+            const payload = await response.json().catch(() => null) as GarvexDashboardResponse | null;
+            setDashboardData(payload);
+            setDashboardError(null);
+        } catch (error) {
+            setDashboardError(error instanceof Error ? error.message : 'Dashboard ma\'lumotlarini olishda xatolik');
+        } finally {
+            setDashboardLoading(false);
+        }
+    };
+
+    const applyDashboardPreset = (preset: DashboardPreset) => {
+        if (preset === 'custom') return;
+        const nextRange = getDashboardRange(preset);
+        setDashboardPreset(preset);
+        setDashboardDraftDates({ from: '', to: '' });
+        setDashboardRange(nextRange);
+    };
+
+    const applyDashboardRange = () => {
+        const fromDate = dashboardDraftDates.from || dashboardDraftDates.to;
+        const toDate = dashboardDraftDates.to || dashboardDraftDates.from;
+        if (!fromDate || !toDate) {
+            setDashboardPreset('today');
+            setDashboardRange(getDashboardRange('today'));
+            return;
+        }
+        setDashboardPreset('custom');
+        setDashboardRange({
+            from: `${fromDate}T00:00`,
+            to: `${toDate}T23:59`,
+        });
+    };
+
     useEffect(() => {
         void load(true);
         syncInBackground();
@@ -677,6 +894,11 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         }, SYNC_INTERVAL_MS);
         return () => window.clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        if (trackingNavTab !== 'dashboard') return;
+        void loadDashboard();
+    }, [trackingNavTab, dashboardRange.from, dashboardRange.to]);
 
     useEffect(() => {
         if (selectedVehicleId == null) return;
@@ -696,13 +918,93 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         return { moving, stopped, offline, total: vehicles.length };
     }, [vehicles]);
 
+    const dashboardMetrics = useMemo(() => {
+        const averageSpeed = vehicles.length
+            ? vehicles.reduce((sum, vehicle) => sum + vehicle.speed, 0) / vehicles.length
+            : 0;
+        const fuelKnown = vehicles.filter((vehicle) => vehicle.fuelLevel != null).length;
+        const latestSync = vehicles
+            .map((vehicle) => vehicle.syncedAt || vehicle.lastMessageAt)
+            .filter((value): value is string => Boolean(value))
+            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
+
+        return {
+            averageSpeed,
+            fuelKnown,
+            latestSync,
+            livePercent: counters.total > 0 ? Math.round(((counters.moving + counters.stopped) / counters.total) * 100) : 0,
+        };
+    }, [vehicles, counters]);
+
+    const dashboardChartData = useMemo(() => {
+        const connection = dashboardData?.connection ?? {
+            total: counters.total,
+            online: counters.moving + counters.stopped,
+            offline: counters.offline,
+            noData: 0,
+        };
+        const movement = dashboardData?.movement ?? {
+            total: counters.total,
+            moving: counters.moving,
+            parking: counters.stopped,
+            offline: counters.offline,
+        };
+        const mileageTop = (dashboardData?.mileage?.top || [])
+            .filter((item) => item.mileage > 0)
+            .slice(0, 5)
+            .map((item) => ({
+                ...item,
+                shortName: shortChartLabel(item.name),
+            }));
+        const fuel = dashboardData?.fuel ?? {
+            refueled: 0,
+            drained: 0,
+            total: 0,
+            refuelCount: 0,
+            drainCount: 0,
+        };
+
+        return {
+            connection,
+            movement,
+            connectionDonut: [
+                { name: 'Tarmoqda', value: connection.online ?? 0, color: DASHBOARD_COLORS.green },
+                { name: "Aloqa yo'q", value: connection.offline ?? 0, color: DASHBOARD_COLORS.red },
+                { name: "Ma'lumot yo'q", value: connection.noData ?? 0, color: DASHBOARD_COLORS.gray },
+            ].filter((item) => item.value > 0),
+            movementDonut: [
+                { name: 'Harakatda', value: movement.moving ?? 0, color: DASHBOARD_COLORS.green },
+                { name: "To'xtagan", value: movement.parking ?? 0, color: DASHBOARD_COLORS.blue },
+                { name: "Aloqa yo'q", value: movement.offline ?? 0, color: DASHBOARD_COLORS.red },
+            ].filter((item) => item.value > 0),
+            mileageTop,
+            fuelDonut: [
+                { name: 'Zapravka', value: fuel.refueled ?? 0, color: DASHBOARD_COLORS.green },
+                { name: 'Sliv', value: fuel.drained ?? 0, color: DASHBOARD_COLORS.red },
+            ].filter((item) => item.value > 0),
+            fuel,
+            totalMileage: dashboardData?.mileage?.total ?? 0,
+            averageSpeed: dashboardData?.mileage?.averageSpeed ?? dashboardMetrics.averageSpeed,
+            latestSync: dashboardData?.current?.latestSyncAt ?? dashboardMetrics.latestSync,
+            fuelKnown: dashboardData?.current?.fuelKnown ?? dashboardMetrics.fuelKnown,
+            onlinePercent: connection.total ? Math.round(((connection.online ?? 0) / connection.total) * 100) : dashboardMetrics.livePercent,
+        };
+    }, [counters, dashboardData, dashboardMetrics]);
+
     const filteredVehicles = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return vehicles;
-        return vehicles.filter((vehicle) =>
-            `${vehicle.name} ${vehicle.imei ?? ''} ${vehicle.address} ${vehicle.region}`.toLowerCase().includes(q),
-        );
-    }, [query, vehicles]);
+        return vehicles.filter((vehicle) => {
+            if (statusFilter !== 'all' && vehicle.status !== statusFilter) return false;
+            if (!q) return true;
+            return `${vehicle.name} ${vehicle.imei ?? ''} ${vehicle.address} ${vehicle.region}`.toLowerCase().includes(q);
+        });
+    }, [query, statusFilter, vehicles]);
+
+    useEffect(() => {
+        if (selectedVehicleId == null) return;
+        const exists = filteredVehicles.some((vehicle) => vehicle.id === selectedVehicleId);
+        if (!exists) setSelectedVehicleId(null);
+    }, [filteredVehicles, selectedVehicleId]);
 
     const tileConfig = {
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -710,27 +1012,275 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     };
 
     return (
-        <div className="flex h-full min-w-0 flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4 sm:items-center sm:p-5">
-                <h3 className="app-module-heading">{t('liveTracking')}</h3>
-                <div className="flex w-full md:w-auto">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-300">
-                            <span className="h-2 w-2 rounded-full bg-cyan-400" /> {counters.total} Transport
-                        </span>
-                        <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">
-                            {counters.moving} Harakatda
-                        </span>
-                        <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
-                            {counters.stopped} To`xtagan
-                        </span>
-                        <span className="inline-flex items-center rounded-full border border-slate-500/30 bg-slate-700/25 px-3 py-1 text-xs font-bold text-slate-300">
-                            {counters.offline} Aloqa yo`q
-                        </span>
-                    </div>
-                </div>
+        <div className="min-w-0 space-y-4">
+            <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
+                <nav
+                    className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-slate-700/60 dark-scrollbar [-webkit-overflow-scrolling:touch] sm:overflow-x-visible"
+                    aria-label="GPS monitoring bo'limlari"
+                >
+                    {TRACKING_NAV_ITEMS.map((item) => {
+                        const active = trackingNavTab === item.id;
+                        const Icon = item.icon;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setTrackingNavTab(item.id)}
+                                className={`flex min-h-[3.5rem] min-w-[9.5rem] flex-1 flex-col items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-center text-sm font-semibold transition-colors sm:min-h-[4.25rem] sm:text-base lg:text-lg ${
+                                    active
+                                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                                        : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                                }`}
+                                aria-current={active ? 'page' : undefined}
+                            >
+                                <Icon
+                                    size={22}
+                                    className={`shrink-0 ${active ? 'text-blue-400' : 'text-slate-500'}`}
+                                    strokeWidth={active ? 2.2 : 2}
+                                />
+                                <span className="line-clamp-2 max-w-full text-balance">
+                                    {item.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </nav>
             </div>
 
+            {trackingNavTab === 'dashboard' ? (
+                <div className="space-y-4">
+                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-3 sm:p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex flex-wrap gap-1.5">
+                                {([
+                                    ['today', 'Bugun'],
+                                    ['yesterday', 'Kecha'],
+                                    ['week', 'Hafta'],
+                                    ['month', 'Oy'],
+                                ] as const).map(([id, label]) => (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => applyDashboardPreset(id)}
+                                        className={`min-w-[86px] rounded-md border px-4 py-2 text-xs font-bold uppercase transition-colors ${
+                                            dashboardPreset === id
+                                                ? 'border-blue-400 bg-blue-600 text-white'
+                                                : 'border-slate-700 bg-slate-900/45 text-slate-300 hover:border-blue-400/60 hover:text-blue-200'
+                                        }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <LocalizedDateInput
+                                    label="Sanadan"
+                                    value={dashboardDraftDates.from}
+                                    maxDate={dashboardDraftDates.to || undefined}
+                                    onChange={(value) => {
+                                        setDashboardPreset('custom');
+                                        setDashboardDraftDates((prev) => ({ ...prev, from: value }));
+                                    }}
+                                    minWidth={210}
+                                />
+                                <span className="text-slate-500">→</span>
+                                <LocalizedDateInput
+                                    label="Sanagacha"
+                                    value={dashboardDraftDates.to}
+                                    minDate={dashboardDraftDates.from || undefined}
+                                    onChange={(value) => {
+                                        setDashboardPreset('custom');
+                                        setDashboardDraftDates((prev) => ({ ...prev, to: value }));
+                                    }}
+                                    minWidth={210}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={applyDashboardRange}
+                                    className="rounded-lg border border-blue-500/60 bg-blue-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition-colors hover:bg-blue-500"
+                                >
+                                    Qo'llash
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {syncMessage || dashboardError || dashboardData?.reportError ? (
+                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                            {dashboardError || dashboardData?.reportError || syncMessage}
+                        </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                        <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
+                            <div className="mb-2 flex items-start justify-between gap-2">
+                                <h3 className="text-lg font-semibold text-slate-100">Ulanish holati</h3>
+                                <span className="text-xs font-bold text-emerald-400">Onlayn ma'lumotlar</span>
+                            </div>
+                            <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
+                                <div className="relative h-full min-w-0 overflow-visible">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                            <Pie data={dashboardChartData.connectionDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
+                                                {dashboardChartData.connectionDonut.map((entry) => (
+                                                    <Cell key={entry.name} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <ChartTooltip formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                        <div className="text-center text-3xl font-black text-slate-100">{dashboardChartData.connection.total ?? counters.total}</div>
+                                    </div>
+                                </div>
+                                <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
+                                    {dashboardChartData.connectionDonut.map((entry) => (
+                                        <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
+                                            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                            {entry.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
+                            <div className="mb-2 flex items-start justify-between gap-2">
+                                <h3 className="text-lg font-semibold text-slate-100">Harakat holati</h3>
+                                <span className="text-xs font-bold text-emerald-400">Onlayn ma'lumotlar</span>
+                            </div>
+                            <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
+                                <div className="relative h-full min-w-0 overflow-visible">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                            <Pie data={dashboardChartData.movementDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
+                                                {dashboardChartData.movementDonut.map((entry) => (
+                                                    <Cell key={entry.name} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <ChartTooltip formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                        <div className="text-center text-3xl font-black text-slate-100">{dashboardChartData.movement.total ?? counters.total}</div>
+                                    </div>
+                                </div>
+                                <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
+                                    {dashboardChartData.movementDonut.map((entry) => (
+                                        <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
+                                            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                            {entry.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
+                            <h3 className="mb-2 text-lg font-semibold text-slate-100">Top obyektlar probegi</h3>
+                            {dashboardChartData.mileageTop.length > 0 ? (
+                                <div className="h-[270px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={dashboardChartData.mileageTop} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
+                                            <CartesianGrid stroke="rgba(148,163,184,.18)" horizontal={false} />
+                                            <XAxis type="number" tick={{ fill: '#cbd5e1', fontSize: 11 }} tickFormatter={(value) => `${formatChartNumber(Number(value), 0)} km`} />
+                                            <YAxis type="category" dataKey="shortName" width={104} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                                            <ChartTooltip formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
+                                            <Bar dataKey="mileage" fill="#1752ad" radius={[0, 4, 4, 0]} barSize={38} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="flex h-[270px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
+                                    Probeg ma'lumoti yo'q
+                                </div>
+                            )}
+                        </section>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
+                        <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-lg font-semibold text-slate-100">Probeg, km</h3>
+                                <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-400">
+                                    <span>Jami: {formatChartNumber(dashboardChartData.totalMileage, 1)} km</span>
+                                    <span>O'rtacha tezlik: {formatChartNumber(dashboardChartData.averageSpeed, 1)} km/h</span>
+                                </div>
+                            </div>
+                            {dashboardChartData.mileageTop.length > 0 ? (
+                                <div className="h-[330px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={dashboardChartData.mileageTop} margin={{ top: 18, right: 24, left: 8, bottom: 28 }}>
+                                            <CartesianGrid stroke="rgba(148,163,184,.2)" vertical={false} />
+                                            <XAxis dataKey="shortName" tick={{ fill: '#cbd5e1', fontSize: 12 }} interval={0} />
+                                            <YAxis tick={{ fill: '#cbd5e1', fontSize: 12 }} tickFormatter={(value) => formatChartNumber(Number(value), 0)} />
+                                            <ChartTooltip formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
+                                            <ChartLegend wrapperStyle={{ color: '#cbd5e1', fontSize: 12 }} />
+                                            <Bar dataKey="mileage" name="Probeg" fill="#2476d3" radius={[3, 3, 0, 0]} barSize={90} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="flex h-[330px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
+                                    Tanlangan davrda probeg ma'lumoti yo'q
+                                </div>
+                            )}
+                        </section>
+
+                        <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
+                            <h3 className="mb-2 text-lg font-semibold text-slate-100">Zapravka / Sliv</h3>
+                            <div className="grid h-[260px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
+                                {dashboardChartData.fuelDonut.length > 0 ? (
+                                    <>
+                                        <div className="relative h-full min-w-0 overflow-visible">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                                    <Pie data={dashboardChartData.fuelDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
+                                                        {dashboardChartData.fuelDonut.map((entry) => (
+                                                            <Cell key={entry.name} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <ChartTooltip formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} l`, String(name)]} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                                <div className="text-center text-2xl font-black text-slate-100">{formatChartNumber(dashboardChartData.fuel.total, 1)}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
+                                            {dashboardChartData.fuelDonut.map((entry) => (
+                                                <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
+                                                    <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                                    {entry.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="col-span-2 flex h-full items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
+                                        Yoqilg'i hodisalari yo'q
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold">
+                                <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-emerald-300">
+                                    Zapravka: {formatChartNumber(dashboardChartData.fuel.refueled, 1)} l
+                                </div>
+                                <div className="rounded-lg bg-red-500/10 px-3 py-2 text-red-300">
+                                    Sliv: {formatChartNumber(dashboardChartData.fuel.drained, 1)} l
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    {dashboardLoading ? (
+                        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200">
+                            Dashboard ma'lumotlari yangilanmoqda...
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <>
             {syncMessage ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
                     {syncMessage}
@@ -745,32 +1295,21 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 <Truck size={20} />
                                 <span>{t('trackingObjects')}</span>
                             </button>
-                            <button
-                                type="button"
-                                className="sr-sidebar-tab-search"
-                                aria-label={t('trackingSearchPlaceholder')}
-                                onClick={() => searchInputRef.current?.focus()}
-                            >
+                            <label className="sr-sidebar-search sr-sidebar-search-inline">
                                 <Search size={18} />
-                            </button>
+                                <input
+                                    ref={searchInputRef}
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    placeholder={t('trackingSearchPlaceholder')}
+                                />
+                            </label>
                         </div>
-                    </div>
-
-                    <div className="sr-sidebar-search-row">
-                        <label className="sr-sidebar-search">
-                            <input
-                                ref={searchInputRef}
-                                value={query}
-                                onChange={(event) => setQuery(event.target.value)}
-                                placeholder={t('trackingSearchPlaceholder')}
-                            />
-                        </label>
                     </div>
 
                     <div className="sr-sidebar-toolbar">
                         <div className="sr-sidebar-toolbar-left">
                             <ChevronDown size={16} />
-                            <span className="sr-garvex-checkbox"><Check size={13} /></span>
                             <span className="sr-sort-icon">A/Z</span>
                             <List size={18} />
                             <RotateCw size={17} />
@@ -788,9 +1327,42 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
                     <div className="sr-sidebar-group-row">
                         <ChevronDown size={16} />
-                        <span className="sr-garvex-checkbox"><Check size={13} /></span>
                         <span className="sr-group-title">Kaliy zavod</span>
                         <span className="sr-group-count">{filteredVehicles.length} / {counters.total}</span>
+                        <span className="sr-group-status-badges">
+                            <button
+                                type="button"
+                                className={`sr-group-status-badge is-total ${statusFilter === 'all' ? 'is-active' : ''}`}
+                                aria-pressed={statusFilter === 'all'}
+                                onClick={() => setStatusFilter('all')}
+                            >
+                                <span className="sr-group-status-dot" /> {counters.total} Transport
+                            </button>
+                            <button
+                                type="button"
+                                className={`sr-group-status-badge is-moving ${statusFilter === 'moving' ? 'is-active' : ''}`}
+                                aria-pressed={statusFilter === 'moving'}
+                                onClick={() => setStatusFilter('moving')}
+                            >
+                                {counters.moving} Harakatda
+                            </button>
+                            <button
+                                type="button"
+                                className={`sr-group-status-badge is-stopped ${statusFilter === 'stopped' ? 'is-active' : ''}`}
+                                aria-pressed={statusFilter === 'stopped'}
+                                onClick={() => setStatusFilter('stopped')}
+                            >
+                                {counters.stopped} To'xtagan
+                            </button>
+                            <button
+                                type="button"
+                                className={`sr-group-status-badge is-offline ${statusFilter === 'offline' ? 'is-active' : ''}`}
+                                aria-pressed={statusFilter === 'offline'}
+                                onClick={() => setStatusFilter('offline')}
+                            >
+                                {counters.offline} Aloqa yo'q
+                            </button>
+                        </span>
                     </div>
 
                     <div className="sr-sidebar-list">
@@ -800,16 +1372,14 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                             </div>
                         ) : (
                             filteredVehicles.map((vehicle) => {
-                                const selected = vehicle.id === selectedVehicleId;
                                 return (
                                     <button
                                         key={vehicle.id}
                                         type="button"
                                         onClick={() => setSelectedVehicleId(vehicle.id)}
-                                        className={`sr-object-row ${selected ? 'is-selected' : ''}`}
+                                        className="sr-object-row"
                                     >
                                         <span className="sr-tree-branch" aria-hidden="true" />
-                                        <span className="sr-garvex-checkbox"><Check size={13} /></span>
                                         <span
                                             className={`sr-list-vehicle-icon ${stateStyles[vehicle.status].marker} kind-${vehicle.kind}`}
                                             dangerouslySetInnerHTML={{ __html: vehicleSvgByKind[vehicle.kind] }}
@@ -849,9 +1419,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     >
                         <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
                         <MapAutoFit
-                            vehicles={filteredVehicles.length > 0 ? filteredVehicles : vehicles}
-                            selectedVehicle={selectedVehicle}
-                            fitKey={query.trim().toLowerCase() || 'all'}
+                            vehicles={filteredVehicles}
+                            selectedVehicle={filteredVehicles.some((vehicle) => vehicle.id === selectedVehicle?.id) ? selectedVehicle : null}
+                            fitKey={`${statusFilter}:${query.trim().toLowerCase() || 'all'}`}
                         />
 
                         <VehicleMarkers
@@ -863,6 +1433,8 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
                 </section>
             </div>
+                </>
+            )}
 
             <style>{`
                 .sr-garvex-sidebar {
@@ -912,39 +1484,21 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     line-height: 1;
                     letter-spacing: 0;
                 }
-                .sr-sidebar-tab-search {
-                    display: inline-flex;
-                    height: 38px;
-                    width: 38px;
-                    flex: 0 0 auto;
-                    align-items: center;
-                    justify-content: center;
-                    border: 1px solid rgba(71, 85, 105, 0.7);
-                    border-radius: 0.875rem;
-                    background: rgba(15, 23, 42, 0.72);
-                    color: #60a5fa;
-                    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
-                }
-                .sr-sidebar-tab-search:hover {
-                    border-color: rgba(96, 165, 250, 0.85);
-                    background: rgba(30, 41, 59, 0.92);
-                }
-                .sr-sidebar-search-row {
-                    display: block;
-                    padding: 12px;
-                    border-bottom: 1px solid rgba(71, 85, 105, 0.45);
-                    background: rgba(15, 23, 42, 0.12);
-                }
                 .sr-sidebar-search {
                     display: flex;
-                    height: 42px;
+                    height: 40px;
                     align-items: center;
+                    gap: 8px;
                     min-width: 0;
                     border: 1px solid rgba(71, 85, 105, 0.7);
                     border-radius: 0.875rem;
                     background: rgba(15, 23, 42, 0.72);
                     padding: 0 12px;
                     color: #94a3b8;
+                }
+                .sr-sidebar-search-inline {
+                    width: min(300px, 58%);
+                    flex: 0 1 300px;
                 }
                 .sr-sidebar-search input {
                     width: 100%;
@@ -986,25 +1540,15 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     font-weight: 800;
                     letter-spacing: 0;
                 }
-                .sr-garvex-checkbox {
-                    display: inline-flex;
-                    width: 16px;
-                    height: 16px;
-                    flex: 0 0 auto;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 4px;
-                    background: #2563eb;
-                    color: #ffffff;
-                }
                 .sr-sidebar-group-row {
                     display: flex;
-                    height: 44px;
+                    min-height: 44px;
                     align-items: center;
                     gap: 8px;
+                    flex-wrap: wrap;
                     border-bottom: 1px solid rgba(71, 85, 105, 0.45);
                     background: rgba(37, 99, 235, 0.12);
-                    padding: 0 12px;
+                    padding: 8px 12px;
                     color: #e2e8f0;
                 }
                 .sr-group-title {
@@ -1019,6 +1563,86 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     padding: 2px 8px;
                     font-size: 12px;
                     line-height: 1.15;
+                }
+                .sr-group-status-badges {
+                    display: inline-flex;
+                    min-width: 0;
+                    flex: 1 1 auto;
+                    align-items: center;
+                    gap: 6px;
+                    flex-wrap: wrap;
+                }
+                .sr-group-status-badge {
+                    display: inline-flex;
+                    min-height: 24px;
+                    align-items: center;
+                    gap: 5px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(71, 85, 105, 0.58);
+                    background: rgba(15, 23, 42, 0.36);
+                    padding: 3px 8px;
+                    color: #cbd5e1;
+                    font-size: 11px;
+                    font-weight: 800;
+                    line-height: 1;
+                    white-space: nowrap;
+                    cursor: pointer;
+                    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+                }
+                .sr-group-status-badge:hover {
+                    transform: translateY(-1px);
+                    border-color: rgba(147, 197, 253, 0.62);
+                    background: rgba(37, 99, 235, 0.2);
+                    color: #e2e8f0;
+                }
+                .sr-group-status-badge:focus-visible {
+                    outline: 2px solid #60a5fa;
+                    outline-offset: 2px;
+                }
+                .sr-group-status-badge.is-active {
+                    border-color: rgba(96, 165, 250, 0.9);
+                    background: rgba(37, 99, 235, 0.28);
+                    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.12);
+                }
+                .sr-group-status-badge.is-total {
+                    border-color: rgba(34, 211, 238, 0.38);
+                    background: rgba(6, 182, 212, 0.12);
+                    color: #67e8f9;
+                }
+                .sr-group-status-badge.is-total.is-active {
+                    border-color: rgba(34, 211, 238, 0.75);
+                    background: rgba(6, 182, 212, 0.22);
+                }
+                .sr-group-status-badge.is-moving {
+                    border-color: rgba(96, 165, 250, 0.42);
+                    background: rgba(37, 99, 235, 0.14);
+                    color: #93c5fd;
+                }
+                .sr-group-status-badge.is-moving.is-active {
+                    border-color: rgba(96, 165, 250, 0.8);
+                    background: rgba(37, 99, 235, 0.28);
+                }
+                .sr-group-status-badge.is-stopped {
+                    border-color: rgba(245, 158, 11, 0.45);
+                    background: rgba(245, 158, 11, 0.13);
+                    color: #fcd34d;
+                }
+                .sr-group-status-badge.is-stopped.is-active {
+                    border-color: rgba(245, 158, 11, 0.85);
+                    background: rgba(245, 158, 11, 0.25);
+                }
+                .sr-group-status-badge.is-offline {
+                    color: #cbd5e1;
+                }
+                .sr-group-status-badge.is-offline.is-active {
+                    border-color: rgba(148, 163, 184, 0.8);
+                    background: rgba(100, 116, 139, 0.24);
+                }
+                .sr-group-status-dot {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 999px;
+                    background: #22d3ee;
                 }
                 .sr-sidebar-list {
                     min-height: 0;
@@ -1058,7 +1682,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     display: grid;
                     width: 100%;
                     min-width: 0;
-                    grid-template-columns: 17px 16px 23px minmax(0, 1fr) 198px;
+                    grid-template-columns: 17px 23px minmax(0, 1fr) 198px;
                     align-items: center;
                     column-gap: 8px;
                     min-height: 52px;
@@ -1068,8 +1692,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     text-align: left;
                     transition: background-color 0.16s ease;
                 }
-                .sr-object-row:hover,
-                .sr-object-row.is-selected {
+                .sr-object-row:hover {
                     background: rgba(37, 99, 235, 0.16);
                 }
                 .sr-tree-branch {
@@ -1163,8 +1786,23 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     color: #cbd5e1;
                 }
                 @media (max-width: 700px) {
+                    .sr-sidebar-tab {
+                        height: auto;
+                        padding-top: 10px;
+                        padding-bottom: 10px;
+                    }
+                    .sr-sidebar-tab-content {
+                        flex-wrap: wrap;
+                    }
+                    .sr-sidebar-tab-button {
+                        height: 36px;
+                    }
+                    .sr-sidebar-search-inline {
+                        width: 100%;
+                        flex-basis: 100%;
+                    }
                     .sr-object-row {
-                        grid-template-columns: 17px 16px 23px minmax(0, 1fr);
+                        grid-template-columns: 17px 23px minmax(0, 1fr);
                     }
                     .sr-object-telemetry,
                     .sr-sidebar-toolbar-right {
@@ -1181,16 +1819,15 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 }
                 .sr-garvex-marker {
                     position: relative;
-                    width: 34px;
-                    height: 34px;
+                    width: 36px;
+                    height: 36px;
                     border-radius: 9999px;
                     border: 4px solid #7fb0ff;
-                    color: #2563eb;
                     background: #ffffff;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.22);
+                    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.95);
                     transition: transform 0.16s ease, box-shadow 0.16s ease;
                 }
                 .sr-garvex-marker::before {
@@ -1207,39 +1844,33 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     align-items: center;
                     justify-content: center;
                 }
+                .sr-garvex-marker-icon {
+                    transform: rotate(var(--sr-vehicle-rotation, 0deg));
+                    transform-origin: center;
+                    transition: transform 0.16s ease;
+                }
                 .sr-garvex-marker svg,
                 .sr-popup-vehicle-icon svg {
-                    width: 22px;
-                    height: 22px;
-                    fill: currentColor;
+                    width: 25px;
+                    height: 25px;
                     stroke: none;
                 }
-                .sr-garvex-marker.kind-forklift,
-                .sr-garvex-marker.kind-loader,
-                .sr-popup-vehicle-icon.kind-forklift,
-                .sr-popup-vehicle-icon.kind-loader {
-                    color: #d97706;
-                }
-                .sr-garvex-marker.kind-truck,
-                .sr-popup-vehicle-icon.kind-truck {
-                    color: #2563eb;
-                }
                 .sr-garvex-marker.is-moving {
-                    border-color: #22c55e;
+                    border-color: #49d17b;
                     box-shadow: 0 3px 11px rgba(34, 197, 94, 0.32);
                 }
                 .sr-garvex-marker.is-moving::before {
                     background: rgba(34, 197, 94, 0.18);
                 }
                 .sr-garvex-marker.is-stopped {
-                    border-color: #7fb0ff;
+                    border-color: #79b7ff;
                     box-shadow: 0 3px 11px rgba(37, 99, 235, 0.28);
                 }
                 .sr-garvex-marker.is-stopped::before {
                     background: rgba(37, 99, 235, 0.16);
                 }
                 .sr-garvex-marker.is-offline {
-                    border-color: #ef4444;
+                    border-color: #fb7777;
                     box-shadow: 0 3px 11px rgba(239, 68, 68, 0.3);
                 }
                 .sr-garvex-marker.is-offline::before {

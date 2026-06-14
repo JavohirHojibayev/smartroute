@@ -7,6 +7,7 @@ import {
   Module,
   OnModuleDestroy,
   OnModuleInit,
+  Query,
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -66,6 +67,7 @@ type GarvexUnitsPage = {
 };
 
 type GarvexHealthStatus = 'disabled' | 'config_error' | 'permission_denied' | 'online' | 'error' | 'idle';
+const GARVEX_LIVE_AFTER_MS = 15 * 60 * 1000;
 
 type LastSyncStats = {
   mode: 'full' | 'delta';
@@ -73,6 +75,28 @@ type LastSyncStats = {
   upserted: number;
   pages: number;
   removed?: number;
+};
+
+type GarvexRouteStats = {
+  unitId?: number | null;
+  unitName?: string | null;
+  mileage?: number | null;
+  avgSpeed?: number | null;
+  refueled?: number | null;
+  drained?: number | null;
+  refuelCount?: number | null;
+  drainCount?: number | null;
+  moveTime?: number | null;
+  parkTime?: number | null;
+  stopTime?: number | null;
+  [key: string]: any;
+};
+
+type GarvexRouteStatsPage = {
+  objectCount?: number;
+  pageCount?: number;
+  currentPage?: number;
+  objects?: GarvexRouteStats[];
 };
 
 @Injectable()
@@ -571,6 +595,192 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private getTrackingRange(dateFrom?: string, dateTo?: string) {
+    const parseDate = (value?: string) => {
+      if (!value) return null;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const now = new Date();
+    const fallbackStart = new Date(now);
+    fallbackStart.setHours(0, 0, 0, 0);
+    const fallbackEnd = new Date(now);
+    fallbackEnd.setHours(23, 59, 59, 999);
+
+    const start = parseDate(dateFrom) ?? fallbackStart;
+    const end = parseDate(dateTo) ?? fallbackEnd;
+    const safeEnd = end.getTime() >= start.getTime() ? end : fallbackEnd;
+
+    return {
+      start,
+      end: safeEnd,
+      startUnix: Math.floor(start.getTime() / 1000),
+      endUnix: Math.floor(safeEnd.getTime() / 1000),
+    };
+  }
+
+  private buildStatsUrl(config: GarvexTrackingConfig, startUnix: number, endUnix: number, page: number): string {
+    const params = new URLSearchParams();
+    params.set('StartTimeUnix', String(startUnix));
+    params.set('EndTimeUnix', String(endUnix));
+    params.set('Page', String(page));
+    params.set('CountOnPage', '50');
+    params.set('ShowAddresses', 'false');
+    return `${config.apiBaseUrl}/api/Reports/GetStats?${params.toString()}`;
+  }
+
+  private async fetchStatsPage(
+    config: GarvexTrackingConfig,
+    token: string,
+    startUnix: number,
+    endUnix: number,
+    page: number,
+  ): Promise<GarvexRouteStatsPage> {
+    const response = await this.fetchWithRetry(
+      this.buildStatsUrl(config, startUnix, endUnix, page),
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sensorsMask: [] }),
+      },
+      Math.max(config.timeoutMs, 20000),
+      config.requestRetries,
+    );
+
+    if (!response.ok) {
+      throw new BadRequestException(`Garvex Reports/GetStats xatoligi: ${response.status}`);
+    }
+
+    const payload: GarvexRouteStatsPage = await response.json().catch(() => ({}));
+    return payload && typeof payload === 'object' ? payload : {};
+  }
+
+  private async fetchRouteStats(config: GarvexTrackingConfig, token: string, startUnix: number, endUnix: number): Promise<GarvexRouteStats[]> {
+    const firstPage = await this.fetchStatsPage(config, token, startUnix, endUnix, 0);
+    const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
+    const limit = Math.min(pageCount, 20);
+    const rows = Array.isArray(firstPage?.objects) ? [...firstPage.objects] : [];
+
+    for (let page = 1; page < limit; page += 1) {
+      const nextPage = await this.fetchStatsPage(config, token, startUnix, endUnix, page);
+      if (Array.isArray(nextPage?.objects)) {
+        rows.push(...nextPage.objects);
+      }
+    }
+
+    return rows;
+  }
+
+  private getPointState(row: GarvexTrackingPoint): 'moving' | 'parking' | 'offline' | 'noData' {
+    if (row.lat == null || row.lng == null || !row.last_message_at) return 'noData';
+    const status = this.normalizeWhitespace(row.status).toLowerCase();
+    if (status === '0' || status === 'offline') return 'offline';
+
+    const seenAt = row.last_message_at.getTime();
+    if (!Number.isFinite(seenAt) || Date.now() - seenAt > GARVEX_LIVE_AFTER_MS) return 'offline';
+    return (row.speed ?? 0) > 2 ? 'moving' : 'parking';
+  }
+
+  async getDashboard(dateFrom?: string, dateTo?: string) {
+    const range = this.getTrackingRange(dateFrom, dateTo);
+    const rows = await this.pointsRepo.find({
+      order: { unit_name: 'ASC', unit_id: 'ASC' },
+    });
+
+    const stateRows = rows.map((row) => this.getPointState(row));
+    const moving = stateRows.filter((state) => state === 'moving').length;
+    const parking = stateRows.filter((state) => state === 'parking').length;
+    const offline = stateRows.filter((state) => state === 'offline').length;
+    const noData = stateRows.filter((state) => state === 'noData').length;
+    const latestSyncAt = rows
+      .map((row) => row.updated_at || row.last_message_at)
+      .filter((value): value is Date => Boolean(value))
+      .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+
+    let routeStats: GarvexRouteStats[] = [];
+    let reportError: string | null = null;
+
+    try {
+      const config = this.getConfig();
+      this.ensureConfigForSync(config);
+      const token = await this.requestToken(config);
+      routeStats = await this.fetchRouteStats(config, token, range.startUnix, range.endUnix);
+    } catch (error) {
+      reportError = error instanceof Error ? error.message : 'Garvex Reports/GetStats xatoligi';
+    }
+
+    const normalizedStats = routeStats.map((item) => ({
+      unitId: this.toOptionalInteger(item.unitId),
+      name: this.normalizeWhitespace(item.unitName || '') || 'Noma\'lum transport',
+      mileage: this.toOptionalNumber(item.mileage) ?? 0,
+      avgSpeed: this.toOptionalNumber(item.avgSpeed) ?? 0,
+      refueled: this.toOptionalNumber(item.refueled) ?? 0,
+      drained: this.toOptionalNumber(item.drained) ?? 0,
+      refuelCount: this.toOptionalInteger(item.refuelCount) ?? 0,
+      drainCount: this.toOptionalInteger(item.drainCount) ?? 0,
+      moveTime: this.toOptionalInteger(item.moveTime) ?? 0,
+      parkTime: this.toOptionalInteger(item.parkTime) ?? 0,
+      stopTime: this.toOptionalInteger(item.stopTime) ?? 0,
+    }));
+
+    const totalMileage = normalizedStats.reduce((sum, item) => sum + item.mileage, 0);
+    const totalMoveTime = normalizedStats.reduce((sum, item) => sum + item.moveTime, 0);
+    const weightedSpeed = normalizedStats.reduce((sum, item) => sum + (item.avgSpeed * Math.max(item.moveTime, 1)), 0);
+    const totalRefueled = normalizedStats.reduce((sum, item) => sum + item.refueled, 0);
+    const totalDrained = normalizedStats.reduce((sum, item) => sum + item.drained, 0);
+
+    const topMileage = [...normalizedStats]
+      .sort((a, b) => b.mileage - a.mileage)
+      .slice(0, 5);
+
+    return {
+      source: 'garvex_mt',
+      generatedAt: new Date().toISOString(),
+      reportError,
+      period: {
+        startIso: range.start.toISOString(),
+        endIso: range.end.toISOString(),
+        startUnix: range.startUnix,
+        endUnix: range.endUnix,
+      },
+      connection: {
+        total: rows.length,
+        online: moving + parking,
+        offline,
+        noData,
+      },
+      movement: {
+        total: rows.length,
+        moving,
+        parking,
+        offline: offline + noData,
+      },
+      mileage: {
+        total: totalMileage,
+        averageSpeed: totalMoveTime > 0 ? weightedSpeed / totalMoveTime : 0,
+        objectCount: normalizedStats.length,
+        top: topMileage,
+        items: normalizedStats,
+      },
+      fuel: {
+        refueled: totalRefueled,
+        drained: totalDrained,
+        total: totalRefueled + totalDrained,
+        refuelCount: normalizedStats.reduce((sum, item) => sum + item.refuelCount, 0),
+        drainCount: normalizedStats.reduce((sum, item) => sum + item.drainCount, 0),
+      },
+      current: {
+        fuelKnown: rows.filter((row) => row.fuel_level != null).length,
+        latestSyncAt: latestSyncAt ? latestSyncAt.toISOString() : null,
+      },
+    };
+  }
+
   async getVehicles() {
     const rows = await this.pointsRepo.find({
       order: { unit_name: 'ASC', unit_id: 'ASC' },
@@ -637,6 +847,14 @@ export class GarvexTrackingController {
   @Get('vehicles')
   async vehicles() {
     return this.service.getVehicles();
+  }
+
+  @Get('dashboard')
+  async dashboard(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.service.getDashboard(dateFrom, dateTo);
   }
 
   @Get('sync')
