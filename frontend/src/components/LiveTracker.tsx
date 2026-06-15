@@ -33,6 +33,7 @@ import {
     Cell,
     Legend as ChartLegend,
     Pie,
+    Sector,
     PieChart,
     ResponsiveContainer,
     Tooltip as ChartTooltip,
@@ -211,6 +212,8 @@ const DASHBOARD_COLORS = {
     red: '#f44336',
     gray: '#9ca3af',
 };
+// card background color used as segment border to create a dark gap between slices
+const CARD_BG_COLOR = '#1e2330';
 const DASHBOARD_BAR_COLORS = ['#174ea6', '#1f67c2', '#287bd4', '#2f8ee6', '#35a4f5'];
 const DASHBOARD_TOOLTIP_CONTENT_STYLE: CSSProperties = {
     background: 'rgba(15, 23, 42, 0.96)',
@@ -453,6 +456,42 @@ const formatChartNumber = (value: number | null | undefined, digits = 1) => {
         minimumFractionDigits: 0,
         maximumFractionDigits: digits,
     });
+};
+
+// Render a small percent label inside each slice (midway between inner and outer radius)
+// Always render the percent (show 0% for empty slices) and use integer percent for compact display.
+const renderLabelInside = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.6; // position inside the ring
+    const x = cx + radius * Math.cos(-RADIAN * midAngle);
+    const y = cy + radius * Math.sin(-RADIAN * midAngle);
+    const pct = Number.isFinite(percent) ? Math.round(percent * 100) : 0;
+    const text = `${pct}%`;
+    return (
+        <text x={x} y={y} fill="#ffffff" fontWeight={800} fontSize={12} textAnchor="middle" dominantBaseline="central" pointerEvents="none">
+            {text}
+        </text>
+    );
+};
+
+// Active slice renderer: only enlarge the slice and add a subtle halo; labels are shown by `renderLabelInside`
+const renderActiveShape = (props: any) => {
+    const {
+        cx,
+        cy,
+        innerRadius,
+        outerRadius,
+        startAngle,
+        endAngle,
+        fill,
+    } = props;
+    return (
+        <g>
+            <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+            <Sector cx={cx} cy={cy} innerRadius={outerRadius + 9} outerRadius={outerRadius + 12} startAngle={startAngle} endAngle={endAngle} fill={fill} opacity={0.12} />
+        </g>
+    );
 };
 
 const shortChartLabel = (value: string) => {
@@ -769,6 +808,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const [dashboardData, setDashboardData] = useState<GarvexDashboardResponse | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [dashboardError, setDashboardError] = useState<string | null>(null);
+    const [activeConnectionIndex, setActiveConnectionIndex] = useState<number | null>(null);
+    const [activeMovementIndex, setActiveMovementIndex] = useState<number | null>(null);
+    const [activeFuelIndex, setActiveFuelIndex] = useState<number | null>(null);
 
     const load = async (includeHealth = false) => {
         if (inFlightRef.current) return;
@@ -1191,12 +1233,28 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 <div className="relative h-full min-w-0 overflow-visible">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                                            <Pie data={dashboardChartData.connectionDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
+                                            <Pie
+                                                {...({ activeIndex: activeConnectionIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                // rounded segments with a dark stroke to create a gap
+                                                cornerRadius={8}
+                                                stroke={CARD_BG_COLOR}
+                                                strokeWidth={2}
+                                                labelLine={false}
+                                                data={dashboardChartData.connectionDonut}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={62}
+                                                outerRadius={98}
+                                                paddingAngle={3}
+                                                onMouseEnter={(_, index) => setActiveConnectionIndex(index)}
+                                                onMouseLeave={() => setActiveConnectionIndex(null)}
+                                            >
                                                 {dashboardChartData.connectionDonut.map((entry) => (
-                                                    <Cell key={entry.name} fill={entry.color} />
+                                                    <Cell key={entry.name} fill={entry.color} stroke={CARD_BG_COLOR} strokeWidth={2} />
                                                 ))}
                                             </Pie>
-                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1206,7 +1264,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
                                     {dashboardChartData.connectionDonut.map((entry) => (
                                         <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
-                                            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={entry.color} /></svg>
                                             {entry.name}
                                         </span>
                                     ))}
@@ -1223,12 +1281,27 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 <div className="relative h-full min-w-0 overflow-visible">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                                            <Pie data={dashboardChartData.movementDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
+                                            <Pie
+                                                {...({ activeIndex: activeMovementIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                cornerRadius={8}
+                                                stroke={CARD_BG_COLOR}
+                                                strokeWidth={2}
+                                                labelLine={false}
+                                                data={dashboardChartData.movementDonut}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={62}
+                                                outerRadius={98}
+                                                paddingAngle={3}
+                                                onMouseEnter={(_, index) => setActiveMovementIndex(index)}
+                                                onMouseLeave={() => setActiveMovementIndex(null)}
+                                            >
                                                 {dashboardChartData.movementDonut.map((entry) => (
-                                                    <Cell key={entry.name} fill={entry.color} />
+                                                    <Cell key={entry.name} fill={entry.color} stroke={CARD_BG_COLOR} strokeWidth={2} />
                                                 ))}
                                             </Pie>
-                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [formatChartNumber(Number(value), 0), String(name)]} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1238,7 +1311,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
                                     {dashboardChartData.movementDonut.map((entry) => (
                                         <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
-                                            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={entry.color} /></svg>
                                             {entry.name}
                                         </span>
                                     ))}
@@ -1314,12 +1387,27 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                         <div className="relative h-full min-w-0 overflow-visible">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                                                    <Pie data={dashboardChartData.fuelDonut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={98} paddingAngle={3}>
-                                                        {dashboardChartData.fuelDonut.map((entry) => (
-                                                            <Cell key={entry.name} fill={entry.color} />
-                                                        ))}
-                                                    </Pie>
-                                                    <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} l`, String(name)]} />
+                                                        <Pie
+                                                                    {...({ activeIndex: activeFuelIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                                    cornerRadius={8}
+                                                                    stroke={CARD_BG_COLOR}
+                                                                    strokeWidth={2}
+                                                            labelLine={false}
+                                                            data={dashboardChartData.fuelDonut}
+                                                            dataKey="value"
+                                                            nameKey="name"
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            innerRadius={62}
+                                                            outerRadius={98}
+                                                            paddingAngle={3}
+                                                            onMouseEnter={(_, index) => setActiveFuelIndex(index)}
+                                                            onMouseLeave={() => setActiveFuelIndex(null)}
+                                                        >
+                                                            {dashboardChartData.fuelDonut.map((entry) => (
+                                                                <Cell key={entry.name} fill={entry.color} stroke={CARD_BG_COLOR} strokeWidth={2} />
+                                                            ))}
+                                                        </Pie>
                                                 </PieChart>
                                             </ResponsiveContainer>
                                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1328,11 +1416,11 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                         </div>
                                         <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
                                             {dashboardChartData.fuelDonut.map((entry) => (
-                                                <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
-                                                    <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.color }} />
-                                                    {entry.name}
-                                                </span>
-                                            ))}
+                                                    <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
+                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={entry.color} /></svg>
+                                                        {entry.name}
+                                                    </span>
+                                                ))}
                                         </div>
                                     </>
                                 ) : (
@@ -1412,7 +1500,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                             <button
                                 type="button"
                                 className={`sr-group-status-badge is-total ${statusFilter === 'all' ? 'is-active' : ''}`}
-                                aria-pressed={statusFilter === 'all'}
+                                
                                 onClick={() => setStatusFilter('all')}
                             >
                                 <span className="sr-group-status-dot" /> {counters.total} Transport
@@ -1420,7 +1508,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                             <button
                                 type="button"
                                 className={`sr-group-status-badge is-moving ${statusFilter === 'moving' ? 'is-active' : ''}`}
-                                aria-pressed={statusFilter === 'moving'}
+                                
                                 onClick={() => setStatusFilter('moving')}
                             >
                                 {counters.moving} Harakatda
@@ -1428,7 +1516,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                             <button
                                 type="button"
                                 className={`sr-group-status-badge is-stopped ${statusFilter === 'stopped' ? 'is-active' : ''}`}
-                                aria-pressed={statusFilter === 'stopped'}
+                                
                                 onClick={() => setStatusFilter('stopped')}
                             >
                                 {counters.stopped} To'xtagan
@@ -1436,7 +1524,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                             <button
                                 type="button"
                                 className={`sr-group-status-badge is-offline ${statusFilter === 'offline' ? 'is-active' : ''}`}
-                                aria-pressed={statusFilter === 'offline'}
+                                
                                 onClick={() => setStatusFilter('offline')}
                             >
                                 {counters.offline} Aloqa yo'q

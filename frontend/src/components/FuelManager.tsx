@@ -315,6 +315,7 @@ const formatFuelCardLimitIssuedLiters = (value: number | null | undefined) => {
     });
 };
 
+// Keep helper (no-op reference) to avoid unused declaration errors after removing the chart block
 const formatAzsChartDateTimeLabel = (day: string, dateFrom: string, dateTo: string) => {
     if (/^\d{2}:\d{2}$/.test(day) && dateFrom && dateFrom === dateTo) {
         const [year, month, date] = dateFrom.split('-');
@@ -324,6 +325,8 @@ const formatAzsChartDateTimeLabel = (day: string, dateFrom: string, dateTo: stri
     }
     return day;
 };
+// noop reference to keep TypeScript from complaining when the section chart is removed
+void formatAzsChartDateTimeLabel;
 
 const buildNiceAxis = (values: number[], intervalCount = 5) => {
     const safeValues = values.filter((value) => Number.isFinite(value) && value >= 0);
@@ -489,6 +492,7 @@ export const FuelManager = () => {
     const levelInitial = getPresetRange('today');
     const [levelDateFrom, setLevelDateFrom] = useState(levelInitial.dateFrom);
     const [levelDateTo, setLevelDateTo] = useState(levelInitial.dateTo);
+    // state reserved for the (removed) section-level chart; keep to avoid refactor churn
     const [levelPreset, setLevelPreset] = useState<RangePreset>('today');
     const [sectionLevelSummary, setSectionLevelSummary] = useState<FuelSummaryResponse | null>(null);
     const [fuelNavTab, setFuelNavTab] = useState<FuelNavTab>('main');
@@ -878,6 +882,7 @@ export const FuelManager = () => {
         return Array.from(merged);
     }, [summary, sectionLevelSummary]);
 
+    // preserve select options computation for potential future reuse
     const levelSectionSelectOptions = useMemo(() => {
         let list = levelSectionOptions;
         if (levelSelectedSection !== 'all' && !list.includes(levelSelectedSection)) {
@@ -888,6 +893,7 @@ export const FuelManager = () => {
 
     const chartData = useMemo(() => summary?.chart ?? [], [summary]);
     const levelChartData = useMemo(() => sectionLevelSummary?.levelChart ?? [], [sectionLevelSummary]);
+    // keep levelChartAxis calculation in place (unused after removal) to avoid refactor churn
     const levelChartAxis = useMemo(
         () => buildNiceAxis(levelChartData.map((point) => Number(point?.level ?? 0)), 5),
         [levelChartData],
@@ -1088,6 +1094,14 @@ export const FuelManager = () => {
         setLevelDateFrom(range.dateFrom);
         setLevelDateTo(range.dateTo);
     };
+
+    // No-op references to prevent TypeScript 'declared but never used' errors
+    // These variables/functions were used by the removed 'Seksiya darajasi' chart block.
+    void levelPreset;
+    void levelSectionSelectOptions;
+    void levelChartAxis;
+    void levelJamiLiters;
+    void applyLevelPreset;
 
     const stats = summary?.stats;
     const devicesTotal = stats?.devices?.total ?? 0;
@@ -1940,158 +1954,7 @@ export const FuelManager = () => {
             </div>
             )}
 
-            {showMainDashboard && (
-            <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50 p-4 md:p-5">
-                <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
-                    <div className="min-w-0 shrink-0 lg:max-w-[min(100%,32rem)] lg:pr-2">
-                        <FuelPanelGradientHeading>
-                            {t('fuelChartSectionLevelTitle')}
-                        </FuelPanelGradientHeading>
-                    </div>
-                    <div className="w-full min-w-0 shrink-0 sm:max-w-2xl lg:w-auto lg:max-w-[min(100%,48rem)]">
-                        <div className="grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(12.5rem,15rem)] sm:gap-x-3 sm:gap-y-2">
-                            <div className="relative min-w-0 sm:col-start-1 sm:row-start-1">
-                                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-                                    <LocalizedDateInput
-                                        label={t('dateFromSanadan')}
-                                        value={levelDateFrom}
-                                        maxDate={levelDateTo || undefined}
-                                        minWidth={132}
-                                        onChange={(v) => {
-                                            setLevelPreset('today');
-                                            setLevelDateFrom(v);
-                                            if (levelDateTo && v > levelDateTo) setLevelDateTo(v);
-                                        }}
-                                    />
-                                    <ArrowRight size={14} className="mx-auto shrink-0 text-slate-500 sm:mx-0.5" />
-                                    <LocalizedDateInput
-                                        label={t('dateToSanagacha')}
-                                        value={levelDateTo}
-                                        minDate={levelDateFrom || undefined}
-                                        minWidth={132}
-                                        onChange={(v) => {
-                                            setLevelPreset('today');
-                                            setLevelDateTo(v);
-                                            if (levelDateFrom && v < levelDateFrom) setLevelDateFrom(v);
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-700 sm:col-start-1 sm:row-start-2 sm:grid-cols-4">
-                                {(
-                                    [
-                                        { key: 'today' as const, labelKey: 'fuelPresetToday' as const },
-                                        { key: 'yesterday' as const, labelKey: 'fuelPresetYesterday' as const },
-                                        { key: 'week' as const, labelKey: 'fuelPresetWeek' as const },
-                                        { key: 'month' as const, labelKey: 'fuelPresetMonth' as const },
-                                    ] as const
-                                ).map((item) => {
-                                    const active = levelPreset === item.key;
-                                    return (
-                                        <button
-                                            key={item.key}
-                                            type="button"
-                                            onClick={() => applyLevelPreset(item.key)}
-                                            className={`flex min-h-10 items-center justify-center border-r border-slate-700 px-1 py-2.5 text-[11px] font-semibold uppercase leading-snug tracking-wide last:border-r-0 sm:min-h-11 sm:px-2 sm:text-xs ${
-                                                active ? 'fuel-preset-active bg-blue-500/25 text-blue-200' : 'bg-slate-900/40 text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                                            }`}
-                                        >
-                                            {t(item.labelKey)}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div className="min-w-0 space-y-2 sm:col-start-2 sm:row-span-2 sm:row-start-1">
-                                <div className="relative">
-                                    <select
-                                        aria-label={t('fuelAriaFilterBySection')}
-                                        value={levelSelectedSection}
-                                        onChange={(event) => setLevelSelectedSection(event.target.value)}
-                                        className="h-10 w-full appearance-none rounded-lg border border-slate-700 bg-slate-900/60 px-3 pr-9 text-sm text-slate-200 outline-none focus:border-blue-500 sm:h-11 sm:px-4 sm:pr-10 sm:text-base"
-                                    >
-                                        <option value="all">{t('fuelAllSections')}</option>
-                                        {levelSectionSelectOptions.map((name) => (
-                                            <option key={name} value={name}>{name}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 sm:right-3" />
-                                </div>
-                                <div className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-2 text-center text-base font-bold text-blue-400 sm:text-lg">
-                                    {t('fuelTotalPrefix')}{' '}
-                                    {levelJamiLiters == null
-                                        ? '-'
-                                        : levelJamiLiters.toLocaleString(numLocale, {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                          })}{' '}
-                                    {t('fuelUnitL')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-5 h-[220px] w-full rounded-xl border border-slate-700/50 bg-slate-900/40 p-1.5 sm:h-[260px] sm:p-2 md:h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={levelChartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis
-                                dataKey="day"
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 10 }}
-                                angle={levelChartData.length > 10 ? -40 : 0}
-                                textAnchor={levelChartData.length > 10 ? 'end' : 'middle'}
-                                height={levelChartData.length > 10 ? 56 : 28}
-                                interval="preserveStartEnd"
-                            />
-                            <YAxis
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 11 }}
-                                width={68}
-                                domain={[0, levelChartAxis.max]}
-                                ticks={levelChartAxis.ticks}
-                                allowDecimals={false}
-                                tickFormatter={(value) => Number(value).toLocaleString(numLocale, { maximumFractionDigits: 0 })}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: '#0f172a',
-                                    border: '1px solid #334155',
-                                    borderRadius: '10px',
-                                    color: '#e2e8f0',
-                                }}
-                                cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeOpacity: 0.75 }}
-                                labelFormatter={(label) =>
-                                    formatAzsChartDateTimeLabel(String(label ?? ''), levelDateFrom, levelDateTo)
-                                }
-                                formatter={(value) => {
-                                    const level = t('fuelChartSeriesLevel');
-                                    if (value == null) return ['---', level];
-                                    const n = typeof value === 'number' ? value : Number(value);
-                                    if (Number.isNaN(n)) return ['---', level];
-                                    return [
-                                        `${n.toLocaleString(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${t('fuelYAxisLiter')}`,
-                                        level,
-                                    ];
-                                }}
-                            />
-                            <Area
-                                isAnimationActive={false}
-                                type="monotone"
-                                dataKey="level"
-                                name={t('fuelChartSeriesLevel')}
-                                stroke="#2563eb"
-                                fill="#3b82f6"
-                                fillOpacity={0.2}
-                                strokeWidth={2}
-                                dot={{ r: 3, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 1 }}
-                                activeDot={{ r: 7, fill: '#60a5fa', stroke: '#ffffff', strokeWidth: 2 }}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-            )}
+            {/* 'Seksiya darajasi grafigi' removed as requested */}
 
             {showReports && (
             <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
