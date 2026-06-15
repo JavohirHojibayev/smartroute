@@ -119,6 +119,8 @@ type GarvexDashboardRouteStat = {
     name: string;
     mileage: number;
     avgSpeed: number;
+    spentFuel: number;
+    spentAbsoluteFuel: number;
     refueled: number;
     drained: number;
     refuelCount: number;
@@ -126,6 +128,10 @@ type GarvexDashboardRouteStat = {
     moveTime: number;
     parkTime: number;
     stopTime: number;
+    stopCount: number;
+    parkCount: number;
+    motoHours: number;
+    engineIdle: number;
 };
 
 type GarvexDashboardResponse = {
@@ -197,6 +203,7 @@ const LIVE_AFTER_MS = 15 * 60 * 1000;
 const SYNC_INTERVAL_MS = 15_000;
 const HEALTH_REFRESH_MS = 60_000;
 const SYNC_TRIGGER_MS = 45_000;
+const DASHBOARD_REFRESH_MS = 60_000;
 const MAP_FALLBACK_CENTER: [number, number] = [38.34, 66.44];
 const DASHBOARD_COLORS = {
     green: '#4caf50',
@@ -232,37 +239,40 @@ const DASHBOARD_TOOLTIP_PROPS = {
 };
 
 type DashboardPreset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+const GARVEX_DASHBOARD_TZ_OFFSET_MINUTES = 180;
 
 const padDatePart = (value: number) => String(value).padStart(2, '0');
-
-const toDateTimeLocalInput = (date: Date) =>
-    `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+const formatDashboardDate = (date: Date) =>
+    `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}`;
 
 const getDashboardRange = (preset: DashboardPreset) => {
-    const now = new Date();
-    const end = new Date(now);
-    const start = new Date(now);
+    const shiftedNow = new Date(Date.now() + GARVEX_DASHBOARD_TZ_OFFSET_MINUTES * 60_000);
+    const start = new Date(Date.UTC(
+        shiftedNow.getUTCFullYear(),
+        shiftedNow.getUTCMonth(),
+        shiftedNow.getUTCDate(),
+    ));
+    const end = new Date(start);
 
     if (preset === 'yesterday') {
-        start.setDate(start.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
-        end.setDate(end.getDate() - 1);
-        end.setHours(23, 59, 0, 0);
+        start.setUTCDate(start.getUTCDate() - 1);
+        end.setUTCDate(end.getUTCDate() - 1);
     } else if (preset === 'week') {
-        start.setDate(start.getDate() - 6);
-        start.setHours(0, 0, 0, 0);
+        start.setUTCDate(start.getUTCDate() - 6);
     } else if (preset === 'month') {
-        start.setMonth(start.getMonth() - 1);
-        start.setHours(0, 0, 0, 0);
-    } else {
-        start.setHours(0, 0, 0, 0);
+        start.setUTCMonth(start.getUTCMonth() - 1);
     }
 
     return {
-        from: toDateTimeLocalInput(start),
-        to: toDateTimeLocalInput(end),
+        from: `${formatDashboardDate(start)}T00:00`,
+        to: `${formatDashboardDate(end)}T23:59`,
     };
 };
+
+const toDashboardDateDraft = (range: { from: string; to: string }) => ({
+    from: range.from.slice(0, 10),
+    to: range.to.slice(0, 10),
+});
 
 const vehicleSvgByKind: Record<VehicleKind, string> = {
     car: `
@@ -755,7 +765,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const searchInputRef = useRef<HTMLInputElement | null>(null);
     const [dashboardPreset, setDashboardPreset] = useState<DashboardPreset>('today');
     const [dashboardRange, setDashboardRange] = useState(() => getDashboardRange('today'));
-    const [dashboardDraftDates, setDashboardDraftDates] = useState({ from: '', to: '' });
+    const [dashboardDraftDates, setDashboardDraftDates] = useState(() => toDashboardDateDraft(getDashboardRange('today')));
     const [dashboardData, setDashboardData] = useState<GarvexDashboardResponse | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [dashboardError, setDashboardError] = useState<string | null>(null);
@@ -869,11 +879,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         setDashboardLoading(true);
         try {
             const params = new URLSearchParams();
-            const from = new Date(dashboardRange.from);
-            const to = new Date(dashboardRange.to);
             params.set('preset', dashboardPreset);
-            if (!Number.isNaN(from.getTime())) params.set('dateFrom', from.toISOString());
-            if (!Number.isNaN(to.getTime())) params.set('dateTo', to.toISOString());
+            if (dashboardRange.from) params.set('dateFrom', dashboardRange.from);
+            if (dashboardRange.to) params.set('dateTo', dashboardRange.to);
 
             const response = await fetch(`${API_BASE}/integrations/tracking/garvex/dashboard?${params.toString()}`, {
                 cache: 'no-store',
@@ -895,7 +903,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         if (preset === 'custom') return;
         const nextRange = getDashboardRange(preset);
         setDashboardPreset(preset);
-        setDashboardDraftDates({ from: '', to: '' });
+        setDashboardDraftDates(toDashboardDateDraft(nextRange));
         setDashboardRange(nextRange);
     };
 
@@ -903,8 +911,10 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         const fromDate = dashboardDraftDates.from || dashboardDraftDates.to;
         const toDate = dashboardDraftDates.to || dashboardDraftDates.from;
         if (!fromDate || !toDate) {
+            const nextRange = getDashboardRange('today');
             setDashboardPreset('today');
-            setDashboardRange(getDashboardRange('today'));
+            setDashboardDraftDates(toDashboardDateDraft(nextRange));
+            setDashboardRange(nextRange);
             return;
         }
         setDashboardPreset('custom');
@@ -934,6 +944,10 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     useEffect(() => {
         if (trackingNavTab !== 'dashboard') return;
         void loadDashboard();
+        const timer = window.setInterval(() => {
+            void loadDashboard();
+        }, DASHBOARD_REFRESH_MS);
+        return () => window.clearInterval(timer);
     }, [trackingNavTab, dashboardPreset, dashboardRange.from, dashboardRange.to]);
 
     useEffect(() => {

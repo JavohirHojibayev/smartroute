@@ -1,0 +1,1832 @@
+{
+  "objectCount": 65,
+  "pageCount": 1,
+  "currentPage": 0,
+  "objects": [
+    {
+      "id": 893,
+      "name": "Pogruzchik 70 446 HA ",
+      "unitType": 0,
+      "idObject": "867236070606704",
+      "color": "#0e62f0",
+      "phone": "+998996656093",
+      "protocolType": 5,
+      "lastMessageTime": 1781233537,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "fuelLevel": 122.969,
+        "y": 38.340765,
+        "x": 66.438663,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1745042092,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 882,
+      "name": "Эксковатор 70 986 GA",
+      "unitType": 0,
+      "idObject": "352592577457765",
+      "color": "#0e62f0",
+      "phone": "+998996556076",
+      "protocolType": 4,
+      "lastMessageTime": 1781178380,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 15,
+      "point": {
+        "fuelLevel": 45.778,
+        "y": 38.341438,
+        "x": 66.438416,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1743058131,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 873,
+      "name": "CHEVROLET Tracker 70 100 MAA",
+      "unitType": 0,
+      "idObject": "353201350480338",
+      "color": "#0e62f0",
+      "phone": "+998996655725",
+      "protocolType": 4,
+      "lastMessageTime": 1781502879,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "ign": true,
+        "speed": 6,
+        "sats": 10,
+        "y": 38.343246,
+        "x": 66.444984,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1742227193,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 872,
+      "name": "Pogruzchik 70 620 FA",
+      "unitType": 0,
+      "idObject": "354017118579347",
+      "color": "#0e62f0",
+      "phone": "+998996655616",
+      "protocolType": 4,
+      "lastMessageTime": 1773840184,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "fuelLevel": -0.036,
+        "y": 38.341061,
+        "x": 66.438889,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1742188304,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 867,
+      "name": "Pogruzchik 70 975 GA",
+      "unitType": 0,
+      "idObject": "353201350392178",
+      "color": "#0e62f0",
+      "phone": "+998996556132",
+      "protocolType": 4,
+      "lastMessageTime": 1781502825,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 0,
+        "fuelLevel": 101.561,
+        "y": 38.341099,
+        "x": 66.438698,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741865117,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 863,
+      "name": "Pogruzchik 70 977 GA ",
+      "unitType": 0,
+      "idObject": "353201350392228",
+      "color": "#0e62f0",
+      "phone": "+998996655723",
+      "protocolType": 4,
+      "lastMessageTime": 1781502876,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": true,
+        "speed": 6,
+        "sats": 18,
+        "fuelLevel": -0.057,
+        "y": 38.088951,
+        "x": 66.405975,
+        "a": "Конвейерный уклон №3, Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741695715,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 862,
+      "name": "Pogruzchik 70 976 GA",
+      "unitType": 0,
+      "idObject": "354017118592266",
+      "color": "#0e62f0",
+      "phone": "+998996555708",
+      "protocolType": 4,
+      "lastMessageTime": 1781502816,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 12,
+        "fuelLevel": 81.157,
+        "y": 38.343468,
+        "x": 66.438087,
+        "a": "Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741687960,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 861,
+      "name": "ISUZU 70 434 JBA",
+      "unitType": 0,
+      "idObject": "352592575590054",
+      "color": "#0e62f0",
+      "phone": "+998996655459",
+      "protocolType": 4,
+      "lastMessageTime": 1781502841,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 2,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 10,
+        "fuelLevel": 68.483,
+        "y": 38.340981,
+        "x": 66.438896,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741686061,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 860,
+      "name": "ISUZU 70 950 TBA",
+      "unitType": 0,
+      "idObject": "353201350392087",
+      "color": "#0e62f0",
+      "phone": "+998996655465",
+      "protocolType": 4,
+      "lastMessageTime": 1781502831,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 2,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 18,
+        "fuelLevel": 83.244,
+        "y": 38.340519,
+        "x": 66.439262,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741684442,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 859,
+      "name": "TRAKTOR 70 049 DA",
+      "unitType": 0,
+      "idObject": "353201350392020",
+      "color": "#0e62f0",
+      "phone": "+998996655651",
+      "protocolType": 4,
+      "lastMessageTime": 1781502843,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 12,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 18,
+        "fuelLevel": 31.976,
+        "y": 38.257587,
+        "x": 66.434326,
+        "a": "Dehqonobod tumani, Chuchukquduq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1741673061,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 627,
+      "name": "MAZ 70 065 DBA (сотилди)",
+      "unitType": 0,
+      "idObject": "353201350367493",
+      "color": "#0e62f0",
+      "phone": "+998996656114",
+      "protocolType": 4,
+      "lastMessageTime": 1780649315,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "fuelLevel": -0.085,
+        "y": 38.342873,
+        "x": 66.444748,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728461977,
+      "dateUpdate": 1780649144,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 624,
+      "name": "Pogruzchik 70 615 FA",
+      "unitType": 0,
+      "idObject": "352592579261264",
+      "color": "#0e62f0",
+      "phone": "+998996656134",
+      "protocolType": 4,
+      "lastMessageTime": 1780912853,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "fuelLevel": 229.961,
+        "y": 38.088062,
+        "x": 66.409859,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460662,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 623,
+      "name": "Pogruzchik 70 060 DA(сотилди)",
+      "unitType": 0,
+      "idObject": "353201350412950",
+      "color": "#0e62f0",
+      "phone": "+998996655814",
+      "protocolType": 4,
+      "lastMessageTime": 1780909704,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -20,
+      "point": {
+        "y": 38.343365,
+        "x": 66.444687,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460585,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 621,
+      "name": "Pogruzchik 70 635 FA",
+      "unitType": 0,
+      "idObject": "353201350412976",
+      "color": "#0e62f0",
+      "phone": "+998996656186",
+      "protocolType": 4,
+      "lastMessageTime": 1781502863,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": true,
+        "speed": 6,
+        "sats": 15,
+        "fuelLevel": 185.544,
+        "y": 38.088879,
+        "x": 66.406235,
+        "a": "Конвейерный уклон №2, Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460413,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 620,
+      "name": "Pogruzchik 70 640 FA",
+      "unitType": 0,
+      "idObject": "353201350413560",
+      "color": "#0e62f0",
+      "phone": "+998996656117",
+      "protocolType": 4,
+      "lastMessageTime": 1781502638,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": false,
+        "speed": 6,
+        "sats": 13,
+        "fuelLevel": 177.509,
+        "y": 38.342876,
+        "x": 66.437958,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460347,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 619,
+      "name": "ISUZU 70 898 EAA",
+      "unitType": 0,
+      "idObject": "352592575751045",
+      "color": "#0e62f0",
+      "phone": "+998996655601",
+      "protocolType": 4,
+      "lastMessageTime": 1781502751,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 4,
+        "y": 38.343441,
+        "x": 66.43866,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460257,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 618,
+      "name": "Pogruzchik 70 614 FA ",
+      "unitType": 0,
+      "idObject": "352592579350026",
+      "color": "#0e62f0",
+      "phone": "+998996655223",
+      "protocolType": 4,
+      "lastMessageTime": 1781502858,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 11,
+        "y": 38.340412,
+        "x": 66.43898,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728460154,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 617,
+      "name": "KARA №5",
+      "unitType": 0,
+      "idObject": "353201350394471",
+      "color": "#0e62f0",
+      "phone": "+998996655728",
+      "protocolType": 4,
+      "lastMessageTime": 1774932836,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "y": 38.343697,
+        "x": 66.44146,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728459833,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 616,
+      "name": "KARA №6",
+      "unitType": 0,
+      "idObject": "352592579350489",
+      "color": "#0e62f0",
+      "phone": "+998996655915",
+      "protocolType": 4,
+      "lastMessageTime": 1762343159,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 14,
+      "point": {
+        "y": 38.343647,
+        "x": 66.442192,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728459788,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 615,
+      "name": "KARA №2",
+      "unitType": 0,
+      "idObject": "353201350368525",
+      "color": "#0e62f0",
+      "phone": "+998996655982",
+      "protocolType": 4,
+      "lastMessageTime": 1773808740,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 14,
+      "point": {
+        "y": 38.343647,
+        "x": 66.442253,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728459723,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 614,
+      "name": "KARA №8",
+      "unitType": 0,
+      "idObject": "353201350391790",
+      "color": "#0e62f0",
+      "phone": "+998996655985",
+      "protocolType": 4,
+      "lastMessageTime": 1746457334,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "y": 38.343624,
+        "x": 66.442268,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1728459648,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 597,
+      "name": "KARA №7",
+      "unitType": 0,
+      "idObject": "353201350395494",
+      "color": "#0e62f0",
+      "phone": "+998996655746",
+      "protocolType": 4,
+      "lastMessageTime": 1774507929,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "y": 38.343708,
+        "x": 66.44223,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727170066,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 596,
+      "name": "KARA №1",
+      "unitType": 0,
+      "idObject": "352592579277542",
+      "color": "#0e62f0",
+      "phone": "+998996655952",
+      "protocolType": 4,
+      "lastMessageTime": 1781502809,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 14,
+      "point": {
+        "dir": 13,
+        "ign": false,
+        "speed": 0,
+        "sats": 13,
+        "y": 38.34404,
+        "x": 66.441498,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727169916,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 595,
+      "name": "KARA №4",
+      "unitType": 0,
+      "idObject": "353201350367089",
+      "color": "#0e62f0",
+      "phone": "+998996655727",
+      "protocolType": 4,
+      "lastMessageTime": 1769884097,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "y": 38.343513,
+        "x": 66.440887,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727088561,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 594,
+      "name": "KARA №10",
+      "unitType": 0,
+      "idObject": "352592579350117",
+      "color": "#0e62f0",
+      "phone": "+998996655990",
+      "protocolType": 4,
+      "lastMessageTime": 1776435924,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 14,
+      "point": {
+        "y": 38.343746,
+        "x": 66.44252,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727088390,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 593,
+      "name": "KARA №9",
+      "unitType": 0,
+      "idObject": "352592575589973",
+      "color": "#0e62f0",
+      "phone": "+998996655992",
+      "protocolType": 4,
+      "lastMessageTime": 1774354259,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "y": 38.343475,
+        "x": 66.442398,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727088192,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 592,
+      "name": "KARA №3",
+      "unitType": 0,
+      "idObject": "353201350412620",
+      "color": "#0e62f0",
+      "phone": "+998996656302",
+      "protocolType": 4,
+      "lastMessageTime": 1781502881,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 13,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 15,
+        "y": 38.343948,
+        "x": 66.441437,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1727088036,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 585,
+      "name": "ISUZU 70 229 JBA ",
+      "unitType": 0,
+      "idObject": "867236073616866",
+      "color": "#0e62f0",
+      "phone": "+998996656228",
+      "protocolType": 5,
+      "lastMessageTime": 1781499384,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 1,
+      "point": {
+        "fuelLevel": 89.888,
+        "y": 39.062167,
+        "x": 66.827942,
+        "a": "Ворота, Тарагая Баходира улица, Shahrisabz shahri, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726729522,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 581,
+      "name": "SHANTUI 70 963 GA",
+      "unitType": 0,
+      "idObject": "353201350367519",
+      "color": "#0e62f0",
+      "phone": "+998996656199",
+      "protocolType": 4,
+      "lastMessageTime": 1781502855,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 28,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 14,
+        "fuelLevel": 8,
+        "y": 38.087212,
+        "x": 66.415558,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726227091,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 580,
+      "name": "CHEVROLET NEXIA 70 445 DBA",
+      "unitType": 0,
+      "idObject": "359633102371130",
+      "color": "#0e62f0",
+      "phone": "+998996655347",
+      "protocolType": 4,
+      "lastMessageTime": 1781502825,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 19,
+        "y": 38.186901,
+        "x": 66.462517,
+        "a": "Галла, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726225918,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 572,
+      "name": "CHACMAN 70 229 UBA",
+      "unitType": 0,
+      "idObject": "354017118596200",
+      "color": "#0e62f0",
+      "phone": "+998996556130",
+      "protocolType": 4,
+      "lastMessageTime": 1781502817,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 20,
+        "y": 38.088558,
+        "x": 66.406906,
+        "a": "Транспортный уклон, Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726222986,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 571,
+      "name": "MAZ 70 067 DBA(сотилди)",
+      "unitType": 0,
+      "idObject": "353201350367360",
+      "color": "#0e62f0",
+      "phone": "+998996656103",
+      "protocolType": 4,
+      "lastMessageTime": 1761894016,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "fuelLevel": -0.085,
+        "y": 38.34137,
+        "x": 66.438858,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726222369,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 570,
+      "name": "ISUZU 70 228 JBA ",
+      "unitType": 0,
+      "idObject": "867236071373098",
+      "color": "#0e62f0",
+      "phone": "+998996655878",
+      "protocolType": 5,
+      "lastMessageTime": 1781499387,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 1,
+      "point": {
+        "fuelLevel": 87.244,
+        "y": 39.062143,
+        "x": 66.827858,
+        "a": "Ворота, Тарагая Баходира улица, Shahrisabz shahri, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1726221998,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 495,
+      "name": "MAN 70 265 JBA",
+      "unitType": 0,
+      "idObject": "353201350367857",
+      "color": "#0e62f0",
+      "phone": "+998996655721",
+      "protocolType": 4,
+      "lastMessageTime": 1781502701,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "dir": 26,
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "fuelLevel": -0.084,
+        "y": 38.341286,
+        "x": 66.438705,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725272732,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 493,
+      "name": "ISUZU Водовоз 70 948 ТВА",
+      "unitType": 0,
+      "idObject": "352592577423916",
+      "color": "#0e62f0",
+      "phone": "+998996655809",
+      "protocolType": 4,
+      "lastMessageTime": 1781501969,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -9,
+      "point": {
+        "fuelLevel": 27.815,
+        "y": 38.224171,
+        "x": 66.394516,
+        "a": "Oqirtma, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725272225,
+      "dateUpdate": 1781499425,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 492,
+      "name": "CHACMAN 70 339 QAA",
+      "unitType": 0,
+      "idObject": "352016708492947",
+      "color": "#0e62f0",
+      "phone": "+998996655710",
+      "protocolType": 4,
+      "lastMessageTime": 1781502881,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -13,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "fuelLevel": 29.156,
+        "y": 38.341225,
+        "x": 66.438705,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725271988,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 490,
+      "name": "ISUZU 70 826 TBA",
+      "unitType": 0,
+      "idObject": "354017118579354",
+      "color": "#0e62f0",
+      "phone": "+998996655687",
+      "protocolType": 4,
+      "lastMessageTime": 1781493410,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.088524,
+        "x": 66.410194,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725271538,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 489,
+      "name": "ISUZU 70 825 TBA",
+      "unitType": 0,
+      "idObject": "354017118581103",
+      "color": "#0e62f0",
+      "phone": "+998996655774",
+      "protocolType": 4,
+      "lastMessageTime": 1781501949,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.340584,
+        "x": 66.439079,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725271329,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 488,
+      "name": "ISUZU 70 160 JBA",
+      "unitType": 0,
+      "idObject": "353201350402787",
+      "color": "#0e62f0",
+      "phone": "+998996655749",
+      "protocolType": 4,
+      "lastMessageTime": 1781502042,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 2,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 13,
+        "fuelLevel": 86.298,
+        "y": 38.337128,
+        "x": 66.447258,
+        "a": "Dehqonobod tumani, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725270938,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 487,
+      "name": "CHEVROLET Tracker 70 600 GAA",
+      "unitType": 0,
+      "idObject": "353201350260417",
+      "color": "#0e62f0",
+      "phone": "+998996655830",
+      "protocolType": 4,
+      "lastMessageTime": 1781502810,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 10,
+        "y": 38.830116,
+        "x": 65.812134,
+        "a": "Xonobod ko'chasi, Yangi-turmush mahallasi, Qarshi, Qarshi Tumani, Qashqadaryo Viloyati, 180100, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725270608,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 486,
+      "name": "MAN 70 260 JBA",
+      "unitType": 0,
+      "idObject": "353201350367915",
+      "color": "#0e62f0",
+      "phone": "+998996655920",
+      "protocolType": 4,
+      "lastMessageTime": 1781502503,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 18,
+        "fuelLevel": -0.084,
+        "y": 38.088028,
+        "x": 66.409744,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725270349,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 485,
+      "name": "MAZ 70 063 DBA (сотилди)",
+      "unitType": 0,
+      "idObject": "353201350393556",
+      "color": "#0e62f0",
+      "phone": "+998996656109",
+      "protocolType": 4,
+      "lastMessageTime": 1763449964,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "fuelLevel": -0.085,
+        "y": 38.341496,
+        "x": 66.438774,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1725267981,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 484,
+      "name": "MAZ 70 064 DBA(сотилди)",
+      "unitType": 0,
+      "idObject": "354017118592373",
+      "color": "#0e62f0",
+      "phone": "+998996655622",
+      "protocolType": 4,
+      "lastMessageTime": 1764424526,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "fuelLevel": 2.542,
+        "y": 38.341427,
+        "x": 66.438797,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724916160,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 483,
+      "name": "ISUZU 70 159 JBA",
+      "unitType": 0,
+      "idObject": "359633103697558",
+      "color": "#0e62f0",
+      "phone": "+998996655668",
+      "protocolType": 4,
+      "lastMessageTime": 1781491271,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.088181,
+        "x": 66.409904,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724846744,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 482,
+      "name": "MAN 70 278 JBA",
+      "unitType": 0,
+      "idObject": "350612074684182",
+      "color": "#0e62f0",
+      "phone": "+998996655717",
+      "protocolType": 4,
+      "lastMessageTime": 1781254423,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "fuelLevel": 99.924,
+        "y": 38.341152,
+        "x": 66.43869,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724839237,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 481,
+      "name": "MAN 70 264 JBA",
+      "unitType": 0,
+      "idObject": "353201350394356",
+      "color": "#0e62f0",
+      "phone": "+998996655916",
+      "protocolType": 4,
+      "lastMessageTime": 1781502776,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 19,
+        "fuelLevel": 84.639,
+        "y": 38.089348,
+        "x": 66.406189,
+        "a": "Конвейерный уклон №2, Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724836994,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 480,
+      "name": "CHEVROLET Centra 70 004 TBA",
+      "unitType": 0,
+      "idObject": "352592579098609",
+      "color": "#0e62f0",
+      "phone": "+998996655227",
+      "protocolType": 4,
+      "lastMessageTime": 1781502760,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "dir": 13,
+        "ign": false,
+        "speed": 0,
+        "sats": 17,
+        "y": 38.342999,
+        "x": 66.444923,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724836879,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 479,
+      "name": "ISUZU NQR 70 894 JAA",
+      "unitType": 0,
+      "idObject": "353201350367824",
+      "color": "#0e62f0",
+      "phone": "+998996655994",
+      "protocolType": 4,
+      "lastMessageTime": 1781502845,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 6,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "fuelLevel": 114.735,
+        "y": 40.43124,
+        "x": 71.781868,
+        "a": "Farg'ona, Farg'ona Viloyati, 150100, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724836543,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 478,
+      "name": "MAN 70 259 JBA",
+      "unitType": 0,
+      "idObject": "350612074684828",
+      "color": "#0e62f0",
+      "phone": "+998996655743",
+      "protocolType": 4,
+      "lastMessageTime": 1781502799,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -16,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "fuelLevel": 79.758,
+        "y": 38.338226,
+        "x": 66.449921,
+        "a": "Qiziljar, Dehqonobod tumani, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724835240,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 477,
+      "name": "ISUZU 70 886 EAA",
+      "unitType": 0,
+      "idObject": "352592578868051",
+      "color": "#0e62f0",
+      "phone": "+998996655829",
+      "protocolType": 4,
+      "lastMessageTime": 1781502549,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 0,
+        "y": 38.336811,
+        "x": 66.565155,
+        "a": "Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Qorashina, Qashqadaryo Viloyati, 180400, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724835084,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 476,
+      "name": "ГАЗЕЛЬ 70 305 JBA ",
+      "unitType": 0,
+      "idObject": "352592579113044",
+      "color": "#0e62f0",
+      "phone": "+998996655738",
+      "protocolType": 4,
+      "lastMessageTime": 1781502066,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 23,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 18,
+        "y": 38.087948,
+        "x": 66.409225,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724832179,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 475,
+      "name": "ISUZU 70 963 FAA(сотилди)",
+      "unitType": 0,
+      "idObject": "359633104012070",
+      "color": "#0e62f0",
+      "phone": "+998996655524",
+      "protocolType": 4,
+      "lastMessageTime": 1780653733,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.341114,
+        "x": 66.438889,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724832124,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 474,
+      "name": "NIVA 70 920 ACA",
+      "unitType": 0,
+      "idObject": "359633104058875",
+      "color": "#0e62f0",
+      "phone": "+998996655677",
+      "protocolType": 4,
+      "lastMessageTime": 1781502851,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": 30,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 0,
+        "y": 38.342854,
+        "x": 66.444916,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724832064,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 472,
+      "name": "ISUZU 70 899 EAA(сотилди)",
+      "unitType": 0,
+      "idObject": "359633103660044",
+      "color": "#0e62f0",
+      "phone": "+998996655822",
+      "protocolType": 4,
+      "lastMessageTime": 1780656555,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.34079,
+        "x": 66.438896,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724831910,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 471,
+      "name": "ISUZU 70 964 FAA(сотилди)",
+      "unitType": 0,
+      "idObject": "359633101244148",
+      "color": "#0e62f0",
+      "phone": "+998996655696",
+      "protocolType": 4,
+      "lastMessageTime": 1780653604,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.34301,
+        "x": 66.444992,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724831728,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 470,
+      "name": "DONG Feng 70 291 JBA",
+      "unitType": 0,
+      "idObject": "359633104040931",
+      "color": "#0e62f0",
+      "phone": "+998996655833",
+      "protocolType": 4,
+      "lastMessageTime": 1781498522,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 27,
+      "point": {
+        "y": 38.340366,
+        "x": 66.440521,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724831624,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 469,
+      "name": "DONG Feng 70 290 JBA",
+      "unitType": 0,
+      "idObject": "359633104058966",
+      "color": "#0e62f0",
+      "phone": "+998996655849",
+      "protocolType": 4,
+      "lastMessageTime": 1781494562,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 27,
+      "point": {
+        "y": 38.340439,
+        "x": 66.44046,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724831169,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 468,
+      "name": "ГАЗЕЛЬ 70 421 DBA",
+      "unitType": 0,
+      "idObject": "359633100399364",
+      "color": "#0e62f0",
+      "phone": "+998996655856",
+      "protocolType": 4,
+      "lastMessageTime": 1781502846,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 23,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "y": 38.224056,
+        "x": 66.394501,
+        "a": "Oqirtma, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724831083,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 467,
+      "name": "KIA BONGO 70 927 ACA",
+      "unitType": 0,
+      "idObject": "359633104074914",
+      "color": "#0e62f0",
+      "phone": "+998996655664",
+      "protocolType": 4,
+      "lastMessageTime": 1781502889,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": -5,
+      "point": {
+        "ign": true,
+        "speed": 0,
+        "sats": 20,
+        "y": 38.342655,
+        "x": 66.444908,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724830979,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 465,
+      "name": "Pogruzchik 70 447 HA ",
+      "unitType": 0,
+      "idObject": "353201350392111",
+      "color": "#0e62f0",
+      "phone": "+998996655661",
+      "protocolType": 4,
+      "lastMessageTime": 1781502889,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 38,
+      "point": {
+        "ign": false,
+        "sats": 16,
+        "fuelLevel": 262,
+        "y": 38.087852,
+        "x": 66.409851,
+        "a": "Dehqonobod kaliy koni, Dehqonobod tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724830793,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 464,
+      "name": "CHEVROLET Damas 70 345 DBA",
+      "unitType": 0,
+      "idObject": "359633102315368",
+      "color": "#0e62f0",
+      "phone": "+998996655679",
+      "protocolType": 4,
+      "lastMessageTime": 1780428579,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": -4,
+      "point": {
+        "y": 38.340836,
+        "x": 66.438583,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724830665,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 463,
+      "name": "DAEWOO Gentra 70 076 KAA",
+      "unitType": 0,
+      "idObject": "359633102409518",
+      "color": "#0e62f0",
+      "phone": "+998996655657",
+      "protocolType": 4,
+      "lastMessageTime": 1781502551,
+      "status": 2,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 11,
+        "y": 38.343102,
+        "x": 66.444946,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724830360,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 462,
+      "name": "ISUZU 70 887 EAA(сотилди)",
+      "unitType": 0,
+      "idObject": "352592575751235",
+      "color": "#0e62f0",
+      "phone": "+998996655899",
+      "protocolType": 4,
+      "lastMessageTime": 1780659110,
+      "status": 0,
+      "blockStatus": 0,
+      "unitIconId": 4,
+      "point": {
+        "y": 38.340794,
+        "x": 66.438797,
+        "a": "Откамар, Beshbuloq, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724404852,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 461,
+      "name": "KIA Sorento 70 700 TAA",
+      "unitType": 0,
+      "idObject": "359633102863334",
+      "color": "#0e62f0",
+      "phone": "+998996656098",
+      "protocolType": 4,
+      "lastMessageTime": 1781502888,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": -1,
+      "point": {
+        "dir": 14,
+        "ign": true,
+        "speed": 75,
+        "sats": 8,
+        "y": 38.544582,
+        "x": 66.325676,
+        "a": "Olma-Ota - Termiz avtotrassasi, Pachkamar, Gʻuzor tumani, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724404645,
+      "dateUpdate": 1779967577,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    },
+    {
+      "id": 460,
+      "name": "ISUZU NQR 70 902 FAA",
+      "unitType": 0,
+      "idObject": "350612074668508",
+      "color": "#0e62f0",
+      "phone": "+998996655914",
+      "protocolType": 4,
+      "lastMessageTime": 1781502879,
+      "status": 1,
+      "blockStatus": 0,
+      "unitIconId": 7,
+      "point": {
+        "ign": false,
+        "speed": 0,
+        "sats": 20,
+        "fuelLevel": 47.574,
+        "y": 38.342934,
+        "x": 66.443932,
+        "a": "Dehkanabad Potash Plant JSC, Olma-Ota - Termiz avtotrassasi, Dehqonobod tumani, Dehqonobod, Qashqadaryo Viloyati, 180000, Oʻzbekiston"
+      },
+      "groupIds": [
+        192
+      ],
+      "dateCreate": 1724331596,
+      "dateUpdate": 1780918206,
+      "whoIsCreate": 47,
+      "whoIsUpdate": 800,
+      "firmId": 7
+    }
+  ]
+}

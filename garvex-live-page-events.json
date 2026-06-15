@@ -1,0 +1,2015 @@
+{
+  "timeCreate": 1781502061,
+  "requestKey": "b1a00d04-dfcd-464f-ba13-ac3d93ab0323",
+  "objectCount": 134,
+  "pageCount": 1,
+  "currentPage": 0,
+  "objects": [
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781500890,
+      "endTime": 1781500915,
+      "duration": 25,
+      "value": "101.000",
+      "point": {
+        "y": 38.397362,
+        "x": 66.461334
+      },
+      "unitName": "KIA Sorento 70 700 TAA",
+      "idObject": "359633102863334",
+      "unitId": 461
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781500763,
+      "endTime": 1781500800,
+      "duration": 37,
+      "value": "97.000",
+      "point": {
+        "y": 38.376335,
+        "x": 66.47142
+      },
+      "unitName": "KIA Sorento 70 700 TAA",
+      "idObject": "359633102863334",
+      "unitId": 461
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781500434,
+      "endTime": 1781500454,
+      "duration": 20,
+      "value": "95.000",
+      "point": {
+        "y": 38.766773,
+        "x": 65.853699
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781500311,
+      "endTime": 1781500329,
+      "duration": 18,
+      "value": "94.000",
+      "point": {
+        "y": 38.750992,
+        "x": 65.876328
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781500270,
+      "endTime": 1781500303,
+      "duration": 33,
+      "value": "94.000",
+      "point": {
+        "y": 38.744705,
+        "x": 65.885368
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499763,
+      "endTime": 1781500231,
+      "duration": 468,
+      "value": "126.000",
+      "point": {
+        "y": 38.678604,
+        "x": 66.036964
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499715,
+      "endTime": 1781499724,
+      "duration": 9,
+      "value": "90.000",
+      "point": {
+        "y": 38.676495,
+        "x": 66.048874
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499646,
+      "endTime": 1781499653,
+      "duration": 7,
+      "value": "90.000",
+      "point": {
+        "y": 38.674465,
+        "x": 66.058914
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499627,
+      "endTime": 1781499636,
+      "duration": 9,
+      "value": "90.000",
+      "point": {
+        "y": 38.673321,
+        "x": 66.064056
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499434,
+      "endTime": 1781499527,
+      "duration": 93,
+      "value": "115.000",
+      "point": {
+        "y": 38.665237,
+        "x": 66.116631
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781499133,
+      "endTime": 1781499369,
+      "duration": 236,
+      "value": "112.000",
+      "point": {
+        "y": 38.64204,
+        "x": 66.199188
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498755,
+      "endTime": 1781498796,
+      "duration": 41,
+      "value": "57.393",
+      "point": {
+        "y": 39.04762,
+        "x": 66.820615
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781498732,
+      "endTime": 1781498796,
+      "duration": 64,
+      "value": "5.477",
+      "point": {
+        "y": 38.334518,
+        "x": 66.573418
+      },
+      "unitName": "ISUZU 70 950 TBA",
+      "idObject": "353201350392087",
+      "unitId": 860
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498391,
+      "endTime": 1781498412,
+      "duration": 21,
+      "value": "95.000",
+      "point": {
+        "y": 38.631767,
+        "x": 66.309875
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498243,
+      "endTime": 1781498325,
+      "duration": 82,
+      "value": "137.000",
+      "point": {
+        "y": 38.594513,
+        "x": 66.320869
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498243,
+      "endTime": 1781498260,
+      "duration": 17,
+      "value": "51.615",
+      "point": {
+        "y": 39.039295,
+        "x": 66.820247
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498198,
+      "endTime": 1781498214,
+      "duration": 16,
+      "value": "55.078",
+      "point": {
+        "y": 39.037452,
+        "x": 66.81387
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498111,
+      "endTime": 1781498152,
+      "duration": 41,
+      "value": "55.004",
+      "point": {
+        "y": 39.029883,
+        "x": 66.808032
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498088,
+      "endTime": 1781498098,
+      "duration": 10,
+      "value": "53.504",
+      "point": {
+        "y": 39.027153,
+        "x": 66.80691
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781498022,
+      "endTime": 1781498076,
+      "duration": 54,
+      "value": "62.838",
+      "point": {
+        "y": 39.018523,
+        "x": 66.804102
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781497989,
+      "endTime": 1781497997,
+      "duration": 8,
+      "value": "90.000",
+      "point": {
+        "y": 38.547756,
+        "x": 66.324516
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781497491,
+      "endTime": 1781497989,
+      "duration": 498,
+      "value": "76.784",
+      "point": {
+        "y": 38.968602,
+        "x": 66.730335
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781497074,
+      "endTime": 1781497405,
+      "duration": 331,
+      "value": "68.876",
+      "point": {
+        "y": 38.931807,
+        "x": 66.680495
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781497071,
+      "endTime": 1781497087,
+      "duration": 16,
+      "value": "112.000",
+      "point": {
+        "y": 38.481956,
+        "x": 66.417435
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топливо-1",
+      "startTime": 1781496949,
+      "endTime": 1781497245,
+      "duration": 296,
+      "value": "30.090",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781496945,
+      "endTime": 1781497245,
+      "duration": 300,
+      "value": "14.814",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Ёмкость-13050",
+      "startTime": 1781496945,
+      "endTime": 1781497245,
+      "duration": 300,
+      "value": "15.938",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781496296,
+      "endTime": 1781496327,
+      "duration": 31,
+      "value": "96.000",
+      "point": {
+        "y": 38.404507,
+        "x": 66.457291
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781496021,
+      "endTime": 1781497070,
+      "duration": 1049,
+      "value": "85.099",
+      "point": {
+        "y": 38.8053,
+        "x": 66.544287
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781496003,
+      "endTime": 1781496014,
+      "duration": 11,
+      "value": "52.486",
+      "point": {
+        "y": 38.80378,
+        "x": 66.542012
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781495904,
+      "endTime": 1781495997,
+      "duration": 93,
+      "value": "64.153",
+      "point": {
+        "y": 38.797042,
+        "x": 66.526938
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781495875,
+      "endTime": 1781495896,
+      "duration": 21,
+      "value": "57.986",
+      "point": {
+        "y": 38.795965,
+        "x": 66.522435
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781495438,
+      "endTime": 1781495810,
+      "duration": 372,
+      "value": "82.451",
+      "point": {
+        "y": 38.760838,
+        "x": 66.452102
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781495308,
+      "endTime": 1781495433,
+      "duration": 125,
+      "value": "64.431",
+      "point": {
+        "y": 38.748105,
+        "x": 66.433188
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781494850,
+      "endTime": 1781495306,
+      "duration": 456,
+      "value": "3.984",
+      "point": {
+        "y": 38.343376,
+        "x": 66.438049
+      },
+      "unitName": "Pogruzchik 70 976 GA",
+      "idObject": "354017118592266",
+      "unitId": 862
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494761,
+      "endTime": 1781495247,
+      "duration": 486,
+      "value": "82.451",
+      "point": {
+        "y": 38.697482,
+        "x": 66.352537
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровен топлива",
+      "startTime": 1781494733,
+      "endTime": 1781495278,
+      "duration": 545,
+      "value": "14.294",
+      "point": {
+        "y": 38.340824,
+        "x": 66.438995
+      },
+      "unitName": "TRAKTOR 70 049 DA",
+      "idObject": "353201350392020",
+      "unitId": 859
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494704,
+      "endTime": 1781494710,
+      "duration": 6,
+      "value": "92.000",
+      "point": {
+        "y": 38.359932,
+        "x": 66.457169
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494681,
+      "endTime": 1781494696,
+      "duration": 15,
+      "value": "104.000",
+      "point": {
+        "y": 38.355759,
+        "x": 66.452873
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494625,
+      "endTime": 1781494629,
+      "duration": 4,
+      "value": "97.000",
+      "point": {
+        "y": 38.347034,
+        "x": 66.450714
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494577,
+      "endTime": 1781494758,
+      "duration": 181,
+      "value": "76.858",
+      "point": {
+        "y": 38.675757,
+        "x": 66.327398
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781494525,
+      "endTime": 1781495129,
+      "duration": 604,
+      "value": "14.814",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Ёмкость-13050",
+      "startTime": 1781494525,
+      "endTime": 1781495129,
+      "duration": 604,
+      "value": "15.938",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топливо-1",
+      "startTime": 1781494519,
+      "endTime": 1781494828,
+      "duration": 309,
+      "value": "30.007",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494483,
+      "endTime": 1781494576,
+      "duration": 93,
+      "value": "64.153",
+      "point": {
+        "y": 38.667167,
+        "x": 66.313847
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494468,
+      "endTime": 1781494476,
+      "duration": 8,
+      "value": "50.560",
+      "point": {
+        "y": 38.665935,
+        "x": 66.3123
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494417,
+      "endTime": 1781494450,
+      "duration": 33,
+      "value": "62.246",
+      "point": {
+        "y": 38.660608,
+        "x": 66.30718
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494362,
+      "endTime": 1781494389,
+      "duration": 27,
+      "value": "74.006",
+      "point": {
+        "y": 38.653943,
+        "x": 66.300633
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781494289,
+      "endTime": 1781494360,
+      "duration": 71,
+      "value": "68.154",
+      "point": {
+        "y": 38.64365,
+        "x": 66.29568
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топливо",
+      "startTime": 1781494286,
+      "endTime": 1781494704,
+      "duration": 418,
+      "value": "4.000",
+      "point": {
+        "y": 38.342964,
+        "x": 66.437897
+      },
+      "unitName": "Pogruzchik 70 640 FA",
+      "idObject": "353201350413560",
+      "unitId": 620
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493993,
+      "endTime": 1781494013,
+      "duration": 20,
+      "value": "97.000",
+      "point": {
+        "y": 38.335701,
+        "x": 66.450211
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493892,
+      "endTime": 1781493946,
+      "duration": 54,
+      "value": "115.000",
+      "point": {
+        "y": 38.312569,
+        "x": 66.449142
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493860,
+      "endTime": 1781493875,
+      "duration": 15,
+      "value": "109.000",
+      "point": {
+        "y": 38.306175,
+        "x": 66.447639
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493644,
+      "endTime": 1781493842,
+      "duration": 198,
+      "value": "149.000",
+      "point": {
+        "y": 38.247429,
+        "x": 66.43335
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493634,
+      "endTime": 1781494287,
+      "duration": 653,
+      "value": "89.489",
+      "point": {
+        "y": 38.544832,
+        "x": 66.325655
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493603,
+      "endTime": 1781493619,
+      "duration": 16,
+      "value": "95.000",
+      "point": {
+        "y": 38.239849,
+        "x": 66.430023
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493252,
+      "endTime": 1781493452,
+      "duration": 200,
+      "value": "78.321",
+      "point": {
+        "y": 38.511937,
+        "x": 66.337323
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493047,
+      "endTime": 1781493153,
+      "duration": 106,
+      "value": "76.469",
+      "point": {
+        "y": 38.491207,
+        "x": 66.355573
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781493032,
+      "endTime": 1781493045,
+      "duration": 13,
+      "value": "59.264",
+      "point": {
+        "y": 38.490005,
+        "x": 66.357813
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492785,
+      "endTime": 1781492801,
+      "duration": 16,
+      "value": "57.856",
+      "point": {
+        "y": 38.481457,
+        "x": 66.379952
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492722,
+      "endTime": 1781492734,
+      "duration": 12,
+      "value": "59.783",
+      "point": {
+        "y": 38.481302,
+        "x": 66.387193
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781492698,
+      "endTime": 1781492923,
+      "duration": 225,
+      "value": "8.042",
+      "point": {
+        "y": 38.10046,
+        "x": 66.413788
+      },
+      "unitName": "ISUZU 70 950 TBA",
+      "idObject": "353201350392087",
+      "unitId": 860
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492608,
+      "endTime": 1781492663,
+      "duration": 55,
+      "value": "58.782",
+      "point": {
+        "y": 38.478363,
+        "x": 66.402813
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781492536,
+      "endTime": 1781493023,
+      "duration": 487,
+      "value": "72.962",
+      "point": {
+        "y": 38.343506,
+        "x": 66.437988
+      },
+      "unitName": "Pogruzchik 70 976 GA",
+      "idObject": "354017118592266",
+      "unitId": 862
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492483,
+      "endTime": 1781492537,
+      "duration": 54,
+      "value": "59.245",
+      "point": {
+        "y": 38.481918,
+        "x": 66.419243
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492465,
+      "endTime": 1781492481,
+      "duration": 16,
+      "value": "61.320",
+      "point": {
+        "y": 38.481752,
+        "x": 66.422357
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492429,
+      "endTime": 1781492443,
+      "duration": 14,
+      "value": "58.060",
+      "point": {
+        "y": 38.48151,
+        "x": 66.428312
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492417,
+      "endTime": 1781492427,
+      "duration": 10,
+      "value": "58.764",
+      "point": {
+        "y": 38.480718,
+        "x": 66.430228
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781492343,
+      "endTime": 1781492407,
+      "duration": 64,
+      "value": "56.764",
+      "point": {
+        "y": 38.47222,
+        "x": 66.432907
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топливо",
+      "startTime": 1781491951,
+      "endTime": 1781492944,
+      "duration": 993,
+      "value": "69.305",
+      "point": {
+        "y": 38.342598,
+        "x": 66.437508
+      },
+      "unitName": "Pogruzchik 70 640 FA",
+      "idObject": "353201350413560",
+      "unitId": 620
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топливо-1",
+      "startTime": 1781491877,
+      "endTime": 1781492261,
+      "duration": 384,
+      "value": "30.090",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781491862,
+      "endTime": 1781492261,
+      "duration": 399,
+      "value": "119.996",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781491793,
+      "endTime": 1781491864,
+      "duration": 71,
+      "value": "111.108",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491567,
+      "endTime": 1781491586,
+      "duration": 19,
+      "value": "59.616",
+      "point": {
+        "y": 38.409762,
+        "x": 66.455413
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491552,
+      "endTime": 1781491562,
+      "duration": 10,
+      "value": "55.227",
+      "point": {
+        "y": 38.407907,
+        "x": 66.456188
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491511,
+      "endTime": 1781491518,
+      "duration": 7,
+      "value": "54.078",
+      "point": {
+        "y": 38.40342,
+        "x": 66.457758
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491434,
+      "endTime": 1781491496,
+      "duration": 62,
+      "value": "60.949",
+      "point": {
+        "y": 38.395162,
+        "x": 66.46321
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491408,
+      "endTime": 1781491422,
+      "duration": 14,
+      "value": "53.782",
+      "point": {
+        "y": 38.392568,
+        "x": 66.465572
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781491220,
+      "endTime": 1781491248,
+      "duration": 28,
+      "value": "59.468",
+      "point": {
+        "y": 38.373358,
+        "x": 66.471018
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781490986,
+      "endTime": 1781490999,
+      "duration": 13,
+      "value": "53.078",
+      "point": {
+        "y": 38.354667,
+        "x": 66.476153
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781490706,
+      "endTime": 1781491078,
+      "duration": 372,
+      "value": "5.976",
+      "point": {
+        "y": 38.342739,
+        "x": 66.437477
+      },
+      "unitName": "Pogruzchik 70 976 GA",
+      "idObject": "354017118592266",
+      "unitId": 862
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781490685,
+      "endTime": 1781490687,
+      "duration": 2,
+      "value": "55.745",
+      "point": {
+        "y": 38.344752,
+        "x": 66.508685
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781490580,
+      "endTime": 1781490892,
+      "duration": 312,
+      "value": "14.814",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Ёмкость-12130",
+      "startTime": 1781490401,
+      "endTime": 1781490585,
+      "duration": 184,
+      "value": "7.407",
+      "point": {
+        "y": 38.341225,
+        "x": 66.438705
+      },
+      "unitName": "CHACMAN 70 339 QAA",
+      "idObject": "352016708492947",
+      "unitId": 492
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топливо",
+      "startTime": 1781490301,
+      "endTime": 1781491572,
+      "duration": 1271,
+      "value": "5.271",
+      "point": {
+        "y": 38.342464,
+        "x": 66.437637
+      },
+      "unitName": "Pogruzchik 70 640 FA",
+      "idObject": "353201350413560",
+      "unitId": 620
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781489962,
+      "endTime": 1781489977,
+      "duration": 15,
+      "value": "100.000",
+      "point": {
+        "y": 38.359795,
+        "x": 66.45694
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781489730,
+      "endTime": 1781489738,
+      "duration": 8,
+      "value": "97.000",
+      "point": {
+        "y": 38.374016,
+        "x": 66.471092
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781489573,
+      "endTime": 1781489582,
+      "duration": 9,
+      "value": "90.000",
+      "point": {
+        "y": 38.397678,
+        "x": 66.460938
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781489548,
+      "endTime": 1781489565,
+      "duration": 17,
+      "value": "100.000",
+      "point": {
+        "y": 38.403126,
+        "x": 66.45784
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781489337,
+      "endTime": 1781489818,
+      "duration": 481,
+      "value": "9.729",
+      "point": {
+        "y": 38.088276,
+        "x": 66.409805
+      },
+      "unitName": "ISUZU 70 950 TBA",
+      "idObject": "353201350392087",
+      "unitId": 860
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488852,
+      "endTime": 1781488878,
+      "duration": 26,
+      "value": "106.000",
+      "point": {
+        "y": 38.481941,
+        "x": 66.418442
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488701,
+      "endTime": 1781488744,
+      "duration": 43,
+      "value": "108.000",
+      "point": {
+        "y": 38.481262,
+        "x": 66.386536
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488696,
+      "endTime": 1781488704,
+      "duration": 8,
+      "value": "91.000",
+      "point": {
+        "y": 38.243362,
+        "x": 66.431412
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488635,
+      "endTime": 1781488688,
+      "duration": 53,
+      "value": "111.000",
+      "point": {
+        "y": 38.258499,
+        "x": 66.433876
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488593,
+      "endTime": 1781488614,
+      "duration": 21,
+      "value": "104.000",
+      "point": {
+        "y": 38.267975,
+        "x": 66.434685
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781488421,
+      "endTime": 1781488585,
+      "duration": 164,
+      "value": "125.000",
+      "point": {
+        "y": 38.314419,
+        "x": 66.449165
+      },
+      "unitName": "CHEVROLET Tracker 70 600 GAA",
+      "idObject": "353201350260417",
+      "unitId": 487
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781487740,
+      "endTime": 1781487776,
+      "duration": 36,
+      "value": "102.000",
+      "point": {
+        "y": 38.552074,
+        "x": 66.322701
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781487585,
+      "endTime": 1781487646,
+      "duration": 61,
+      "value": "98.000",
+      "point": {
+        "y": 38.583794,
+        "x": 66.323174
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781487441,
+      "endTime": 1781487553,
+      "duration": 112,
+      "value": "114.000",
+      "point": {
+        "y": 38.619595,
+        "x": 66.314163
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781487122,
+      "endTime": 1781487139,
+      "duration": 17,
+      "value": "91.000",
+      "point": {
+        "y": 38.660744,
+        "x": 66.307228
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486985,
+      "endTime": 1781486999,
+      "duration": 14,
+      "value": "95.000",
+      "point": {
+        "y": 38.677906,
+        "x": 66.330063
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486930,
+      "endTime": 1781486962,
+      "duration": 32,
+      "value": "98.000",
+      "point": {
+        "y": 38.687408,
+        "x": 66.340912
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486860,
+      "endTime": 1781486913,
+      "duration": 53,
+      "value": "106.000",
+      "point": {
+        "y": 38.700169,
+        "x": 66.355728
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486729,
+      "endTime": 1781486841,
+      "duration": 112,
+      "value": "112.000",
+      "point": {
+        "y": 38.720661,
+        "x": 66.385796
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486703,
+      "endTime": 1781486706,
+      "duration": 3,
+      "value": "90.000",
+      "point": {
+        "y": 38.722805,
+        "x": 66.39151
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486685,
+      "endTime": 1781486693,
+      "duration": 8,
+      "value": "95.000",
+      "point": {
+        "y": 38.724674,
+        "x": 66.395981
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486626,
+      "endTime": 1781486651,
+      "duration": 25,
+      "value": "109.000",
+      "point": {
+        "y": 38.732727,
+        "x": 66.410141
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486567,
+      "endTime": 1781486607,
+      "duration": 40,
+      "value": "96.000",
+      "point": {
+        "y": 38.741215,
+        "x": 66.423164
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486552,
+      "endTime": 1781486559,
+      "duration": 7,
+      "value": "92.000",
+      "point": {
+        "y": 38.743614,
+        "x": 66.426659
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486527,
+      "endTime": 1781486544,
+      "duration": 17,
+      "value": "90.000",
+      "point": {
+        "y": 38.747372,
+        "x": 66.432175
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486476,
+      "endTime": 1781486485,
+      "duration": 9,
+      "value": "90.000",
+      "point": {
+        "y": 38.754036,
+        "x": 66.441757
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486446,
+      "endTime": 1781486462,
+      "duration": 16,
+      "value": "99.000",
+      "point": {
+        "y": 38.758549,
+        "x": 66.448387
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486386,
+      "endTime": 1781486401,
+      "duration": 15,
+      "value": "98.000",
+      "point": {
+        "y": 38.765778,
+        "x": 66.461876
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486203,
+      "endTime": 1781486377,
+      "duration": 174,
+      "value": "120.000",
+      "point": {
+        "y": 38.791023,
+        "x": 66.512489
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781486097,
+      "endTime": 1781486102,
+      "duration": 5,
+      "value": "92.000",
+      "point": {
+        "y": 38.799416,
+        "x": 66.535194
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781485422,
+      "endTime": 1781485432,
+      "duration": 10,
+      "value": "95.000",
+      "point": {
+        "y": 38.34853,
+        "x": 66.440643
+      },
+      "unitName": "CHEVROLET Tracker 70 100 MAA",
+      "idObject": "353201350480338",
+      "unitId": 873
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484393,
+      "endTime": 1781484417,
+      "duration": 24,
+      "value": "99.000",
+      "point": {
+        "y": 38.789097,
+        "x": 66.508514
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484350,
+      "endTime": 1781484384,
+      "duration": 34,
+      "value": "95.000",
+      "point": {
+        "y": 38.783707,
+        "x": 66.497803
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484286,
+      "endTime": 1781484311,
+      "duration": 25,
+      "value": "93.000",
+      "point": {
+        "y": 38.776497,
+        "x": 66.483414
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484206,
+      "endTime": 1781484209,
+      "duration": 3,
+      "value": "93.000",
+      "point": {
+        "y": 38.767437,
+        "x": 66.46521
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484061,
+      "endTime": 1781484175,
+      "duration": 114,
+      "value": "57.449",
+      "point": {
+        "y": 38.34259,
+        "x": 66.513782
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781484008,
+      "endTime": 1781484025,
+      "duration": 17,
+      "value": "50.411",
+      "point": {
+        "y": 38.345363,
+        "x": 66.507342
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483904,
+      "endTime": 1781483929,
+      "duration": 25,
+      "value": "104.000",
+      "point": {
+        "y": 38.729977,
+        "x": 66.406021
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483854,
+      "endTime": 1781483870,
+      "duration": 16,
+      "value": "92.000",
+      "point": {
+        "y": 38.724285,
+        "x": 66.395111
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483818,
+      "endTime": 1781483826,
+      "duration": 8,
+      "value": "92.000",
+      "point": {
+        "y": 38.720901,
+        "x": 66.386551
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топливо",
+      "startTime": 1781483733,
+      "endTime": 1781486184,
+      "duration": 2451,
+      "value": "3.627",
+      "unitName": "Pogruzchik 70 640 FA",
+      "idObject": "353201350413560",
+      "unitId": 620
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483564,
+      "endTime": 1781483577,
+      "duration": 13,
+      "value": "95.000",
+      "point": {
+        "y": 38.687492,
+        "x": 66.341087
+      },
+      "unitName": "CHEVROLET Centra 70 004 TBA",
+      "idObject": "352592579098609",
+      "unitId": 480
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483413,
+      "endTime": 1781483457,
+      "duration": 44,
+      "value": "57.653",
+      "point": {
+        "y": 38.357152,
+        "x": 66.454065
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781483396,
+      "endTime": 1781483401,
+      "duration": 5,
+      "value": "50.782",
+      "point": {
+        "y": 38.355465,
+        "x": 66.452663
+      },
+      "unitName": "ISUZU 70 229 JBA ",
+      "idObject": "867236073616866",
+      "unitId": 585
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781481576,
+      "endTime": 1781481968,
+      "duration": 392,
+      "value": "5.000",
+      "point": {
+        "y": 38.322964,
+        "x": 66.604149
+      },
+      "unitName": "ISUZU 70 950 TBA",
+      "idObject": "353201350392087",
+      "unitId": 860
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "БАК",
+      "startTime": 1781481219,
+      "endTime": 1781481543,
+      "duration": 324,
+      "value": "36.083",
+      "point": {
+        "y": 38.341985,
+        "x": 66.43832
+      },
+      "unitName": "ISUZU 70 228 JBA ",
+      "idObject": "867236071373098",
+      "unitId": 570
+    },
+    {
+      "tripEventType": 2,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781479579,
+      "endTime": 1781479823,
+      "duration": 244,
+      "value": "71.717",
+      "point": {
+        "y": 38.342438,
+        "x": 66.44445
+      },
+      "unitName": "ISUZU 70 950 TBA",
+      "idObject": "353201350392087",
+      "unitId": 860
+    },
+    {
+      "tripEventType": 0,
+      "sensorName": "Скорость",
+      "startTime": 1781479147,
+      "endTime": 1781479159,
+      "duration": 12,
+      "value": "78.000",
+      "point": {
+        "y": 38.360378,
+        "x": 66.458405
+      },
+      "unitName": "ISUZU 70 826 TBA",
+      "idObject": "354017118579354",
+      "unitId": 490
+    },
+    {
+      "tripEventType": 3,
+      "sensorName": "Уровень топлива",
+      "startTime": 1781475232,
+      "endTime": 1781475828,
+      "duration": 596,
+      "value": "4.695",
+      "point": {
+        "y": 38.342907,
+        "x": 66.437805
+      },
+      "unitName": "Pogruzchik 70 976 GA",
+      "idObject": "354017118592266",
+      "unitId": 862
+    }
+  ]
+}

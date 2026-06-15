@@ -1,0 +1,440 @@
+[
+  {
+    "title": "65",
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "На связи",
+            "value": 35,
+            "itemStyle": {
+              "color": "#4CAF50",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          },
+          {
+            "name": "Не на связи",
+            "value": 30,
+            "itemStyle": {
+              "color": "#F44336",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          },
+          {
+            "name": "Нет данных",
+            "value": 0,
+            "itemStyle": {
+              "color": "#9E9E9E",
+              "borderColor": "#fff",
+              "borderWidth": 0,
+              "borderRadius": "8"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "65",
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "В движении",
+            "value": 16,
+            "itemStyle": {
+              "color": "#4CAF50",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          },
+          {
+            "name": "Стоянка",
+            "value": 19,
+            "itemStyle": {
+              "color": "#2196F3",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          },
+          {
+            "name": "Не на связи",
+            "value": 30,
+            "itemStyle": {
+              "color": "#F44336",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "bar",
+        "data": [
+          133.5,
+          145.4,
+          149.7,
+          186.2,
+          190.5
+        ]
+      }
+    ],
+    "yAxis": [
+      {
+        "value": "ISUZU 70 229 JBA "
+      },
+      {
+        "value": "ISUZU 70 950 TBA"
+      },
+      {
+        "value": "ISUZU 70 160 JBA"
+      },
+      {
+        "value": "CHEVROLET Tracker 70 600 GAA"
+      },
+      {
+        "value": "ISUZU NQR 70 894 JAA"
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "bar",
+        "name": "CHEVROLET Tracker 70 600 GAA",
+        "data": [
+          186.2
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU 70 160 JBA",
+        "data": [
+          149.7
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU 70 229 JBA ",
+        "data": [
+          133.5
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU 70 950 TBA",
+        "data": [
+          145.4
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU NQR 70 894 JAA",
+        "data": [
+          190.5
+        ]
+      }
+    ],
+    "xAxis": [
+      {
+        "value": "15.06.26"
+      }
+    ]
+  },
+  {
+    "title": "725.18",
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "Слив",
+            "value": 234.23,
+            "itemStyle": {
+              "color": "#EF5350",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          },
+          {
+            "name": "Заправка",
+            "value": 490.94,
+            "itemStyle": {
+              "color": "#66BB6A",
+              "borderColor": "#fff",
+              "borderWidth": 1,
+              "borderRadius": "8"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "KARA №3",
+            "value": 347,
+            "tooltip": {
+              "formatter": "KARA №3: 00:05:47"
+            }
+          },
+          {
+            "name": "Pogruzchik 70 640 FA",
+            "value": 267,
+            "tooltip": {
+              "formatter": "Pogruzchik 70 640 FA: 00:04:27"
+            }
+          },
+          {
+            "name": "CHEVROLET Tracker 70 600 GAA",
+            "value": 221,
+            "tooltip": {
+              "formatter": "CHEVROLET Tracker 70 600 GAA: 00:03:41"
+            }
+          },
+          {
+            "name": "CHEVROLET Centra 70 004 TBA",
+            "value": 208,
+            "tooltip": {
+              "formatter": "CHEVROLET Centra 70 004 TBA: 00:03:28"
+            }
+          },
+          {
+            "name": "DAEWOO Gentra 70 076 KAA",
+            "value": 205,
+            "tooltip": {
+              "formatter": "DAEWOO Gentra 70 076 KAA: 00:03:25"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "bar",
+        "name": "ISUZU 70 228 JBA ",
+        "data": [
+          25.8
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU 70 950 TBA",
+        "data": [
+          36.3
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "ISUZU NQR 70 894 JAA",
+        "data": [
+          20.8
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "Pogruzchik 70 447 HA ",
+        "data": [
+          42.1
+        ]
+      },
+      {
+        "type": "bar",
+        "name": "Pogruzchik 70 976 GA",
+        "data": [
+          37.4
+        ]
+      }
+    ],
+    "xAxis": [
+      {
+        "value": "15.06.26"
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "ISUZU 70 434 JBA",
+            "value": 31231,
+            "tooltip": {
+              "formatter": "ISUZU 70 434 JBA: 08:40:31"
+            }
+          },
+          {
+            "name": "ISUZU 70 950 TBA",
+            "value": 31230,
+            "tooltip": {
+              "formatter": "ISUZU 70 950 TBA: 08:40:30"
+            }
+          },
+          {
+            "name": "CHEVROLET Tracker 70 100 MAA",
+            "value": 31192,
+            "tooltip": {
+              "formatter": "CHEVROLET Tracker 70 100 MAA: 08:39:52"
+            }
+          },
+          {
+            "name": "Pogruzchik 70 447 HA ",
+            "value": 31154,
+            "tooltip": {
+              "formatter": "Pogruzchik 70 447 HA : 08:39:14"
+            }
+          },
+          {
+            "name": "KIA BONGO 70 927 ACA",
+            "value": 31145,
+            "tooltip": {
+              "formatter": "KIA BONGO 70 927 ACA: 08:39:05"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "bar",
+        "data": [
+          20.8,
+          25.8,
+          37.4,
+          36.3,
+          42.1
+        ]
+      }
+    ],
+    "yAxis": [
+      {
+        "value": "ISUZU NQR 70 894 JAA"
+      },
+      {
+        "value": "ISUZU 70 228 JBA "
+      },
+      {
+        "value": "Pogruzchik 70 976 GA"
+      },
+      {
+        "value": "ISUZU 70 950 TBA"
+      },
+      {
+        "value": "Pogruzchik 70 447 HA "
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "pie",
+        "data": [
+          {
+            "name": "ISUZU 70 434 JBA",
+            "value": 31231,
+            "tooltip": {
+              "formatter": "ISUZU 70 434 JBA: 08:40:31"
+            }
+          },
+          {
+            "name": "ISUZU 70 950 TBA",
+            "value": 31230,
+            "tooltip": {
+              "formatter": "ISUZU 70 950 TBA: 08:40:30"
+            }
+          },
+          {
+            "name": "CHEVROLET Tracker 70 100 MAA",
+            "value": 31192,
+            "tooltip": {
+              "formatter": "CHEVROLET Tracker 70 100 MAA: 08:39:52"
+            }
+          },
+          {
+            "name": "KIA BONGO 70 927 ACA",
+            "value": 31145,
+            "tooltip": {
+              "formatter": "KIA BONGO 70 927 ACA: 08:39:05"
+            }
+          },
+          {
+            "name": "ISUZU Водовоз 70 948 ТВА",
+            "value": 31131,
+            "tooltip": {
+              "formatter": "ISUZU Водовоз 70 948 ТВА: 08:38:51"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "series": [
+      {
+        "type": "bar",
+        "data": [
+          {
+            "name": "CHEVROLET Tracker 70 100 MAA",
+            "value": 1
+          },
+          {
+            "name": "KIA Sorento 70 700 TAA",
+            "value": 2
+          },
+          {
+            "name": "CHEVROLET Tracker 70 600 GAA",
+            "value": 26
+          },
+          {
+            "name": "CHEVROLET Centra 70 004 TBA",
+            "value": 33
+          },
+          {
+            "name": "ISUZU 70 229 JBA ",
+            "value": 45
+          }
+        ]
+      }
+    ],
+    "yAxis": [
+      {
+        "value": "CHEVROLET Tracker 70 100 MAA"
+      },
+      {
+        "value": "KIA Sorento 70 700 TAA"
+      },
+      {
+        "value": "CHEVROLET Tracker 70 600 GAA"
+      },
+      {
+        "value": "CHEVROLET Centra 70 004 TBA"
+      },
+      {
+        "value": "ISUZU 70 229 JBA "
+      }
+    ]
+  }
+]

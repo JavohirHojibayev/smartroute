@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+
+<head>
+    <meta charset="utf-8"/>
+    <title>Гарвекс | Мониторинг транспорта</title>
+    <base href="/"/>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0"/>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <meta name="robots" content="noindex, nofollow"/>
+    <meta name="description" content="Fleet Management & Tracking Software.">
+    <meta name="keywords"
+          content="мониторинг, спутниковый, транспорт, автотранспорт, контроль топлива, контроль расхода топлива, контроль автотранспорта, мониторинг транспорта, мониторинг автотранспорта, моточасы">
+
+    <link href="manifest.webmanifest" rel="manifest"/>
+    <link href="icon-512.png" rel="apple-touch-icon" sizes="512x512"/>
+    <link href="icon-192.png" rel="apple-touch-icon" sizes="192x192"/>
+
+    <link href="css/loading.css" rel="stylesheet"/>
+    <link href="css/leaflet.css" rel="stylesheet"/>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,600,700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,500,600,700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Nunito:400,500,600,700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css?family=Raleway:400,500,600,700&display=swap" rel="stylesheet"/>
+
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
+    <link href="_content/SharedBlazor/SharedBlazor.min.css" rel="stylesheet"/>
+    <link href="_content/LeafletBlazor/LeafletBlazor.min.css" rel="stylesheet"/>
+
+    <link href="MonitoringApp.Web.styles.css" rel="stylesheet"/>
+
+    <script>
+        const userLanguage = localStorage.getItem("locale");
+        document.getElementsByTagName('html')[0].setAttribute('lang', userLanguage ?? 'ru');
+    </script>
+</head>
+
+<body>
+<noscript>
+    <strong>
+        We're sorry but service doesn't work without JavaScript enabled.
+        Please enable it to continue.
+    </strong>
+</noscript>
+
+<div id="app-root">
+    <div class="loading-container">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%"/>
+            <circle r="40%" cx="50%" cy="50%"/>
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">&#x2715;</span>
+</div>
+
+<script type="text/javascript" src="/js/leaflet.js"></script>
+<script type="text/javascript" src="/js/turf.min.js"></script>
+<script type="text/javascript" src="/js/sortable.min.js"></script>
+<script type="text/javascript" src="/js/echarts.min.js"></script>
+
+<script type="text/javascript" src="_content/MudBlazor/MudBlazor.min.js"></script>
+<script type="text/javascript" src="_content/SharedBlazor/SharedBlazor.min.js"></script>
+<script type="text/javascript" src="_content/LeafletBlazor/LeafletBlazor.min.js"></script>
+
+<script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>
