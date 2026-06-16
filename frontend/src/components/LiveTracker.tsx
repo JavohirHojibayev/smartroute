@@ -44,6 +44,12 @@ import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import { LocalizedDateInput } from './LocalizedDateInput';
 import 'leaflet/dist/leaflet.css';
+import isuzuPng from '../assets/icon/avtobus(isuzu).png';
+import karaPng from '../assets/icon/kara.png';
+import pogruzchikPng from '../assets/icon/pagruzchik.png';
+import gazelPng from '../assets/icon/gazel.png';
+import manPng from '../assets/icon/man.png';
+import chakmanPng from '../assets/icon/man.png';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
 type VehicleKind = 'car' | 'truck' | 'forklift' | 'loader';
@@ -355,12 +361,30 @@ const stateStyles: Record<VehicleState, { label: string; marker: string; badge: 
 
 const vehicleIconCache = new Map<string, ReturnType<typeof divIcon>>();
 
-const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = false, count = 1, direction: number | null = null) => {
+const getVehicleSvgForName = (name?: string): string | null => {
+    if (!name) return null;
+    const n = name.toLowerCase();
+    if (n.includes('chakman')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${chakmanPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('isuz') || n.includes('isuzu')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${isuzuPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('kara')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${karaPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('man')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${manPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('pogruz') || n.includes('pogruzchik') || n.includes('pagruz')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${pogruzchikPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('газел') || n.includes('gazel') || n.includes('gazelle') || n.includes('gazel')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${gazelPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    return null;
+};
+
+const getVehicleInnerSvg = (name?: string, kind?: VehicleKind) => getVehicleSvgForName(name) ?? vehicleSvgByKind[kind ?? 'car'];
+
+const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = false, count = 1, direction: number | null = null, name?: string) => {
     const countLabel = count > 1 ? String(count) : '';
     const rotation = Number.isFinite(Number(direction)) ? Math.round(Number(direction)) : 0;
-    const cacheKey = `${state}:${kind}:${isSelected ? 'selected' : 'normal'}:${countLabel}:${rotation}`;
+    const cacheKey = `${state}:${kind}:${isSelected ? 'selected' : 'normal'}:${countLabel}:${rotation}:${String(name || '')}`;
     const cached = vehicleIconCache.get(cacheKey);
     if (cached) return cached;
+
+    // prefer name-based icon when available
+    const nameSvg = getVehicleSvgForName(name);
+    const innerSvg = nameSvg ?? vehicleSvgByKind[kind];
 
     const icon = divIcon({
         className: '',
@@ -368,7 +392,7 @@ const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = f
         iconAnchor: count > 1 ? [22, 22] : [19, 19],
         html: `
             <div class="sr-garvex-marker ${stateStyles[state].marker} kind-${kind} ${isSelected ? 'is-selected' : ''}">
-                <span class="sr-garvex-marker-icon" style="--sr-vehicle-rotation:${rotation}deg">${vehicleSvgByKind[kind]}</span>
+                <span class="sr-garvex-marker-icon" style="--sr-vehicle-rotation:${rotation}deg">${innerSvg}</span>
                 ${countLabel ? `<span class="sr-cluster-count">${countLabel}</span>` : ''}
             </div>
         `,
@@ -377,8 +401,8 @@ const buildVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected = f
     return icon;
 };
 
-const getVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected: boolean, count = 1, direction: number | null = null) =>
-    buildVehicleIcon(state, kind, isSelected, count, direction);
+const getVehicleIcon = (state: VehicleState, kind: VehicleKind, isSelected: boolean, count = 1, direction: number | null = null, name?: string) =>
+    buildVehicleIcon(state, kind, isSelected, count, direction, name);
 
 const extractRegion = (address: string | null | undefined): string => {
     const normalized = String(address || '').trim();
@@ -680,7 +704,14 @@ const VehicleMarkers = ({
                     <Marker
                         key={cluster.id}
                         position={[cluster.lat, cluster.lng]}
-                        icon={getVehicleIcon(markerState, markerKind, isSelected, cluster.vehicles.length, isCluster ? null : representative.direction)}
+                                icon={getVehicleIcon(
+                                    markerState,
+                                    markerKind,
+                                    isSelected,
+                                    cluster.vehicles.length,
+                                    isCluster ? null : representative.direction,
+                                    isCluster ? undefined : representative.name,
+                                )}
                         eventHandlers={{
                             click: () => {
                                 if (isCluster) {
@@ -703,7 +734,7 @@ const VehicleMarkers = ({
                                                 <div className="sr-popup-title-row">
                                                     <span
                                                         className={`sr-popup-vehicle-icon ${stateStyles[representative.status].marker} kind-${representative.kind}`}
-                                                        dangerouslySetInnerHTML={{ __html: vehicleSvgByKind[representative.kind] }}
+                                                        dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(representative.name, representative.kind) }}
                                                     />
                                                     <span className="sr-popup-title">{representative.name}</span>
                                                 </div>
@@ -1549,7 +1580,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                         <span className="sr-tree-branch" aria-hidden="true" />
                                         <span
                                             className={`sr-list-vehicle-icon ${stateStyles[vehicle.status].marker} kind-${vehicle.kind}`}
-                                            dangerouslySetInnerHTML={{ __html: vehicleSvgByKind[vehicle.kind] }}
+                                            dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(vehicle.name, vehicle.kind) }}
                                         />
                                         <span className="sr-object-main">
                                             <span className="sr-object-name">{vehicle.name}</span>
@@ -1881,15 +1912,19 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    width: 22px;
-                    height: 18px;
+                    width: 26px;
+                    height: 22px;
                     color: #1169ff;
+                    opacity: 1;
                 }
-                .sr-list-vehicle-icon svg {
+                .sr-list-vehicle-icon svg,
+                .sr-list-vehicle-icon img {
                     width: 22px;
-                    height: 18px;
+                    height: 22px;
                     fill: currentColor;
                     stroke: none;
+                    object-fit: contain;
+                    opacity: 1;
                 }
                 .sr-list-vehicle-icon.kind-forklift,
                 .sr-list-vehicle-icon.kind-loader {
@@ -1986,8 +2021,8 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 }
                 .sr-garvex-marker {
                     position: relative;
-                    width: 36px;
-                    height: 36px;
+                    width: 40px;
+                    height: 40px;
                     border-radius: 9999px;
                     border: 4px solid #7fb0ff;
                     background: #ffffff;
@@ -2017,10 +2052,13 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     transition: transform 0.16s ease;
                 }
                 .sr-garvex-marker svg,
-                .sr-popup-vehicle-icon svg {
-                    width: 25px;
-                    height: 25px;
+                .sr-popup-vehicle-icon svg,
+                .sr-garvex-marker img,
+                .sr-popup-vehicle-icon img {
+                    width: 24px;
+                    height: 24px;
                     stroke: none;
+                    object-fit: contain;
                 }
                 .sr-garvex-marker.is-moving {
                     border-color: #49d17b;
