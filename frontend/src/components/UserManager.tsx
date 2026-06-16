@@ -95,7 +95,6 @@ const modules: Array<{ id: PermissionModule; labelKey: string }> = [
   { id: 'fuel', labelKey: 'fuel' },
   { id: 'cargo', labelKey: 'cargoStats' },
   { id: 'settings', labelKey: 'settings' },
-  { id: 'mobile', labelKey: 'mobileApp' },
 ];
 
 const createInitialForm = (): UserFormState => ({
@@ -1183,25 +1182,22 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
                     className="w-full min-w-0 bg-transparent py-1 text-sm font-semibold text-slate-100 outline-none [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label={t('eimzoSelectLabel')}
-                    style={{ colorScheme: 'dark' }}
+                    data-color-scheme="dark"
                   >
                     {eimzoKeys.length === 0 ? (
-                      <option value={-1} style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+                      <option value={-1} className="bg-white text-slate-900">
                         {isLoadingEimzoKeys ? t('eimzoKeysLoading') : t('eimzoKeyNotFound')}
                       </option>
                     ) : (
                       <>
-                        <option value={-1} disabled style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+                        <option value={-1} disabled className="bg-white text-slate-900">
                           {t('eimzoSelectPlaceholder')}
                         </option>
                         {eimzoKeys.map((key, index) => (
                           <option
                             key={`${key.serialNumber ?? key.name ?? key.alias ?? index}-${index}`}
                             value={index}
-                            style={{
-                              backgroundColor: selectedEimzoIndex === index ? '#2563eb' : '#ffffff',
-                              color: selectedEimzoIndex === index ? '#ffffff' : '#0f172a',
-                            }}
+                            className={selectedEimzoIndex === index ? 'bg-blue-600 text-white' : 'bg-white text-slate-900'}
                           >
                             {formatEimzoCertificateOption(key, t('eimzoKeyFallback'))}
                           </option>

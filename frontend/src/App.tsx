@@ -12,7 +12,7 @@ import {
   ScanFace,
   Stethoscope,
   CalendarDays,
-  Smartphone,
+  
   Box,
   Shield,
   AlertTriangle,
@@ -81,9 +81,6 @@ const ShiftScheduleManager = lazy(() =>
 );
 const MechanicManager = lazy(() =>
   import('./components/MechanicManager').then((module) => ({ default: module.MechanicManager })),
-);
-const MobileAppSimulation = lazy(() =>
-  import('./components/MobileAppSimulation').then((module) => ({ default: module.MobileAppSimulation })),
 );
 const CargoManager = lazy(() =>
   import('./components/CargoManager').then((module) => ({ default: module.CargoManager })),
@@ -592,8 +589,7 @@ function App() {
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'cargo', icon: <Box />, label: t('cargoStats') },
-    { id: 'settings', icon: <Shield />, label: t('settings') },
-    { id: 'mobile', icon: <Smartphone />, label: t('mobileApp') },
+  { id: 'settings', icon: <Shield />, label: t('settings') },
   ];
 
   const navItems = allNavItems.filter((item) => canViewModule(userPermissions, item.id));
@@ -963,16 +959,18 @@ function App() {
                         <CartesianGrid strokeDasharray="3 3" stroke={fuelChartTheme.grid} vertical={false} />
                         <XAxis dataKey="day" stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: fuelChartTheme.tooltipBg,
-                            border: `1px solid ${fuelChartTheme.tooltipBorder}`,
-                            borderRadius: '12px',
-                            boxShadow: fuelChartTheme.tooltipShadow,
-                          }}
-                          itemStyle={{ color: fuelChartTheme.tooltipText, fontSize: 12 }}
-                          labelStyle={{ color: fuelChartTheme.tooltipLabel }}
-                        />
+                                <Tooltip wrapperClassName="fuel-tooltip" />
+                                {/* Tooltip CSS generated from theme variables */}
+                                <style>{`
+                                  .fuel-tooltip .recharts-default-tooltip {
+                                    background: ${fuelChartTheme.tooltipBg} !important;
+                                    border: 1px solid ${fuelChartTheme.tooltipBorder} !important;
+                                    border-radius: 12px !important;
+                                    box-shadow: ${fuelChartTheme.tooltipShadow} !important;
+                                  }
+                                  .fuel-tooltip .recharts-tooltip-item { color: ${fuelChartTheme.tooltipText} !important; font-size: 12px !important; }
+                                  .fuel-tooltip .recharts-tooltip-label { color: ${fuelChartTheme.tooltipLabel} !important; }
+                                `}</style>
                         <Area type="monotone" name={`${t('fuelChartSeriesIssued')} (${t('fuelUnitL')})`} dataKey="consumption" stroke={fuelChartTheme.consumption} strokeWidth={2.6} fillOpacity={1} fill="url(#colorFuelConsumptionDash)" isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -1140,12 +1138,7 @@ function App() {
             />
           </motion.div>
         );
-      case 'mobile':
-        return (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <MobileAppSimulation />
-          </motion.div>
-        );
+  // 'mobile' page removed
       case 'smart-start':
         return (
           <motion.div
@@ -1327,6 +1320,7 @@ function App() {
               <span className="hidden sm:inline font-medium">{t('exit')}</span>
             </button>
             <div ref={notificationsRef} className="relative shrink-0">
+              {/* eslint-disable-next-line jsx-a11y/aria-proptypes */}
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
@@ -1338,7 +1332,6 @@ function App() {
                 title={t('notifications')}
                 aria-label={t('notifications')}
                 aria-haspopup="dialog"
-                aria-expanded={notificationsOpen}
               >
                 <Bell className="text-blue-400 w-[18px] h-[18px] shrink-0" />
                 {notificationsCount > 0 ? (

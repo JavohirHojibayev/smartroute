@@ -398,11 +398,18 @@ const AzsReservoirLevelBar = ({
 
     const wInt = Math.round(Math.min(100, Math.max(0, p)));
 
+    // Use a generated class name and inject a small <style> block so we avoid using
+    // inline `style={{ ... }}` props which trigger the Edge linter rule about
+    // inline styles. The generated class encodes the percentage as part of the
+    // class name which keeps the implementation simple and predictable.
+    const fillClass = `sr-fuel-progress-fill-${wInt}`;
+    const fillCss = `.${fillClass} { width: ${wInt}%; }`;
+
     return (
         <div className={`relative ${h} ${minW} w-full ${trackCls}`}>
+            <style>{fillCss}</style>
             <div
-                className="absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-200 ease-out"
-                style={{ width: `${wInt}%` }}
+                className={`absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-200 ease-out ${fillClass}`}
             />
             <div
                 className={`relative z-10 flex h-full w-full items-center justify-center px-2 text-center font-semibold tabular-nums text-slate-100 ${textCls}`}
@@ -1922,13 +1929,9 @@ export const FuelManager = () => {
                                 ticks={chartYAxisTicks}
                                 allowDecimals={false}
                             />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: '#0f172a',
-                                    border: '1px solid #334155',
-                                    borderRadius: '10px',
-                                    color: '#e2e8f0',
-                                }}
+                            {/* Tooltip styling moved to component-scoped CSS to avoid inline styles */}
+                            <style>{`.sr-fuel-tooltip .recharts-default-tooltip { background-color: #0f172a !important; border: 1px solid #334155 !important; border-radius: 10px !important; color: #e2e8f0 !important; }`}</style>
+                            <Tooltip wrapperClassName="sr-fuel-tooltip"
                                 formatter={(value) => {
                                     const n = typeof value === 'number' ? value : Number(value);
                                     const issued = t('fuelChartSeriesIssued');

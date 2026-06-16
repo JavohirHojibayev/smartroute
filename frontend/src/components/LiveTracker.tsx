@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { startTransition } from 'react';
 import {
     ChevronDown,
@@ -36,7 +36,6 @@ import {
     Sector,
     PieChart,
     ResponsiveContainer,
-    Tooltip as ChartTooltip,
     XAxis,
     YAxis,
 } from 'recharts';
@@ -44,6 +43,7 @@ import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import { LocalizedDateInput } from './LocalizedDateInput';
 import 'leaflet/dist/leaflet.css';
+// (No local CSS variables needed here)
 import isuzuPng from '../assets/icon/avtobus(isuzu).png';
 import karaPng from '../assets/icon/kara.png';
 import pogruzchikPng from '../assets/icon/pagruzchik.png';
@@ -221,31 +221,8 @@ const DASHBOARD_COLORS = {
 // card background color used as segment border to create a dark gap between slices
 const CARD_BG_COLOR = '#1e2330';
 const DASHBOARD_BAR_COLORS = ['#174ea6', '#1f67c2', '#287bd4', '#2f8ee6', '#35a4f5'];
-const DASHBOARD_TOOLTIP_CONTENT_STYLE: CSSProperties = {
-    background: 'rgba(15, 23, 42, 0.96)',
-    border: '1px solid rgba(96, 165, 250, 0.35)',
-    borderRadius: 10,
-    boxShadow: '0 16px 36px rgba(0, 0, 0, 0.34)',
-    color: '#e2e8f0',
-    fontWeight: 800,
-};
-const DASHBOARD_TOOLTIP_ITEM_STYLE: CSSProperties = {
-    color: '#60a5fa',
-    fontWeight: 800,
-};
-const DASHBOARD_TOOLTIP_LABEL_STYLE: CSSProperties = {
-    color: '#f8fafc',
-    fontWeight: 900,
-};
-const DASHBOARD_TOOLTIP_CURSOR = {
-    fill: 'rgba(59, 130, 246, 0.12)',
-};
-const DASHBOARD_TOOLTIP_PROPS = {
-    contentStyle: DASHBOARD_TOOLTIP_CONTENT_STYLE,
-    itemStyle: DASHBOARD_TOOLTIP_ITEM_STYLE,
-    labelStyle: DASHBOARD_TOOLTIP_LABEL_STYLE,
-    cursor: DASHBOARD_TOOLTIP_CURSOR,
-};
+// Tooltip styles were previously defined here but are unused because we render a custom floating tooltip.
+// NOTE: using custom floating tooltips for single-bar hover. Recharts global Tooltip removed for clarity.
 
 type DashboardPreset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 const GARVEX_DASHBOARD_TZ_OFFSET_MINUTES = 180;
@@ -253,6 +230,13 @@ const GARVEX_DASHBOARD_TZ_OFFSET_MINUTES = 180;
 const padDatePart = (value: number) => String(value).padStart(2, '0');
 const formatDashboardDate = (date: Date) =>
     `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}`;
+
+const formatLongDate = (date: Date) => {
+    const d = date.getUTCDate();
+    const m = date.getUTCMonth() + 1;
+    const y = date.getUTCFullYear();
+    return `${padDatePart(d)}.${padDatePart(m)}.${y}`;
+};
 
 const getDashboardRange = (preset: DashboardPreset) => {
     const shiftedNow = new Date(Date.now() + GARVEX_DASHBOARD_TZ_OFFSET_MINUTES * 60_000);
@@ -842,6 +826,48 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
     const [activeConnectionIndex, setActiveConnectionIndex] = useState<number | null>(null);
     const [activeMovementIndex, setActiveMovementIndex] = useState<number | null>(null);
     const [activeFuelIndex, setActiveFuelIndex] = useState<number | null>(null);
+    // Hover state for mileage time series: which vehicle series and which bucket index
+    const [hoveredSeriesKey, setHoveredSeriesKey] = useState<string | null>(null);
+    const [hoveredBucketIndex, setHoveredBucketIndex] = useState<number | null>(null);
+    const [hoveredTopIndex, setHoveredTopIndex] = useState<number | null>(null);
+    // Ref and position for time-series tooltip (so tooltip appears next to hovered bar)
+    const timeChartRef = useRef<HTMLDivElement | null>(null);
+    const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number } | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!tooltipRef.current) return;
+        if (tooltipPos) {
+            tooltipRef.current.style.left = `${tooltipPos.left}px`;
+            tooltipRef.current.style.top = `${tooltipPos.top}px`;
+            tooltipRef.current.style.visibility = 'visible';
+        } else {
+            tooltipRef.current.style.visibility = 'hidden';
+        }
+    }, [tooltipPos]);
+
+    const handleCellEnter = (e: any, seriesKey: string, bIndex: number) => {
+        setHoveredSeriesKey(seriesKey);
+        setHoveredBucketIndex(bIndex);
+        if (timeChartRef.current && e && typeof e.clientX === 'number') {
+            const rect = timeChartRef.current.getBoundingClientRect();
+            setTooltipPos({ left: Math.round(e.clientX - rect.left + 8), top: Math.round(e.clientY - rect.top - 12) });
+        }
+    };
+
+    const handleCellMove = (e: any) => {
+        if (!timeChartRef.current) return;
+        if (e && typeof e.clientX === 'number') {
+            const rect = timeChartRef.current.getBoundingClientRect();
+            setTooltipPos({ left: Math.round(e.clientX - rect.left + 8), top: Math.round(e.clientY - rect.top - 12) });
+        }
+    };
+
+    const handleCellLeave = () => {
+        setHoveredBucketIndex(null);
+        setHoveredSeriesKey(null);
+        setTooltipPos(null);
+    };
 
     const load = async (includeHealth = false) => {
         if (inFlightRef.current) return;
@@ -1156,6 +1182,13 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
 
     return (
         <div className="min-w-0 space-y-4">
+            <style>{`
+                .mileage-chart-tooltip span[style] { background-color: var(--sr-color); }
+                /* Hide all Recharts default tooltips globally so only our custom tooltip is visible */
+                .recharts-default-tooltip, .recharts-tooltip-wrapper { display: none !important; }
+                /* tooltip container for mileage chart; position set via JS to avoid JSX inline styles */
+                .mileage-tooltip { position: absolute; z-index: 50; pointer-events: none; visibility: hidden; }
+            `}</style>
             <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
                 <nav
                     className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-slate-700/60 dark-scrollbar [-webkit-overflow-scrolling:touch] sm:overflow-x-visible"
@@ -1353,17 +1386,65 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <h3 className="mb-2 text-lg font-semibold text-slate-100">Top obyektlar probegi</h3>
                             {dashboardChartData.mileageChart.length > 0 ? (
-                                <div className="h-[285px]">
+                                <>
+                                <div className={`chart-container relative h-[285px] ${hoveredTopIndex != null ? 'show-tooltip' : ''}`}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={dashboardChartData.mileageChart} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
                                             <CartesianGrid stroke="rgba(148,163,184,.18)" horizontal={false} />
                                             <XAxis type="number" tick={{ fill: '#cbd5e1', fontSize: 11 }} tickFormatter={(value) => `${formatChartNumber(Number(value), 0)} km`} />
                                             <YAxis type="category" dataKey="shortName" width={104} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown, name: unknown) => [`${formatChartNumber(Number(value), 1)} km`, String(name)]} />
-                                            <Bar dataKey="mileage" fill="#1752ad" radius={[0, 4, 4, 0]} barSize={38} />
+                                            {/* Use per-bar Cells with unique colors and single-bar tooltip (no global ChartTooltip) */}
+                                            <Bar dataKey="mileage" radius={[0, 4, 4, 0]} barSize={38}>
+                                                {dashboardChartData.mileageChart.map((item, idx) => {
+                                                    const color = DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length];
+                                                    const isHovered = hoveredTopIndex === idx;
+                                                    const dim = hoveredTopIndex != null && hoveredTopIndex !== idx;
+                                                    return (
+                                                        <Cell
+                                                            key={String(item.name || idx)}
+                                                            fill={color}
+                                                            opacity={isHovered ? 1 : dim ? 0.35 : 0.95}
+                                                            onMouseEnter={() => setHoveredTopIndex(idx)}
+                                                            onMouseLeave={() => setHoveredTopIndex(null)}
+                                                        />
+                                                    );
+                                                })}
+                                            </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
+
+                                    {/* Floating tooltip for single bar hover */}
+                                    {hoveredTopIndex != null && (() => {
+                                        const item = dashboardChartData.mileageChart[hoveredTopIndex];
+                                        const color = DASHBOARD_BAR_COLORS[hoveredTopIndex % DASHBOARD_BAR_COLORS.length];
+                                        return (
+                                            <div className="absolute z-50 pointer-events-none right-6 top-10">
+                                                <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[220px]">
+                                                    <div className="mb-2 flex items-center gap-2">
+                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                                        <div className="text-xs text-slate-300">{formatLongDate(new Date())}</div>
+                                                    </div>
+                                                    <div className="text-sm font-bold text-slate-100">{item.name}</div>
+                                                    <div className="text-xs text-slate-400">{(() => {
+                                                        const parts = String(item.name || '').trim().split(/\s+/);
+                                                        const lastParts = parts.slice(-3).join(' ');
+                                                        return /\d/.test(lastParts) ? lastParts : '';
+                                                    })()}</div>
+                                                    <div className="mt-2 text-lg font-black text-white">{formatChartNumber(item.mileage ?? 0, 1)} km</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
+                                <div className="mt-3 flex flex-wrap items-center gap-3">
+                                    {dashboardChartData.mileageChart.map((item, idx) => (
+                                        <div key={item.name} className="inline-flex items-center gap-2 text-xs text-slate-300">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length]} /></svg>
+                                            <span className="max-w-[220px] truncate">{item.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                </>
                             ) : (
                                 <div className="flex h-[285px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
                                     Probeg ma'lumoti yo'q
@@ -1382,26 +1463,81 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 </div>
                             </div>
                             {dashboardChartData.mileageTimeBuckets.length > 0 ? (
-                                <div className="h-[340px]">
+                                <div className="relative h-[340px]" ref={timeChartRef}>
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dashboardChartData.mileageTimeBuckets} margin={{ top: 20, right: 24, left: 8, bottom: 34 }}>
+                                        <BarChart
+                                            data={dashboardChartData.mileageTimeBuckets}
+                                            margin={{ top: 20, right: 24, left: 8, bottom: 34 }}
+                                            barGap={8}
+                                            barCategoryGap="16%"
+                                        >
                                             <CartesianGrid stroke="rgba(148,163,184,.2)" vertical={false} />
                                             <XAxis dataKey="label" tick={{ fill: '#cbd5e1', fontSize: 12 }} interval={0} />
                                             <YAxis tick={{ fill: '#cbd5e1', fontSize: 12 }} tickFormatter={(value) => formatChartNumber(Number(value), 0)} />
-                                            <ChartTooltip {...DASHBOARD_TOOLTIP_PROPS} formatter={(value: unknown) => [`${formatChartNumber(Number(value), 1)} km`, 'Probeg']} />
+                                            {/* Legend kept; tooltip is the custom floating one shown only on hover */}
                                             <ChartLegend wrapperStyle={{ color: '#cbd5e1', fontSize: 12 }} />
-                                            {dashboardChartData.mileageTimeSeries.map((series, index) => (
-                                                <Bar
-                                                    key={series.key}
-                                                    dataKey={series.key}
-                                                    name={series.name}
-                                                    fill={DASHBOARD_BAR_COLORS[index % DASHBOARD_BAR_COLORS.length]}
-                                                    radius={[3, 3, 0, 0]}
-                                                    maxBarSize={36}
-                                                />
-                                            ))}
+                                            {dashboardChartData.mileageTimeSeries.map((series, index) => {
+                                                const color = DASHBOARD_BAR_COLORS[index % DASHBOARD_BAR_COLORS.length];
+                                                return (
+                                                    <Bar
+                                                        key={series.key}
+                                                        dataKey={series.key}
+                                                        name={series.name}
+                                                        fill={color}
+                                                        radius={[6, 6, 0, 0]}
+                                                        maxBarSize={72}
+                                                        onMouseEnter={() => setHoveredSeriesKey(series.key)}
+                                                        onMouseLeave={() => { setHoveredSeriesKey(null); setHoveredBucketIndex(null); setTooltipPos(null); }}
+                                                    >
+                                                        {dashboardChartData.mileageTimeBuckets.map((_, bIndex) => {
+                                                            const isHovered = hoveredSeriesKey === series.key && hoveredBucketIndex === bIndex;
+                                                            const dim = hoveredSeriesKey && hoveredSeriesKey !== series.key;
+                                                            return (
+                                                                <Cell
+                                                                    key={`${series.key}-${bIndex}`}
+                                                                    fill={color}
+                                                                    opacity={isHovered ? 1 : dim ? 0.32 : 0.95}
+                                                                    onMouseEnter={(e) => handleCellEnter(e, series.key, bIndex)}
+                                                                    onMouseMove={(e) => handleCellMove(e)}
+                                                                    onMouseLeave={() => handleCellLeave()}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </Bar>
+                                                );
+                                            })}
                                         </BarChart>
                                     </ResponsiveContainer>
+
+                                    {/* Floating tooltip: visible when hoveredSeriesKey and hoveredBucketIndex are set */}
+                                    {hoveredSeriesKey != null && hoveredBucketIndex != null && tooltipPos != null && (() => {
+                                        const seriesIndex = dashboardChartData.mileageTimeSeries.findIndex(s => s.key === hoveredSeriesKey);
+                                        const series = dashboardChartData.mileageTimeSeries[seriesIndex];
+                                        const bucket = dashboardChartData.mileageTimeBuckets[hoveredBucketIndex];
+                                        const color = DASHBOARD_BAR_COLORS[seriesIndex % DASHBOARD_BAR_COLORS.length];
+                                        const mileageValue = Number(bucket[series.key as keyof typeof bucket] || 0);
+                                        const label = bucket.label;
+                                        // Place tooltip next to hovered bar using tooltipPos
+                                        return (
+                                            <div ref={tooltipRef} className="mileage-tooltip">
+                                                <div className="mileage-chart-tooltip rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[200px]">
+                                                    <div className="mb-2 flex items-center gap-2">
+                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className="shrink-0"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                                        <div className="text-xs text-slate-300">{label}</div>
+                                                    </div>
+                                                    <div className="text-sm font-bold text-slate-100">{series.name}</div>
+                                                    {/* Attempt to extract plate from series.name if present (heuristic) */}
+                                                    <div className="text-xs text-slate-400">{(() => {
+                                                        const parts = String(series.name || '').trim().split(/\s+/);
+                                                        const lastParts = parts.slice(-3).join(' ');
+                                                        return /\d/.test(lastParts) ? lastParts : '';
+                                                    })()}</div>
+                                                    <div className="mt-2 text-lg font-black text-white">{formatChartNumber(mileageValue, 1)} km</div>
+                                                    <div className="mt-1 text-xs text-slate-400">{label}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div className="flex h-[340px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
