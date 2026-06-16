@@ -1,4 +1,4 @@
-import { Suspense, lazy, startTransition, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import React, { Suspense, lazy, startTransition, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Car,
   Map,
@@ -959,18 +959,43 @@ function App() {
                         <CartesianGrid strokeDasharray="3 3" stroke={fuelChartTheme.grid} vertical={false} />
                         <XAxis dataKey="day" stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                                <Tooltip wrapperClassName="fuel-tooltip" />
-                                {/* Tooltip CSS generated from theme variables */}
-                                <style>{`
-                                  .fuel-tooltip .recharts-default-tooltip {
-                                    background: ${fuelChartTheme.tooltipBg} !important;
-                                    border: 1px solid ${fuelChartTheme.tooltipBorder} !important;
-                                    border-radius: 12px !important;
-                                    box-shadow: ${fuelChartTheme.tooltipShadow} !important;
-                                  }
-                                  .fuel-tooltip .recharts-tooltip-item { color: ${fuelChartTheme.tooltipText} !important; font-size: 12px !important; }
-                                  .fuel-tooltip .recharts-tooltip-label { color: ${fuelChartTheme.tooltipLabel} !important; }
-                                `}</style>
+                                {/* custom dark tooltip to match Probeg chart */}
+                                {(() => {
+                                  const FuelTooltip = (props: any) => {
+                                    const { active, payload, label, coordinate } = props;
+                                    const tooltipRef = React.useRef<HTMLDivElement | null>(null);
+                                    React.useEffect(() => {
+                                      if (!tooltipRef.current) return;
+                                      if (!active || !coordinate) {
+                                        tooltipRef.current.style.visibility = 'hidden';
+                                        return;
+                                      }
+                                      const left = Math.max(8, Math.round(coordinate.x));
+                                      const top = Math.max(8, Math.round(coordinate.y) - 64);
+                                      tooltipRef.current.style.left = `${left}px`;
+                                      tooltipRef.current.style.top = `${top}px`;
+                                      tooltipRef.current.style.visibility = 'visible';
+                                    }, [active, coordinate]);
+                                    if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
+                                    const entry = payload[0];
+                                    const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
+                                    const color = entry.color || fuelChartTheme.consumption;
+                                    return (
+                                      <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
+                                        <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
+                                          <div className="mb-2 flex items-center gap-2">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                            <div className="text-xs text-slate-300">{label}</div>
+                                          </div>
+                                          <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
+                                          <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(locale, { maximumFractionDigits: 2 }) : '—'}{t('fuelUnitL')}</div>
+                                        </div>
+                                      </div>
+                                    );
+                                  };
+                                  return <Tooltip content={(props) => <FuelTooltip {...props} />} />;
+                                })()}
+                                <style>{`.fuel-tooltip-pos { visibility: hidden; }`}</style>
                         <Area type="monotone" name={`${t('fuelChartSeriesIssued')} (${t('fuelUnitL')})`} dataKey="consumption" stroke={fuelChartTheme.consumption} strokeWidth={2.6} fillOpacity={1} fill="url(#colorFuelConsumptionDash)" isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>

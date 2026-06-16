@@ -1,4 +1,4 @@
-﻿import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+﻿import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { startTransition } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1929,16 +1929,51 @@ export const FuelManager = () => {
                                 ticks={chartYAxisTicks}
                                 allowDecimals={false}
                             />
-                            {/* Tooltip styling moved to component-scoped CSS to avoid inline styles */}
-                            <style>{`.sr-fuel-tooltip .recharts-default-tooltip { background-color: #0f172a !important; border: 1px solid #334155 !important; border-radius: 10px !important; color: #e2e8f0 !important; }`}</style>
-                            <Tooltip wrapperClassName="sr-fuel-tooltip"
-                                formatter={(value) => {
-                                    const n = typeof value === 'number' ? value : Number(value);
-                                    const issued = t('fuelChartSeriesIssued');
-                                    if (value == null || Number.isNaN(n)) return ['---', issued];
-                                    return [`${n.toLocaleString(numLocale, { maximumFractionDigits: 2 })}${t('fuelYAxisLiter')}`, issued];
-                                }}
-                            />
+                            {/* custom dark tooltip to match Probeg chart tooltip */}
+                            {(() => {
+                                const FuelTooltip = (props: any) => {
+                                    const { active, payload, label, coordinate } = props;
+                                    const tooltipRef = useRef<HTMLDivElement | null>(null);
+                                    useEffect(() => {
+                                        if (!tooltipRef.current) return;
+                                        if (!active || !coordinate) {
+                                            tooltipRef.current.style.visibility = 'hidden';
+                                            return;
+                                        }
+                                        const left = Math.max(8, Math.round(coordinate.x));
+                                        const top = Math.max(8, Math.round(coordinate.y) - 64);
+                                        tooltipRef.current.style.left = `${left}px`;
+                                        tooltipRef.current.style.top = `${top}px`;
+                                        tooltipRef.current.style.visibility = 'visible';
+                                    }, [active, coordinate]);
+                                    if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
+                                    const entry = payload[0];
+                                    const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
+                                    const color = entry.color || '#2563eb';
+                                    return (
+                                        <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
+                                            <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                                    <div className="text-xs text-slate-300">{label}</div>
+                                                </div>
+                                                <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
+                                                <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(numLocale, { maximumFractionDigits: 2 }) : '---'}{t('fuelYAxisLiter')}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                };
+
+                                return <>
+                                    <style>{`
+                                        /* Center text only inside fuel tooltip */
+                                        .fuel-tooltip-pos > div { text-align: center; }
+                                        .fuel-tooltip-pos > div > .mb-2 { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+                                        .fuel-tooltip-pos svg { margin-right: 0; }
+                                    `}</style>
+                                    <Tooltip content={(props) => <FuelTooltip {...props} />} />
+                                </>;
+                            })()}
                             <Area
                                 isAnimationActive={false}
                                 type="monotone"

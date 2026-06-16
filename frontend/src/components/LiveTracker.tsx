@@ -851,7 +851,16 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         setHoveredBucketIndex(bIndex);
         if (timeChartRef.current && e && typeof e.clientX === 'number') {
             const rect = timeChartRef.current.getBoundingClientRect();
-            setTooltipPos({ left: Math.round(e.clientX - rect.left + 8), top: Math.round(e.clientY - rect.top - 12) });
+            const tooltipEl = tooltipRef.current;
+            const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 200; // fallback to min width
+            const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 80;
+            // center tooltip horizontally over the pointer and clamp within container
+            const desiredLeft = Math.round(e.clientX - rect.left - tooltipWidth / 2);
+            const clampedLeft = Math.max(8, Math.min(desiredLeft, Math.round(rect.width - tooltipWidth - 8)));
+            // position tooltip above the point using tooltip height; clamp to top
+            const desiredTop = Math.round(e.clientY - rect.top - tooltipHeight - 8);
+            const clampedTop = Math.max(8, desiredTop);
+            setTooltipPos({ left: clampedLeft, top: clampedTop });
         }
     };
 
@@ -859,7 +868,14 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
         if (!timeChartRef.current) return;
         if (e && typeof e.clientX === 'number') {
             const rect = timeChartRef.current.getBoundingClientRect();
-            setTooltipPos({ left: Math.round(e.clientX - rect.left + 8), top: Math.round(e.clientY - rect.top - 12) });
+            const tooltipEl = tooltipRef.current;
+            const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 200;
+            const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 80;
+            const desiredLeft = Math.round(e.clientX - rect.left - tooltipWidth / 2);
+            const clampedLeft = Math.max(8, Math.min(desiredLeft, Math.round(rect.width - tooltipWidth - 8)));
+            const desiredTop = Math.round(e.clientY - rect.top - tooltipHeight - 8);
+            const clampedTop = Math.max(8, desiredTop);
+            setTooltipPos({ left: clampedLeft, top: clampedTop });
         }
     };
 
@@ -1188,6 +1204,11 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 .recharts-default-tooltip, .recharts-tooltip-wrapper { display: none !important; }
                 /* tooltip container for mileage chart; position set via JS to avoid JSX inline styles */
                 .mileage-tooltip { position: absolute; z-index: 50; pointer-events: none; visibility: hidden; }
+                /* Center text inside the mileage tooltip only (do not affect other components) */
+                .mileage-chart-tooltip { text-align: center; }
+                /* Center the small header row (colored square + label) */
+                .mileage-chart-tooltip > .mb-2 { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+                .mileage-chart-tooltip svg { margin-right: 0; }
             `}</style>
             <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
                 <nav
