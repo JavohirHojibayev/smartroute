@@ -12,7 +12,7 @@ import {
   ScanFace,
   Stethoscope,
   CalendarDays,
-  
+
   Box,
   Shield,
   AlertTriangle,
@@ -595,7 +595,7 @@ function App() {
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'cargo', icon: <Box />, label: t('cargoStats') },
-  { id: 'settings', icon: <Shield />, label: t('settings') },
+    { id: 'settings', icon: <Shield />, label: t('settings') },
   ];
 
   const navItems = allNavItems.filter((item) => canViewModule(userPermissions, item.id));
@@ -788,13 +788,13 @@ function App() {
       return existingAlerts;
     }
 
-      return [{
-        id: 1,
-        type: 'warning',
-        message: t('dashboardNoAlerts'),
-        time: t('fuelPresetToday'),
-        targetTab: null,
-      }];
+    return [{
+      id: 1,
+      type: 'warning',
+      message: t('dashboardNoAlerts'),
+      time: t('fuelPresetToday'),
+      targetTab: null,
+    }];
   })();
   const notificationsCount = dashboardAlerts[0]?.message === t('dashboardNoAlerts') ? 0 : dashboardAlerts.length;
 
@@ -965,43 +965,43 @@ function App() {
                         <CartesianGrid strokeDasharray="3 3" stroke={fuelChartTheme.grid} vertical={false} />
                         <XAxis dataKey="day" stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
                         <YAxis stroke={fuelChartTheme.axis} tick={{ fill: fuelChartTheme.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
-                                {/* custom dark tooltip to match Probeg chart */}
-                                {(() => {
-                                  const FuelTooltip = (props: any) => {
-                                    const { active, payload, label, coordinate } = props;
-                                    const tooltipRef = React.useRef<HTMLDivElement | null>(null);
-                                    React.useEffect(() => {
-                                      if (!tooltipRef.current) return;
-                                      if (!active || !coordinate) {
-                                        tooltipRef.current.style.visibility = 'hidden';
-                                        return;
-                                      }
-                                      const left = Math.max(8, Math.round(coordinate.x));
-                                      const top = Math.max(8, Math.round(coordinate.y) - 64);
-                                      tooltipRef.current.style.left = `${left}px`;
-                                      tooltipRef.current.style.top = `${top}px`;
-                                      tooltipRef.current.style.visibility = 'visible';
-                                    }, [active, coordinate]);
-                                    if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
-                                    const entry = payload[0];
-                                    const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
-                                    const color = entry.color || fuelChartTheme.consumption;
-                                    return (
-                                      <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
-                                        <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
-                                          <div className="mb-2 flex items-center gap-2">
-                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
-                                            <div className="text-xs text-slate-300">{label}</div>
-                                          </div>
-                                          <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
-                                          <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(locale, { maximumFractionDigits: 2 }) : '—'}{t('fuelUnitL')}</div>
-                                        </div>
-                                      </div>
-                                    );
-                                  };
-                                  return <Tooltip content={(props) => <FuelTooltip {...props} />} />;
-                                })()}
-                                <style>{`.fuel-tooltip-pos { visibility: hidden; }`}</style>
+                        {/* custom dark tooltip to match Probeg chart */}
+                        {(() => {
+                          const FuelTooltip = (props: any) => {
+                            const { active, payload, label, coordinate } = props;
+                            const tooltipRef = React.useRef<HTMLDivElement | null>(null);
+                            React.useEffect(() => {
+                              if (!tooltipRef.current) return;
+                              if (!active || !coordinate) {
+                                tooltipRef.current.style.visibility = 'hidden';
+                                return;
+                              }
+                              const left = Math.max(8, Math.round(coordinate.x));
+                              const top = Math.max(8, Math.round(coordinate.y) - 64);
+                              tooltipRef.current.style.left = `${left}px`;
+                              tooltipRef.current.style.top = `${top}px`;
+                              tooltipRef.current.style.visibility = 'visible';
+                            }, [active, coordinate]);
+                            if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
+                            const entry = payload[0];
+                            const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
+                            const color = entry.color || fuelChartTheme.consumption;
+                            return (
+                              <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
+                                <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
+                                  <div className="mb-2 flex items-center gap-2">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                    <div className="text-xs text-slate-300">{label}</div>
+                                  </div>
+                                  <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
+                                  <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(locale, { maximumFractionDigits: 2 }) : '—'}{t('fuelUnitL')}</div>
+                                </div>
+                              </div>
+                            );
+                          };
+                          return <Tooltip content={(props) => <FuelTooltip {...props} />} />;
+                        })()}
+                        <style>{`.fuel-tooltip-pos { visibility: hidden; }`}</style>
                         <Area type="monotone" name={`${t('fuelChartSeriesIssued')} (${t('fuelUnitL')})`} dataKey="consumption" stroke={fuelChartTheme.consumption} strokeWidth={2.6} fillOpacity={1} fill="url(#colorFuelConsumptionDash)" isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -1026,11 +1026,10 @@ function App() {
                         type="button"
                         onClick={() => openAlertTarget(alert.targetTab)}
                         disabled={!alert.targetTab}
-                        className={`w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex gap-3 text-left transition-colors ${
-                          alert.targetTab
+                        className={`w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex gap-3 text-left transition-colors ${alert.targetTab
                             ? 'hover:border-blue-500/40 hover:bg-slate-900/70 cursor-pointer'
                             : 'cursor-default'
-                        }`}
+                          }`}
                       >
                         <div className={`mt-0.5 p-1 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
                           <AlertTriangle size={12} />
@@ -1066,8 +1065,6 @@ function App() {
               </div>
             </div>
 
-            {/* Analitika va Hisobotlar (pastki qism) */}
-            <ReportsManager authToken={authSession?.token ?? ''} />
           </motion.div>
         );
       case 'fleet':
@@ -1175,7 +1172,7 @@ function App() {
             />
           </motion.div>
         );
-  // 'mobile' page removed
+      // 'mobile' page removed
       case 'smart-start':
         return (
           <motion.div
@@ -1358,11 +1355,10 @@ function App() {
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
-                className={`relative flex items-center justify-center px-2 sm:px-3 h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer ${
-                  notificationsOpen
+                className={`relative flex items-center justify-center px-2 sm:px-3 h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer ${notificationsOpen
                     ? 'border-blue-500/50 text-slate-200'
                     : 'border-slate-700 hover:border-blue-500/50 text-slate-300'
-                }`}
+                  }`}
                 title={t('notifications')}
                 aria-label={t('notifications')}
                 aria-haspopup="dialog"
@@ -1414,11 +1410,10 @@ function App() {
                           type="button"
                           onClick={() => openAlertTarget(alert.targetTab)}
                           disabled={!alert.targetTab}
-                          className={`w-full rounded-xl border border-slate-800 bg-slate-950/50 p-3 flex gap-3 text-left transition-colors ${
-                            alert.targetTab
+                          className={`w-full rounded-xl border border-slate-800 bg-slate-950/50 p-3 flex gap-3 text-left transition-colors ${alert.targetTab
                               ? 'hover:border-blue-500/40 hover:bg-slate-950/70 cursor-pointer'
                               : 'cursor-default'
-                          }`}
+                            }`}
                         >
                           <div className={`mt-0.5 p-1.5 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
                             <AlertTriangle size={12} />
@@ -1550,6 +1545,10 @@ function App() {
 
 export default App;
 // Trigger Vite reload
+
+
+
+
 
 
 

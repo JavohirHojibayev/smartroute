@@ -16,9 +16,10 @@ import { TransportRegistryModule } from './transport-registry.module';
 import { ShiftScheduleModule } from './shift-schedule.module';
 import { WaybillPdfEditorModule } from './waybill-pdf-editor/waybill-pdf-editor.module';
 import { EimzoAuthModule } from './eimzo-auth.module';
+import { ToolsModule } from './tools.module';
 
 @Module({
-  imports: [DatabaseModule, WorkflowsModule, IntegrationsModule, ReportingModule, EsmoModule, DashboardModule, AuthModule, EimzoAuthModule, UsersModule, MechanicModule, OneCModule, AzsFuelModule, GarvexTrackingModule, TransportRegistryModule, ShiftScheduleModule, WaybillPdfEditorModule],
+  imports: [DatabaseModule, WorkflowsModule, IntegrationsModule, ReportingModule, EsmoModule, DashboardModule, AuthModule, EimzoAuthModule, UsersModule, MechanicModule, OneCModule, AzsFuelModule, GarvexTrackingModule, TransportRegistryModule, ShiftScheduleModule, WaybillPdfEditorModule, ToolsModule],
   controllers: [AppController],
   providers: [],
 })

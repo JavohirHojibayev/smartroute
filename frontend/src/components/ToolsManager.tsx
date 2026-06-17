@@ -118,6 +118,17 @@ export const ToolsManager = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [actionLoading, setActionLoading] = useState<Record<number, 'issue' | 'return' | undefined>>({});
+    const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<ToolIssueRow>>>(() => {
+        try {
+            const saved = localStorage.getItem('tools_local_updates');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return {};
+    });
+
+    useEffect(() => {
+        localStorage.setItem('tools_local_updates', JSON.stringify(localUpdates));
+    }, [localUpdates]);
 
     const tCols = {
         employeeNo: lang === 'uz' ? 'Tab. raqami' : lang === 'ru' ? 'Таб. номер' : 'Emp. No',
@@ -129,8 +140,8 @@ export const ToolsManager = () => {
         returnedAt: lang === 'uz' ? 'Qaytarilgan vaqt' : lang === 'ru' ? 'Время возврата' : 'Returned At',
         status: lang === 'uz' ? 'Holat' : lang === 'ru' ? 'Статус' : 'Status',
         issuer: lang === 'uz' ? 'Beruvchi' : lang === 'ru' ? 'Выдал' : 'Issuer',
-        issueNow: lang === 'uz' ? 'Berish' : lang === 'ru' ? 'Выдать' : 'Issue',
-        returnNow: lang === 'uz' ? 'Qaytarish' : lang === 'ru' ? 'Вернуть' : 'Return',
+        issueNow: lang === 'uz' ? 'Berildi' : lang === 'ru' ? 'Выдать' : 'Issue',
+        returnNow: lang === 'uz' ? 'Qaytarildi' : lang === 'ru' ? 'Вернуть' : 'Return',
         statusIssued: lang === 'uz' ? 'BERILGAN' : lang === 'ru' ? 'ВЫДАНО' : 'ISSUED',
         statusDone: lang === 'uz' ? 'YAKUNLANGAN' : lang === 'ru' ? 'ЗАВЕРШЕНО' : 'DONE',
         statusFail: lang === 'uz' ? 'XATOLIK' : lang === 'ru' ? 'ОШИБКА' : 'FAIL',
@@ -172,7 +183,20 @@ export const ToolsManager = () => {
             }
 
             /* Keep only "passed" status rows from ESMO */
-            const passedEsmo = esmoRows.filter((r) => r.status === 'passed');
+            const todayStr = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Tashkent' }).split('/').reverse().join('-'); // basic fallback for YYYY-MM-DD
+            
+            const passedEsmo = esmoRows.filter((r) => {
+                if (r.status !== 'passed') return false;
+                if (!dateFrom && !dateTo) {
+                    // Only today's records
+                    if (!r.time || !r.time.startsWith(todayStr) && !r.time.includes(new Date().toISOString().split('T')[0])) {
+                        // Let's use a robust date check
+                        const rowDate = new Date(r.timeMs).toLocaleDateString('en-GB', { timeZone: 'Asia/Tashkent' }).split('/').reverse().join('-');
+                        if (rowDate !== todayStr) return false;
+                    }
+                }
+                return true;
+            });
 
             /* Deduplicate by employee name — keep the latest examination per person */
             const bestByName = new Map<string, EsmoJournalRow>();
@@ -203,11 +227,15 @@ export const ToolsManager = () => {
             }
 
             /* ---------- 3. Build merged row list ---------- */
-            /* Index tool rows by name for quick lookup */
+            /* Index tool rows by name and employee_no for quick lookup */
             const toolByName = new Map<string, any>();
+            const toolByNo = new Map<string, any>();
             for (const r of toolApiRows) {
-                const key = String(r.full_name || '').trim().toLowerCase();
-                if (key) toolByName.set(key, r);
+                const nameKey = String(r.full_name || '').trim().toLowerCase();
+                if (nameKey) toolByName.set(nameKey, r);
+                
+                const noKey = String(r.employee_no || '').trim().padStart(6, '0');
+                if (noKey && noKey !== '000000') toolByNo.set(noKey, r);
             }
 
             const mergedRows: ToolIssueRow[] = [];
@@ -215,13 +243,16 @@ export const ToolsManager = () => {
 
             for (const [, esmo] of bestByName) {
                 const nameKey = esmo.name.trim().toLowerCase();
-                const tool = toolByName.get(nameKey);
+                const noKey = String(esmo.passId || '').trim().padStart(6, '0');
+                
+                // Match by employee_no first, then fallback to name
+                const tool = (noKey && noKey !== '000000' ? toolByNo.get(noKey) : null) || toolByName.get(nameKey);
                 counter++;
 
                 mergedRows.push({
                     id: tool ? `${tool.employee_id}-${tool.employee_no}` : `esmo-${esmo.id}-${counter}`,
                     employee_id: tool?.employee_id ?? esmo.id,
-                    employee_no: tool?.employee_no ?? (esmo.passId || String(counter)),
+                    employee_no: tool?.employee_no ?? esmo.passId ?? String(counter),
                     full_name: esmo.name,
                     turnstile_time: tool?.turnstile_time ?? null,
                     esmo_time: esmo.time,
@@ -241,30 +272,6 @@ export const ToolsManager = () => {
 
                 /* Remove from tool map so we don't duplicate */
                 if (tool) toolByName.delete(nameKey);
-            }
-
-            /* Add remaining tool rows that were NOT matched to an ESMO entry */
-            for (const [, tool] of toolByName) {
-                mergedRows.push({
-                    id: `${tool.employee_id}-${tool.employee_no}`,
-                    employee_id: tool.employee_id,
-                    employee_no: tool.employee_no,
-                    full_name: tool.full_name,
-                    turnstile_time: tool.turnstile_time,
-                    esmo_time: tool.esmo_time,
-                    esmo_status: tool.esmo_status,
-                    tool_name: tool.tool_name ?? '',
-                    quantity: tool.quantity ?? 0,
-                    issued_at: tool.issued_at,
-                    returned_at: tool.returned_at,
-                    issuer: tool.issuer,
-                    status: tool.status,
-                    esmo_bp: null,
-                    esmo_pulse: null,
-                    esmo_temperature: null,
-                    esmo_alcohol: null,
-                    esmo_alcohol_detected: null,
-                });
             }
 
             setRows(mergedRows);
@@ -296,17 +303,48 @@ export const ToolsManager = () => {
         return () => window.clearInterval(timer);
     }, [loadRows]);
 
+    const getCurrentUser = () => {
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.toLowerCase().includes('auth')) {
+                    const parsed = JSON.parse(localStorage.getItem(k) || '{}');
+                    if (parsed?.user?.name) return parsed.user.name;
+                    if (parsed?.user?.username) return parsed.user.username;
+                }
+            }
+        } catch {}
+        return 'Admin';
+    };
+
     const handleIssue = async (row: ToolIssueRow) => {
         setActionLoading((prev) => ({ ...prev, [row.employee_id]: 'issue' }));
+        
+        // Optimistic UI Update
+        const now = new Date().toISOString();
+        const issuerName = getCurrentUser();
+        const update = { status: 'ISSUED', issued_at: now, issuer: issuerName };
+        
+        setLocalUpdates(prev => ({ ...prev, [row.id]: update }));
+        setRows((prev) => prev.map(r => 
+            r.id === row.id ? { ...r, ...update } : r
+        ));
+
         try {
             await fetch(`${API_BASE}/reports/lamp-self-rescuer/issue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: row.employee_id })
+                body: JSON.stringify({ 
+                    employee_id: row.employee_id,
+                    employee_no: row.employee_no,
+                    full_name: row.full_name
+                })
             });
-            await loadRows(false);
+            // We can optionally trigger a background reload, but no need to wait for it for UI update
+            void loadRows(false);
         } catch (err) {
             console.error(err);
+            // Revert optimistic update on error if needed
         } finally {
             setActionLoading((prev) => ({ ...prev, [row.employee_id]: undefined }));
         }
@@ -314,13 +352,26 @@ export const ToolsManager = () => {
 
     const handleReturn = async (row: ToolIssueRow) => {
         setActionLoading((prev) => ({ ...prev, [row.employee_id]: 'return' }));
+        
+        // Optimistic UI Update
+        const now = new Date().toISOString();
+        const update = { status: 'DONE', returned_at: now };
+
+        setLocalUpdates(prev => ({ ...prev, [row.id]: update }));
+        setRows((prev) => prev.map(r => 
+            r.id === row.id ? { ...r, ...update } : r
+        ));
+
         try {
             await fetch(`${API_BASE}/reports/lamp-self-rescuer/return`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ employee_id: row.employee_id })
+                body: JSON.stringify({ 
+                    employee_id: row.employee_id,
+                    employee_no: row.employee_no
+                })
             });
-            await loadRows(false);
+            void loadRows(false);
         } catch (err) {
             console.error(err);
         } finally {
@@ -328,14 +379,18 @@ export const ToolsManager = () => {
         }
     };
 
+    const mergedRowsState = useMemo(() => {
+        return rows.map(r => localUpdates[r.id] ? { ...r, ...localUpdates[r.id] } : r);
+    }, [rows, localUpdates]);
+
     const filteredRows = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return rows;
-        return rows.filter((r) => {
+        if (!query) return mergedRowsState;
+        return mergedRowsState.filter((r) => {
             const haystack = `${r.full_name} ${r.employee_no}`.toLowerCase();
             return haystack.includes(query);
         });
-    }, [rows, searchQuery]);
+    }, [mergedRowsState, searchQuery]);
 
     const totalRows = filteredRows.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));

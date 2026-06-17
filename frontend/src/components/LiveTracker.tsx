@@ -198,6 +198,7 @@ type GarvexDashboardResponse = {
 
 type LiveTrackerProps = {
     lang?: string;
+    dashboardOnly?: boolean;
 };
 
 type TrackingNavTab = 'dashboard' | 'monitoring';
@@ -830,9 +831,9 @@ const buildVehicleSignature = (vehicles: TrackingVehicle[]): string =>
         )
         .join('|');
 
-export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
+export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) => {
     const t = useI18n((state) => state.t);
-    const [trackingNavTab, setTrackingNavTab] = useState<TrackingNavTab>('dashboard');
+    const [trackingNavTab, setTrackingNavTab] = useState<TrackingNavTab>(dashboardOnly ? 'dashboard' : 'dashboard');
     const [statusFilter, setStatusFilter] = useState<TrackingStatusFilter>('all');
     const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
     const [vehicles, setVehicles] = useState<TrackingVehicle[]>([]);
@@ -1240,39 +1241,41 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 .mileage-chart-tooltip > .mb-2 { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
                 .mileage-chart-tooltip svg { margin-right: 0; }
             `}</style>
-            <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
-                <nav
-                    className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-slate-700/60 dark-scrollbar [-webkit-overflow-scrolling:touch] sm:overflow-x-visible"
-                    aria-label="GPS monitoring bo'limlari"
-                >
-                    {TRACKING_NAV_ITEMS.map((item) => {
-                        const active = trackingNavTab === item.id;
-                        const Icon = item.icon;
-                        return (
-                            <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => setTrackingNavTab(item.id)}
-                                className={`flex min-h-[3.5rem] min-w-[9.5rem] flex-1 flex-col items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-center text-sm font-semibold transition-colors sm:min-h-[4.25rem] sm:text-base lg:text-lg ${
-                                    active
-                                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
-                                        : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                                }`}
-                                aria-current={active ? 'page' : undefined}
-                            >
-                                <Icon
-                                    size={22}
-                                    className={`shrink-0 ${active ? 'text-blue-400' : 'text-slate-500'}`}
-                                    strokeWidth={active ? 2.2 : 2}
-                                />
-                                <span className="line-clamp-2 max-w-full text-balance">
-                                    {item.label}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </nav>
-            </div>
+            {!dashboardOnly && (
+                <div className="glass-panel overflow-hidden rounded-2xl border border-slate-700/50">
+                    <nav
+                        className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-slate-700/60 dark-scrollbar [-webkit-overflow-scrolling:touch] sm:overflow-x-visible"
+                        aria-label="GPS monitoring bo'limlari"
+                    >
+                        {TRACKING_NAV_ITEMS.map((item) => {
+                            const active = trackingNavTab === item.id;
+                            const Icon = item.icon;
+                            return (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setTrackingNavTab(item.id)}
+                                    className={`flex min-h-[3.5rem] min-w-[9.5rem] flex-1 flex-col items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-center text-sm font-semibold transition-colors sm:min-h-[4.25rem] sm:text-base lg:text-lg ${
+                                        active
+                                            ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                                            : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                                    }`}
+                                    aria-current={active ? 'page' : undefined}
+                                >
+                                    <Icon
+                                        size={22}
+                                        className={`shrink-0 ${active ? 'text-blue-400' : 'text-slate-500'}`}
+                                        strokeWidth={active ? 2.2 : 2}
+                                    />
+                                    <span className="line-clamp-2 max-w-full text-balance">
+                                        {item.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+                </div>
+            )}
 
             {trackingNavTab === 'dashboard' ? (
                 <div className="space-y-4 pb-10">
