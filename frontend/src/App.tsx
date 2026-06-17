@@ -24,6 +24,7 @@ import {
   Bell,
   Menu,
   X,
+  HardHat,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -78,6 +79,9 @@ const MedicalManager = lazy(() =>
 );
 const ShiftScheduleManager = lazy(() =>
   import('./components/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
+);
+const ToolsManager = lazy(() =>
+  import('./components/ToolsManager').then((module) => ({ default: module.ToolsManager })),
 );
 const MechanicManager = lazy(() =>
   import('./components/MechanicManager').then((module) => ({ default: module.MechanicManager })),
@@ -563,6 +567,7 @@ function App() {
     activeTab === 'fleet' ||
     activeTab === 'drivers' ||
     activeTab === 'fuel' ||
+    activeTab === 'tools' ||
     activeTab === 'settings';
 
   const userPermissionSelections = normalizePermissionMap(authSession?.user.permissions, userRole);
@@ -581,6 +586,7 @@ function App() {
     { id: 'dashboard', icon: <Activity />, label: t('dashboard') },
     { id: 'access', icon: <ScanFace />, label: t('accessControl') },
     { id: 'medical', icon: <Stethoscope />, label: t('medicalChecks') },
+    { id: 'tools', icon: <HardHat />, label: t('tools') },
     { id: 'shiftSchedule', icon: <CalendarDays />, label: t('shiftSchedule') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
@@ -1127,6 +1133,12 @@ function App() {
             <MedicalManager />
           </motion.div>
         );
+      case 'tools':
+        return (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+            <ToolsManager />
+          </motion.div>
+        );
       case 'shiftSchedule':
         return (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
@@ -1310,11 +1322,8 @@ function App() {
             {hideHeaderTitle ? <div className="hidden md:block" /> : <h2 className="hidden md:block text-2xl font-semibold">{t(activeTab as any)}</h2>}
           </div>
 
-          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center pr-2 md:-ml-8" role="status" aria-live="polite">
-            <div className="test-mode-inline-track">
-              <span>{t('platformTestMode')}</span>
-            </div>
-          </div>
+          {/* Platforma test mode indicator removed as requested */}
+          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center pr-2 md:-ml-8" role="status" aria-live="polite" />
 
           <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0">
             <button
@@ -1540,6 +1549,8 @@ function App() {
 }
 
 export default App;
+// Trigger Vite reload
+
 
 
 

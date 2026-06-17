@@ -50,6 +50,9 @@ import pogruzchikPng from '../assets/icon/pagruzchik.png';
 import gazelPng from '../assets/icon/gazel.png';
 import manPng from '../assets/icon/man.png';
 import chakmanPng from '../assets/icon/man.png';
+import sedanPng from '../assets/icon/sedan.png';
+import traktorPng from '../assets/icon/traktor.png';
+import ekskovatorPng from '../assets/icon/ekskovator.png';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
 type VehicleKind = 'car' | 'truck' | 'forklift' | 'loader';
@@ -348,12 +351,16 @@ const vehicleIconCache = new Map<string, ReturnType<typeof divIcon>>();
 const getVehicleSvgForName = (name?: string): string | null => {
     if (!name) return null;
     const n = name.toLowerCase();
+    if (n.includes('nexia') || n.includes('damas') || n.includes('tracker') || n.includes('niva') || n.includes('chevrolet') || n.includes('kia sorento') || n.includes('bongo') || n.includes('gentra')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${sedanPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('maz') && !n.includes('kamaz')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${manPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('shantui') || n.includes('traktor')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${traktorPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('chakman')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${chakmanPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('isuz') || n.includes('isuzu')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${isuzuPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('kara')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${karaPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('man')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${manPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('pogruz') || n.includes('pogruzchik') || n.includes('pagruz')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${pogruzchikPng}" x="4" y="4" width="40" height="40"/></svg>`;
-    if (n.includes('газел') || n.includes('gazel') || n.includes('gazelle') || n.includes('gazel')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${gazelPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('газел') || n.includes('gazel') || n.includes('gazelle') || n.includes('dong fen')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${gazelPng}" x="4" y="4" width="40" height="40"/></svg>`;
+    if (n.includes('ekskovartor') || n.includes('ekskovator') || n.includes('ekskavator') || n.includes('excavator') || n.includes('эксковатор') || n.includes('экскаватор')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${ekskovatorPng}" x="4" y="4" width="40" height="40"/></svg>`;
     return null;
 };
 
@@ -468,17 +475,28 @@ const formatChartNumber = (value: number | null | undefined, digits = 1) => {
 
 // Render a small percent label inside each slice (midway between inner and outer radius)
 // Always render the percent (show 0% for empty slices) and use integer percent for compact display.
-const renderLabelInside = (props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+const createLabelRenderer = (total: number) => (props: any) => {
+    const { midAngle, innerRadius, outerRadius, percent, viewBox, value } = props;
+    
+    const cx = typeof props.cx === 'number' ? props.cx : (viewBox?.cx ?? 105);
+    const cy = typeof props.cy === 'number' ? props.cy : (viewBox?.cy ?? 135);
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.6; // position inside the ring
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5; // EXACT center of the ring
     const x = cx + radius * Math.cos(-RADIAN * midAngle);
     const y = cy + radius * Math.sin(-RADIAN * midAngle);
-    const pct = Number.isFinite(percent) ? Math.round(percent * 100) : 0;
-    const text = `${pct}%`;
+    
+    let p = 0;
+    if (typeof percent === 'number') p = percent;
+    else if (total > 0 && typeof value === 'number') p = value / total;
+
+    if (p <= 0) return null; // do not show for 0
+
+    // format to 1 decimal place like "46.1%"
+    const pctString = (p * 100).toFixed(1).replace(/\.0$/, '') + '%';
+
     return (
-        <text x={x} y={y} fill="#ffffff" fontWeight={800} fontSize={12} textAnchor="middle" dominantBaseline="central" pointerEvents="none">
-            {text}
+        <text x={x} y={y} fill="#ffffff" fontWeight={800} fontSize={13} textAnchor="middle" dominantBaseline="central" pointerEvents="none">
+            {pctString}
         </text>
     );
 };
@@ -654,6 +672,18 @@ const MapAutoFit = ({
     return null;
 };
 
+const MapResizeHandler = () => {
+    const map = useMap();
+    useEffect(() => {
+        const resizeObserver = new ResizeObserver(() => {
+            map.invalidateSize();
+        });
+        resizeObserver.observe(map.getContainer());
+        return () => resizeObserver.disconnect();
+    }, [map]);
+    return null;
+};
+
 const VehicleMarkers = ({
     vehicles,
     selectedVehicleId,
@@ -682,7 +712,7 @@ const VehicleMarkers = ({
                 const representative = cluster.vehicles[0];
                 const isSelected = cluster.vehicles.some((vehicle) => vehicle.id === selectedVehicleId);
                 const markerState = isCluster ? 'stopped' : representative.status;
-                const markerKind = isCluster ? 'car' : representative.kind;
+                const markerKind = representative.kind;
 
                 return (
                     <Marker
@@ -694,7 +724,7 @@ const VehicleMarkers = ({
                                     isSelected,
                                     cluster.vehicles.length,
                                     isCluster ? null : representative.direction,
-                                    isCluster ? undefined : representative.name,
+                                    representative.name,
                                 )}
                         eventHandlers={{
                             click: () => {
@@ -1319,7 +1349,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                             <Pie
-                                                {...({ activeIndex: activeConnectionIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                {...({ activeIndex: activeConnectionIndex ?? undefined } as any)}
+                                                activeShape={renderActiveShape}
+                                                label={createLabelRenderer(dashboardChartData.connection.total ?? counters.total) as any}
                                                 // rounded segments with a dark stroke to create a gap
                                                 cornerRadius={8}
                                                 stroke={CARD_BG_COLOR}
@@ -1367,7 +1399,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                             <Pie
-                                                {...({ activeIndex: activeMovementIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                {...({ activeIndex: activeMovementIndex ?? undefined } as any)}
+                                                activeShape={renderActiveShape}
+                                                label={createLabelRenderer(dashboardChartData.connection.total ?? counters.total) as any}
                                                 cornerRadius={8}
                                                 stroke={CARD_BG_COLOR}
                                                 strokeWidth={2}
@@ -1484,13 +1518,14 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                 </div>
                             </div>
                             {dashboardChartData.mileageTimeBuckets.length > 0 ? (
-                                <div className="relative h-[340px]" ref={timeChartRef}>
+                                <div className="relative h-[340px]" ref={timeChartRef} onMouseLeave={handleCellLeave}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={dashboardChartData.mileageTimeBuckets}
                                             margin={{ top: 20, right: 24, left: 8, bottom: 34 }}
                                             barGap={8}
                                             barCategoryGap="16%"
+                                            onMouseLeave={handleCellLeave}
                                         >
                                             <CartesianGrid stroke="rgba(148,163,184,.2)" vertical={false} />
                                             <XAxis dataKey="label" tick={{ fill: '#cbd5e1', fontSize: 12 }} interval={0} />
@@ -1576,7 +1611,9 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                                         <Pie
-                                                                    {...({ activeIndex: activeFuelIndex ?? undefined, activeShape: renderActiveShape, label: renderLabelInside } as any)}
+                                                                    {...({ activeIndex: activeFuelIndex ?? undefined } as any)}
+                                                                    activeShape={renderActiveShape}
+                                                                    label={createLabelRenderer(dashboardChartData.fuelDonut.reduce((s, i) => s + i.value, 0)) as any}
                                                                     cornerRadius={8}
                                                                     stroke={CARD_BG_COLOR}
                                                                     strokeWidth={2}
@@ -1642,7 +1679,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                 </div>
             ) : null}
 
-            <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[570px_minmax(0,1fr)]">
+            <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
                 <aside className="sr-garvex-sidebar">
                     <div className="sr-sidebar-tab">
                         <div className="sr-sidebar-tab-content">
@@ -1773,6 +1810,7 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                         className="absolute inset-0 h-full w-full sr-live-map"
                     >
                         <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
+                        <MapResizeHandler />
                         <MapAutoFit
                             vehicles={filteredVehicles}
                             selectedVehicle={filteredVehicles.some((vehicle) => vehicle.id === selectedVehicle?.id) ? selectedVehicle : null}
@@ -2069,19 +2107,22 @@ export const LiveTracker = ({ lang: _lang }: LiveTrackerProps) => {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    width: 26px;
-                    height: 22px;
+                    width: 34px;
+                    height: 28px;
                     color: #1169ff;
                     opacity: 1;
                 }
                 .sr-list-vehicle-icon svg,
                 .sr-list-vehicle-icon img {
-                    width: 22px;
-                    height: 22px;
+                    width: 28px;
+                    height: 28px;
                     fill: currentColor;
                     stroke: none;
                     object-fit: contain;
                     opacity: 1;
+                }
+                .sr-list-vehicle-icon svg image {
+                    filter: brightness(0) saturate(100%) invert(67%) sepia(91%) saturate(1210%) hue-rotate(1deg) brightness(104%) contrast(104%);
                 }
                 .sr-list-vehicle-icon.kind-forklift,
                 .sr-list-vehicle-icon.kind-loader {
