@@ -885,7 +885,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     params.set('StartTimeUnix', String(startUnix));
     params.set('EndTimeUnix', String(endUnix));
     params.set('Page', String(page));
-    params.set('CountOnPage', '500');
+    params.set('CountOnPage', '50');
     params.set('ShowAddresses', 'false');
     params.set('ShowTrackPoints', 'false');
     params.set('OrderBy', 'Mileage');
@@ -899,7 +899,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     params.set('StartTimeUnix', String(startUnix));
     params.set('EndTimeUnix', String(endUnix));
     params.set('Page', String(page));
-    params.set('CountOnPage', '500');
+    params.set('CountOnPage', '50');
     params.set('ShowAddresses', 'false');
     params.append('EventTypes', '2');
     params.append('EventTypes', '3');
@@ -972,10 +972,10 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ sensorsMask: [] }),
       },
-      Math.max(config.timeoutMs, 20_000),
-      config.requestRetries,
+      Math.max(config.timeoutMs, 30_000),
+      Math.max(config.requestRetries, 3),
     );
 
     if (!response.ok) {
@@ -986,6 +986,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     return payload && typeof payload === 'object' ? payload : {};
   }
 
+  /** Split unitIds into batches and fetch trips for each batch, merging results. */
   private async fetchTrips(
     config: GarvexTrackingConfig,
     token: string,
@@ -993,19 +994,35 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     endUnix: number,
     unitIds: number[] = [],
   ): Promise<GarvexTripRow[]> {
-    const firstPage = await this.fetchTripsPage(config, token, startUnix, endUnix, 0, unitIds);
-    const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
-    const limit = Math.min(pageCount, config.fetchMaxPages);
-    const rows = Array.isArray(firstPage?.objects) ? [...firstPage.objects] : [];
+    const BATCH_SIZE = 10;
+    const batches: number[][] = [];
+    for (let i = 0; i < unitIds.length; i += BATCH_SIZE) {
+      batches.push(unitIds.slice(i, i + BATCH_SIZE));
+    }
+    if (batches.length === 0) batches.push([]);
 
-    for (let page = 1; page < limit; page += 1) {
-      const nextPage = await this.fetchTripsPage(config, token, startUnix, endUnix, page, unitIds);
-      if (Array.isArray(nextPage?.objects)) {
-        rows.push(...nextPage.objects);
+    const allRows: GarvexTripRow[] = [];
+    for (const batch of batches) {
+      try {
+        const firstPage = await this.fetchTripsPage(config, token, startUnix, endUnix, 0, batch);
+        const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
+        const limit = Math.min(pageCount, config.fetchMaxPages);
+        if (Array.isArray(firstPage?.objects)) allRows.push(...firstPage.objects);
+
+        for (let page = 1; page < limit; page += 1) {
+          const nextPage = await this.fetchTripsPage(config, token, startUnix, endUnix, page, batch);
+          if (Array.isArray(nextPage?.objects)) {
+            allRows.push(...nextPage.objects);
+          }
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Garvex batch trips xatoligi';
+        this.logger.warn(`Garvex GetTrips batch [${batch.join(',')}] failed: ${msg}`);
+        // Continue with remaining batches instead of failing entirely
       }
     }
 
-    return rows;
+    return allRows;
   }
 
   private async fetchTripEventsPage(
@@ -1027,8 +1044,8 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
         },
         body: JSON.stringify({}),
       },
-      Math.max(config.timeoutMs, 20_000),
-      config.requestRetries,
+      Math.max(config.timeoutMs, 30_000),
+      Math.max(config.requestRetries, 3),
     );
 
     if (!response.ok) {
@@ -1039,6 +1056,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     return payload && typeof payload === 'object' ? payload : {};
   }
 
+  /** Split unitIds into batches and fetch trip events for each batch, merging results. */
   private async fetchTripEvents(
     config: GarvexTrackingConfig,
     token: string,
@@ -1046,19 +1064,35 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     endUnix: number,
     unitIds: number[] = [],
   ): Promise<GarvexTripEvent[]> {
-    const firstPage = await this.fetchTripEventsPage(config, token, startUnix, endUnix, 0, unitIds);
-    const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
-    const limit = Math.min(pageCount, config.fetchMaxPages);
-    const rows = Array.isArray(firstPage?.objects) ? [...firstPage.objects] : [];
+    const BATCH_SIZE = 10;
+    const batches: number[][] = [];
+    for (let i = 0; i < unitIds.length; i += BATCH_SIZE) {
+      batches.push(unitIds.slice(i, i + BATCH_SIZE));
+    }
+    if (batches.length === 0) batches.push([]);
 
-    for (let page = 1; page < limit; page += 1) {
-      const nextPage = await this.fetchTripEventsPage(config, token, startUnix, endUnix, page, unitIds);
-      if (Array.isArray(nextPage?.objects)) {
-        rows.push(...nextPage.objects);
+    const allRows: GarvexTripEvent[] = [];
+    for (const batch of batches) {
+      try {
+        const firstPage = await this.fetchTripEventsPage(config, token, startUnix, endUnix, 0, batch);
+        const pageCount = Math.max(1, this.toOptionalInteger(firstPage?.pageCount) ?? 1);
+        const limit = Math.min(pageCount, config.fetchMaxPages);
+        if (Array.isArray(firstPage?.objects)) allRows.push(...firstPage.objects);
+
+        for (let page = 1; page < limit; page += 1) {
+          const nextPage = await this.fetchTripEventsPage(config, token, startUnix, endUnix, page, batch);
+          if (Array.isArray(nextPage?.objects)) {
+            allRows.push(...nextPage.objects);
+          }
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Garvex batch trip events xatoligi';
+        this.logger.warn(`Garvex GetTripEvents batch [${batch.join(',')}] failed: ${msg}`);
+        // Continue with remaining batches instead of failing entirely
       }
     }
 
-    return rows;
+    return allRows;
   }
 
   private normalizeRouteStats(routeStats: GarvexRouteStats[]): NormalizedRouteStats[] {

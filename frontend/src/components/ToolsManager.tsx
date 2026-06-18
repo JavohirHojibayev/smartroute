@@ -117,12 +117,14 @@ export const ToolsManager = () => {
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'GIVEN' | 'NOT_RETURNED' | 'NOT_ISSUED' | 'DONE'>('ALL');
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<Record<number, 'issue' | 'return' | undefined>>({});
     const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<ToolIssueRow>>>(() => {
         try {
             const saved = localStorage.getItem('tools_local_updates');
             if (saved) return JSON.parse(saved);
-        } catch {}
+        } catch { }
         return {};
     });
 
@@ -184,7 +186,7 @@ export const ToolsManager = () => {
 
             /* Keep only "passed" status rows from ESMO */
             const todayStr = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Tashkent' }).split('/').reverse().join('-'); // basic fallback for YYYY-MM-DD
-            
+
             const passedEsmo = esmoRows.filter((r) => {
                 if (r.status !== 'passed') return false;
                 if (!dateFrom && !dateTo) {
@@ -233,7 +235,7 @@ export const ToolsManager = () => {
             for (const r of toolApiRows) {
                 const nameKey = String(r.full_name || '').trim().toLowerCase();
                 if (nameKey) toolByName.set(nameKey, r);
-                
+
                 const noKey = String(r.employee_no || '').trim().padStart(6, '0');
                 if (noKey && noKey !== '000000') toolByNo.set(noKey, r);
             }
@@ -244,7 +246,7 @@ export const ToolsManager = () => {
             for (const [, esmo] of bestByName) {
                 const nameKey = esmo.name.trim().toLowerCase();
                 const noKey = String(esmo.passId || '').trim().padStart(6, '0');
-                
+
                 // Match by employee_no first, then fallback to name
                 const tool = (noKey && noKey !== '000000' ? toolByNo.get(noKey) : null) || toolByName.get(nameKey);
                 counter++;
@@ -313,20 +315,20 @@ export const ToolsManager = () => {
                     if (parsed?.user?.username) return parsed.user.username;
                 }
             }
-        } catch {}
+        } catch { }
         return 'Admin';
     };
 
     const handleIssue = async (row: ToolIssueRow) => {
         setActionLoading((prev) => ({ ...prev, [row.employee_id]: 'issue' }));
-        
+
         // Optimistic UI Update
         const now = new Date().toISOString();
         const issuerName = getCurrentUser();
         const update = { status: 'ISSUED', issued_at: now, issuer: issuerName };
-        
+
         setLocalUpdates(prev => ({ ...prev, [row.id]: update }));
-        setRows((prev) => prev.map(r => 
+        setRows((prev) => prev.map(r =>
             r.id === row.id ? { ...r, ...update } : r
         ));
 
@@ -334,7 +336,7 @@ export const ToolsManager = () => {
             await fetch(`${API_BASE}/reports/lamp-self-rescuer/issue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     employee_id: row.employee_id,
                     employee_no: row.employee_no,
                     full_name: row.full_name
@@ -352,13 +354,13 @@ export const ToolsManager = () => {
 
     const handleReturn = async (row: ToolIssueRow) => {
         setActionLoading((prev) => ({ ...prev, [row.employee_id]: 'return' }));
-        
+
         // Optimistic UI Update
         const now = new Date().toISOString();
         const update = { status: 'DONE', returned_at: now };
 
         setLocalUpdates(prev => ({ ...prev, [row.id]: update }));
-        setRows((prev) => prev.map(r => 
+        setRows((prev) => prev.map(r =>
             r.id === row.id ? { ...r, ...update } : r
         ));
 
@@ -366,7 +368,7 @@ export const ToolsManager = () => {
             await fetch(`${API_BASE}/reports/lamp-self-rescuer/return`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     employee_id: row.employee_id,
                     employee_no: row.employee_no
                 })
@@ -384,13 +386,25 @@ export const ToolsManager = () => {
     }, [rows, localUpdates]);
 
     const filteredRows = useMemo(() => {
+        let result = mergedRowsState;
+
+        if (headerFilter === 'GIVEN') {
+            result = result.filter(r => r.status === 'ISSUED' || r.status === 'DONE');
+        } else if (headerFilter === 'NOT_RETURNED') {
+            result = result.filter(r => r.status === 'ISSUED');
+        } else if (headerFilter === 'NOT_ISSUED') {
+            result = result.filter(r => r.status === 'NOT_ISSUED');
+        } else if (headerFilter === 'DONE') {
+            result = result.filter(r => r.status === 'DONE');
+        }
+
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return mergedRowsState;
-        return mergedRowsState.filter((r) => {
+        if (!query) return result;
+        return result.filter((r) => {
             const haystack = `${r.full_name} ${r.employee_no}`.toLowerCase();
             return haystack.includes(query);
         });
-    }, [mergedRowsState, searchQuery]);
+    }, [mergedRowsState, searchQuery, headerFilter]);
 
     const totalRows = filteredRows.length;
     const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
@@ -651,7 +665,56 @@ export const ToolsManager = () => {
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.esmoStatus}</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.issuedAt}</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.returnedAt}</th>
-                                <th className="px-4 md:px-6 py-4 text-center">{tCols.status}</th>
+                                <th className="px-4 md:px-6 py-4 text-center relative">
+                                    {statusDropdownOpen && (
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setStatusDropdownOpen(false)}
+                                        />
+                                    )}
+                                    <div
+                                        className="flex items-center justify-center gap-1.5 cursor-pointer hover:text-blue-400 select-none transition-colors group relative z-50"
+                                        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                                    >
+                                        <span>{tCols.status}</span>
+                                        <span className={`text-[10px] transition-colors ${['NOT_RETURNED', 'NOT_ISSUED', 'DONE'].includes(headerFilter) ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400/50'}`}>▼</span>
+                                    </div>
+
+                                    {statusDropdownOpen && (
+                                        <div className="absolute top-full right-1/2 translate-x-1/2 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
+                                            <button
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('ALL'); setStatusDropdownOpen(false); }}
+                                            >
+                                                Barchasi
+                                            </button>
+                                            <button
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'GIVEN' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('GIVEN'); setStatusDropdownOpen(false); }}
+                                            >
+                                                Berilgan
+                                            </button>
+                                            <button
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('NOT_ISSUED'); setStatusDropdownOpen(false); }}
+                                            >
+                                                Berilmagan
+                                            </button>
+                                            <button
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_RETURNED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('NOT_RETURNED'); setStatusDropdownOpen(false); }}
+                                            >
+                                                Qaytarilmagan
+                                            </button>
+                                            <button
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'DONE' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('DONE'); setStatusDropdownOpen(false); }}
+                                            >
+                                                Yakunlangan
+                                            </button>
+                                        </div>
+                                    )}
+                                </th>
                                 <th className="hidden md:table-cell px-6 py-4 text-center">{tCols.issuer}</th>
                             </tr>
                         </thead>

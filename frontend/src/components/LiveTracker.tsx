@@ -41,7 +41,7 @@ import {
 } from 'recharts';
 import { useI18n } from '../i18n';
 import { resolveApiBaseUrl } from '../utils/apiBase';
-import { LocalizedDateInput } from './LocalizedDateInput';
+
 import 'leaflet/dist/leaflet.css';
 // (No local CSS variables needed here)
 import isuzuPng from '../assets/icon/avtobus(isuzu).png';
@@ -478,14 +478,14 @@ const formatChartNumber = (value: number | null | undefined, digits = 1) => {
 // Always render the percent (show 0% for empty slices) and use integer percent for compact display.
 const createLabelRenderer = (total: number) => (props: any) => {
     const { midAngle, innerRadius, outerRadius, percent, viewBox, value } = props;
-    
+
     const cx = typeof props.cx === 'number' ? props.cx : (viewBox?.cx ?? 105);
     const cy = typeof props.cy === 'number' ? props.cy : (viewBox?.cy ?? 135);
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5; // EXACT center of the ring
     const x = cx + radius * Math.cos(-RADIAN * midAngle);
     const y = cy + radius * Math.sin(-RADIAN * midAngle);
-    
+
     let p = 0;
     if (typeof percent === 'number') p = percent;
     else if (total > 0 && typeof value === 'number') p = value / total;
@@ -719,14 +719,14 @@ const VehicleMarkers = ({
                     <Marker
                         key={cluster.id}
                         position={[cluster.lat, cluster.lng]}
-                                icon={getVehicleIcon(
-                                    markerState,
-                                    markerKind,
-                                    isSelected,
-                                    cluster.vehicles.length,
-                                    isCluster ? null : representative.direction,
-                                    representative.name,
-                                )}
+                        icon={getVehicleIcon(
+                            markerState,
+                            markerKind,
+                            isSelected,
+                            cluster.vehicles.length,
+                            isCluster ? null : representative.direction,
+                            representative.name,
+                        )}
                         eventHandlers={{
                             click: () => {
                                 if (isCluster) {
@@ -852,7 +852,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
     const [dashboardRange, setDashboardRange] = useState(() => getDashboardRange('today'));
     const [dashboardDraftDates, setDashboardDraftDates] = useState(() => toDashboardDateDraft(getDashboardRange('today')));
     const [dashboardData, setDashboardData] = useState<GarvexDashboardResponse | null>(null);
-    const [dashboardLoading, setDashboardLoading] = useState(false);
+
     const [dashboardError, setDashboardError] = useState<string | null>(null);
     const [activeConnectionIndex, setActiveConnectionIndex] = useState<number | null>(null);
     const [activeMovementIndex, setActiveMovementIndex] = useState<number | null>(null);
@@ -1022,7 +1022,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
     };
 
     const loadDashboard = async () => {
-        setDashboardLoading(true);
         try {
             const params = new URLSearchParams();
             params.set('preset', dashboardPreset);
@@ -1040,8 +1039,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
             setDashboardError(null);
         } catch (error) {
             setDashboardError(error instanceof Error ? error.message : 'Dashboard ma\'lumotlarini olishda xatolik');
-        } finally {
-            setDashboardLoading(false);
         }
     };
 
@@ -1255,11 +1252,10 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                     key={item.id}
                                     type="button"
                                     onClick={() => setTrackingNavTab(item.id)}
-                                    className={`flex min-h-[3.5rem] min-w-[9.5rem] flex-1 flex-col items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-center text-sm font-semibold transition-colors sm:min-h-[4.25rem] sm:text-base lg:text-lg ${
-                                        active
-                                            ? 'border-blue-500 bg-blue-500/10 text-blue-300'
-                                            : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                                    }`}
+                                    className={`flex min-h-[3.5rem] min-w-[9.5rem] flex-1 flex-col items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-center text-sm font-semibold transition-colors sm:min-h-[4.25rem] sm:text-base lg:text-lg ${active
+                                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                                        : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                                        }`}
                                     aria-current={active ? 'page' : undefined}
                                 >
                                     <Icon
@@ -1279,62 +1275,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
 
             {trackingNavTab === 'dashboard' ? (
                 <div className="space-y-4 pb-10">
-                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-3 sm:p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex flex-wrap gap-1.5">
-                                {([
-                                    ['today', 'Bugun'],
-                                    ['yesterday', 'Kecha'],
-                                    ['week', 'Hafta'],
-                                    ['month', 'Oy'],
-                                ] as const).map(([id, label]) => (
-                                    <button
-                                        key={id}
-                                        type="button"
-                                        onClick={() => applyDashboardPreset(id)}
-                                        className={`min-w-[86px] rounded-md border px-4 py-2 text-xs font-bold uppercase transition-colors ${
-                                            dashboardPreset === id
-                                                ? 'border-blue-400 bg-blue-600 text-white'
-                                                : 'border-slate-700 bg-slate-900/45 text-slate-300 hover:border-blue-400/60 hover:text-blue-200'
-                                        }`}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <LocalizedDateInput
-                                    label="Sanadan"
-                                    value={dashboardDraftDates.from}
-                                    maxDate={dashboardDraftDates.to || undefined}
-                                    onChange={(value) => {
-                                        setDashboardPreset('custom');
-                                        setDashboardDraftDates((prev) => ({ ...prev, from: value }));
-                                    }}
-                                    minWidth={210}
-                                />
-                                <span className="text-slate-500">→</span>
-                                <LocalizedDateInput
-                                    label="Sanagacha"
-                                    value={dashboardDraftDates.to}
-                                    minDate={dashboardDraftDates.from || undefined}
-                                    onChange={(value) => {
-                                        setDashboardPreset('custom');
-                                        setDashboardDraftDates((prev) => ({ ...prev, to: value }));
-                                    }}
-                                    minWidth={210}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={applyDashboardRange}
-                                    className="rounded-lg border border-blue-500/60 bg-blue-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition-colors hover:bg-blue-500"
-                                >
-                                    Qo'llash
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     {syncMessage || dashboardError || dashboardData?.reportError ? (
                         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
                             {dashboardError || dashboardData?.reportError || syncMessage}
@@ -1445,63 +1385,63 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                             <h3 className="mb-2 text-lg font-semibold text-slate-100">Top obyektlar probegi</h3>
                             {dashboardChartData.mileageChart.length > 0 ? (
                                 <>
-                                <div className={`chart-container relative h-[285px] ${hoveredTopIndex != null ? 'show-tooltip' : ''}`}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dashboardChartData.mileageChart} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
-                                            <CartesianGrid stroke="rgba(148,163,184,.18)" horizontal={false} />
-                                            <XAxis type="number" tick={{ fill: '#cbd5e1', fontSize: 11 }} tickFormatter={(value) => `${formatChartNumber(Number(value), 0)} km`} />
-                                            <YAxis type="category" dataKey="shortName" width={104} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                                            {/* Use per-bar Cells with unique colors and single-bar tooltip (no global ChartTooltip) */}
-                                            <Bar dataKey="mileage" radius={[0, 4, 4, 0]} barSize={38}>
-                                                {dashboardChartData.mileageChart.map((item, idx) => {
-                                                    const color = DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length];
-                                                    const isHovered = hoveredTopIndex === idx;
-                                                    const dim = hoveredTopIndex != null && hoveredTopIndex !== idx;
-                                                    return (
-                                                        <Cell
-                                                            key={String(item.name || idx)}
-                                                            fill={color}
-                                                            opacity={isHovered ? 1 : dim ? 0.35 : 0.95}
-                                                            onMouseEnter={() => setHoveredTopIndex(idx)}
-                                                            onMouseLeave={() => setHoveredTopIndex(null)}
-                                                        />
-                                                    );
-                                                })}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <div className={`chart-container relative h-[285px] ${hoveredTopIndex != null ? 'show-tooltip' : ''}`}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={dashboardChartData.mileageChart} layout="vertical" margin={{ top: 10, right: 18, left: 12, bottom: 12 }}>
+                                                <CartesianGrid stroke="rgba(148,163,184,.18)" horizontal={false} />
+                                                <XAxis type="number" tick={{ fill: '#cbd5e1', fontSize: 11 }} tickFormatter={(value) => `${formatChartNumber(Number(value), 0)} km`} />
+                                                <YAxis type="category" dataKey="shortName" width={104} tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                                                {/* Use per-bar Cells with unique colors and single-bar tooltip (no global ChartTooltip) */}
+                                                <Bar dataKey="mileage" radius={[0, 4, 4, 0]} barSize={38}>
+                                                    {dashboardChartData.mileageChart.map((item, idx) => {
+                                                        const color = DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length];
+                                                        const isHovered = hoveredTopIndex === idx;
+                                                        const dim = hoveredTopIndex != null && hoveredTopIndex !== idx;
+                                                        return (
+                                                            <Cell
+                                                                key={String(item.name || idx)}
+                                                                fill={color}
+                                                                opacity={isHovered ? 1 : dim ? 0.35 : 0.95}
+                                                                onMouseEnter={() => setHoveredTopIndex(idx)}
+                                                                onMouseLeave={() => setHoveredTopIndex(null)}
+                                                            />
+                                                        );
+                                                    })}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
 
-                                    {/* Floating tooltip for single bar hover */}
-                                    {hoveredTopIndex != null && (() => {
-                                        const item = dashboardChartData.mileageChart[hoveredTopIndex];
-                                        const color = DASHBOARD_BAR_COLORS[hoveredTopIndex % DASHBOARD_BAR_COLORS.length];
-                                        return (
-                                            <div className="absolute z-50 pointer-events-none right-6 top-10">
-                                                <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[220px]">
-                                                    <div className="mb-2 flex items-center gap-2">
-                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
-                                                        <div className="text-xs text-slate-300">{formatLongDate(new Date())}</div>
+                                        {/* Floating tooltip for single bar hover */}
+                                        {hoveredTopIndex != null && (() => {
+                                            const item = dashboardChartData.mileageChart[hoveredTopIndex];
+                                            const color = DASHBOARD_BAR_COLORS[hoveredTopIndex % DASHBOARD_BAR_COLORS.length];
+                                            return (
+                                                <div className="absolute z-50 pointer-events-none right-6 top-10">
+                                                    <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[220px]">
+                                                        <div className="mb-2 flex items-center gap-2">
+                                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                                            <div className="text-xs text-slate-300">{formatLongDate(new Date())}</div>
+                                                        </div>
+                                                        <div className="text-sm font-bold text-slate-100">{item.name}</div>
+                                                        <div className="text-xs text-slate-400">{(() => {
+                                                            const parts = String(item.name || '').trim().split(/\s+/);
+                                                            const lastParts = parts.slice(-3).join(' ');
+                                                            return /\d/.test(lastParts) ? lastParts : '';
+                                                        })()}</div>
+                                                        <div className="mt-2 text-lg font-black text-white">{formatChartNumber(item.mileage ?? 0, 1)} km</div>
                                                     </div>
-                                                    <div className="text-sm font-bold text-slate-100">{item.name}</div>
-                                                    <div className="text-xs text-slate-400">{(() => {
-                                                        const parts = String(item.name || '').trim().split(/\s+/);
-                                                        const lastParts = parts.slice(-3).join(' ');
-                                                        return /\d/.test(lastParts) ? lastParts : '';
-                                                    })()}</div>
-                                                    <div className="mt-2 text-lg font-black text-white">{formatChartNumber(item.mileage ?? 0, 1)} km</div>
                                                 </div>
+                                            );
+                                        })()}
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                                        {dashboardChartData.mileageChart.map((item, idx) => (
+                                            <div key={item.name} className="inline-flex items-center gap-2 text-xs text-slate-300">
+                                                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length]} /></svg>
+                                                <span className="max-w-[220px] truncate">{item.name}</span>
                                             </div>
-                                        );
-                                    })()}
-                                </div>
-                                <div className="mt-3 flex flex-wrap items-center gap-3">
-                                    {dashboardChartData.mileageChart.map((item, idx) => (
-                                        <div key={item.name} className="inline-flex items-center gap-2 text-xs text-slate-300">
-                                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={DASHBOARD_BAR_COLORS[idx % DASHBOARD_BAR_COLORS.length]} /></svg>
-                                            <span className="max-w-[220px] truncate">{item.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
                                 </>
                             ) : (
                                 <div className="flex h-[285px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
@@ -1613,29 +1553,29 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                         <div className="relative h-full min-w-0 overflow-visible">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                                                        <Pie
-                                                                    {...({ activeIndex: activeFuelIndex ?? undefined } as any)}
-                                                                    activeShape={renderActiveShape}
-                                                                    label={createLabelRenderer(dashboardChartData.fuelDonut.reduce((s, i) => s + i.value, 0)) as any}
-                                                                    cornerRadius={8}
-                                                                    stroke={CARD_BG_COLOR}
-                                                                    strokeWidth={2}
-                                                            labelLine={false}
-                                                            data={dashboardChartData.fuelDonut}
-                                                            dataKey="value"
-                                                            nameKey="name"
-                                                            cx="50%"
-                                                            cy="50%"
-                                                            innerRadius={62}
-                                                            outerRadius={98}
-                                                            paddingAngle={3}
-                                                            onMouseEnter={(_, index) => setActiveFuelIndex(index)}
-                                                            onMouseLeave={() => setActiveFuelIndex(null)}
-                                                        >
-                                                            {dashboardChartData.fuelDonut.map((entry) => (
-                                                                <Cell key={entry.name} fill={entry.color} stroke={CARD_BG_COLOR} strokeWidth={2} />
-                                                            ))}
-                                                        </Pie>
+                                                    <Pie
+                                                        {...({ activeIndex: activeFuelIndex ?? undefined } as any)}
+                                                        activeShape={renderActiveShape}
+                                                        label={createLabelRenderer(dashboardChartData.fuelDonut.reduce((s, i) => s + i.value, 0)) as any}
+                                                        cornerRadius={8}
+                                                        stroke={CARD_BG_COLOR}
+                                                        strokeWidth={2}
+                                                        labelLine={false}
+                                                        data={dashboardChartData.fuelDonut}
+                                                        dataKey="value"
+                                                        nameKey="name"
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={62}
+                                                        outerRadius={98}
+                                                        paddingAngle={3}
+                                                        onMouseEnter={(_, index) => setActiveFuelIndex(index)}
+                                                        onMouseLeave={() => setActiveFuelIndex(null)}
+                                                    >
+                                                        {dashboardChartData.fuelDonut.map((entry) => (
+                                                            <Cell key={entry.name} fill={entry.color} stroke={CARD_BG_COLOR} strokeWidth={2} />
+                                                        ))}
+                                                    </Pie>
                                                 </PieChart>
                                             </ResponsiveContainer>
                                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -1644,11 +1584,11 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                         </div>
                                         <div className="flex min-w-[112px] flex-col gap-2 text-xs font-bold">
                                             {dashboardChartData.fuelDonut.map((entry) => (
-                                                    <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
-                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={entry.color} /></svg>
-                                                        {entry.name}
-                                                    </span>
-                                                ))}
+                                                <span key={entry.name} className="inline-flex items-center gap-2 text-slate-300">
+                                                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={entry.color} /></svg>
+                                                    {entry.name}
+                                                </span>
+                                            ))}
                                         </div>
                                     </>
                                 ) : (
@@ -1668,167 +1608,163 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                         </section>
                     </div>
 
-                    {dashboardLoading ? (
-                        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200">
-                            Dashboard ma'lumotlari yangilanmoqda...
-                        </div>
-                    ) : null}
+
                 </div>
             ) : (
                 <>
-            {syncMessage ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-                    {syncMessage}
-                </div>
-            ) : null}
-
-            <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
-                <aside className="sr-garvex-sidebar">
-                    <div className="sr-sidebar-tab">
-                        <div className="sr-sidebar-tab-content">
-                            <button type="button" className="sr-sidebar-tab-button">
-                                <Truck size={20} />
-                                <span>{t('trackingObjects')}</span>
-                            </button>
-                            <label className="sr-sidebar-search sr-sidebar-search-inline">
-                                <Search size={18} />
-                                <input
-                                    ref={searchInputRef}
-                                    value={query}
-                                    onChange={(event) => setQuery(event.target.value)}
-                                    placeholder={t('trackingSearchPlaceholder')}
-                                />
-                            </label>
+                    {syncMessage ? (
+                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
+                            {syncMessage}
                         </div>
-                    </div>
+                    ) : null}
 
-                    <div className="sr-sidebar-toolbar">
-                        <div className="sr-sidebar-toolbar-left">
-                            <ChevronDown size={16} />
-                            <span className="sr-sort-icon">A/Z</span>
-                            <List size={18} />
-                            <RotateCw size={17} />
-                        </div>
-                        <div className="sr-sidebar-toolbar-right">
-                            <LocateFixed size={18} />
-                            <CircleDot size={17} />
-                            <KeyRound size={17} />
-                            <Satellite size={17} />
-                            <Gauge size={17} />
-                            <Fuel size={17} />
-                            <X size={17} />
-                        </div>
-                    </div>
-
-                    <div className="sr-sidebar-group-row">
-                        <ChevronDown size={16} />
-                        <span className="sr-group-title">Kaliy zavod</span>
-                        <span className="sr-group-count">{filteredVehicles.length} / {counters.total}</span>
-                        <span className="sr-group-status-badges">
-                            <button
-                                type="button"
-                                className={`sr-group-status-badge is-total ${statusFilter === 'all' ? 'is-active' : ''}`}
-                                
-                                onClick={() => setStatusFilter('all')}
-                            >
-                                <span className="sr-group-status-dot" /> {counters.total} Transport
-                            </button>
-                            <button
-                                type="button"
-                                className={`sr-group-status-badge is-moving ${statusFilter === 'moving' ? 'is-active' : ''}`}
-                                
-                                onClick={() => setStatusFilter('moving')}
-                            >
-                                {counters.moving} Harakatda
-                            </button>
-                            <button
-                                type="button"
-                                className={`sr-group-status-badge is-stopped ${statusFilter === 'stopped' ? 'is-active' : ''}`}
-                                
-                                onClick={() => setStatusFilter('stopped')}
-                            >
-                                {counters.stopped} To'xtagan
-                            </button>
-                            <button
-                                type="button"
-                                className={`sr-group-status-badge is-offline ${statusFilter === 'offline' ? 'is-active' : ''}`}
-                                
-                                onClick={() => setStatusFilter('offline')}
-                            >
-                                {counters.offline} Aloqa yo'q
-                            </button>
-                        </span>
-                    </div>
-
-                    <div className="sr-sidebar-list">
-                        {filteredVehicles.length === 0 ? (
-                            <div className="sr-sidebar-empty">
-                                {t('trackingNotFound')}
-                            </div>
-                        ) : (
-                            filteredVehicles.map((vehicle) => {
-                                return (
-                                    <button
-                                        key={vehicle.id}
-                                        type="button"
-                                        onClick={() => setSelectedVehicleId(vehicle.id)}
-                                        className="sr-object-row"
-                                    >
-                                        <span className="sr-tree-branch" aria-hidden="true" />
-                                        <span
-                                            className={`sr-list-vehicle-icon ${stateStyles[vehicle.status].marker} kind-${vehicle.kind}`}
-                                            dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(vehicle.name, vehicle.kind) }}
-                                        />
-                                        <span className="sr-object-main">
-                                            <span className="sr-object-name">{vehicle.name}</span>
-                                            <span className="sr-object-address">{vehicle.address}</span>
-                                        </span>
-                                        <span className="sr-object-telemetry">
-                                            <LocateFixed size={17} className="sr-muted-icon" />
-                                            <Radio size={16} className={vehicle.status === 'offline' ? 'sr-red-icon' : 'sr-green-icon'} />
-                                            <KeyRound size={16} className={vehicle.ignition ? 'sr-green-icon' : 'sr-muted-icon'} />
-                                            <span className={vehicle.satellites == null ? 'sr-muted-text' : 'sr-green-text'}>
-                                                {vehicle.satellites ?? '?'}
-                                            </span>
-                                            <span className="sr-blue-text">{formatMetric(vehicle.speed, '')}</span>
-                                            <span className={vehicle.fuelLevel == null ? 'sr-muted-text' : 'sr-slate-text'}>
-                                                {vehicle.fuelLevel == null ? '?' : formatMetric(vehicle.fuelLevel)}
-                                            </span>
-                                            <MoreVertical size={17} className="sr-muted-icon" />
-                                        </span>
+                    <div className="grid min-h-[680px] grid-cols-1 gap-4 xl:grid-cols-[440px_minmax(0,1fr)]">
+                        <aside className="sr-garvex-sidebar">
+                            <div className="sr-sidebar-tab">
+                                <div className="sr-sidebar-tab-content">
+                                    <button type="button" className="sr-sidebar-tab-button">
+                                        <Truck size={20} />
+                                        <span>{t('trackingObjects')}</span>
                                     </button>
-                                );
-                            })
-                        )}
+                                    <label className="sr-sidebar-search sr-sidebar-search-inline">
+                                        <Search size={18} />
+                                        <input
+                                            ref={searchInputRef}
+                                            value={query}
+                                            onChange={(event) => setQuery(event.target.value)}
+                                            placeholder={t('trackingSearchPlaceholder')}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="sr-sidebar-toolbar">
+                                <div className="sr-sidebar-toolbar-left">
+                                    <ChevronDown size={16} />
+                                    <span className="sr-sort-icon">A/Z</span>
+                                    <List size={18} />
+                                    <RotateCw size={17} />
+                                </div>
+                                <div className="sr-sidebar-toolbar-right">
+                                    <LocateFixed size={18} />
+                                    <CircleDot size={17} />
+                                    <KeyRound size={17} />
+                                    <Satellite size={17} />
+                                    <Gauge size={17} />
+                                    <Fuel size={17} />
+                                    <X size={17} />
+                                </div>
+                            </div>
+
+                            <div className="sr-sidebar-group-row">
+                                <ChevronDown size={16} />
+                                <span className="sr-group-title">Kaliy zavod</span>
+                                <span className="sr-group-count">{filteredVehicles.length} / {counters.total}</span>
+                                <span className="sr-group-status-badges">
+                                    <button
+                                        type="button"
+                                        className={`sr-group-status-badge is-total ${statusFilter === 'all' ? 'is-active' : ''}`}
+
+                                        onClick={() => setStatusFilter('all')}
+                                    >
+                                        <span className="sr-group-status-dot" /> {counters.total} Transport
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`sr-group-status-badge is-moving ${statusFilter === 'moving' ? 'is-active' : ''}`}
+
+                                        onClick={() => setStatusFilter('moving')}
+                                    >
+                                        {counters.moving} Harakatda
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`sr-group-status-badge is-stopped ${statusFilter === 'stopped' ? 'is-active' : ''}`}
+
+                                        onClick={() => setStatusFilter('stopped')}
+                                    >
+                                        {counters.stopped} To'xtagan
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`sr-group-status-badge is-offline ${statusFilter === 'offline' ? 'is-active' : ''}`}
+
+                                        onClick={() => setStatusFilter('offline')}
+                                    >
+                                        {counters.offline} Aloqa yo'q
+                                    </button>
+                                </span>
+                            </div>
+
+                            <div className="sr-sidebar-list">
+                                {filteredVehicles.length === 0 ? (
+                                    <div className="sr-sidebar-empty">
+                                        {t('trackingNotFound')}
+                                    </div>
+                                ) : (
+                                    filteredVehicles.map((vehicle) => {
+                                        return (
+                                            <button
+                                                key={vehicle.id}
+                                                type="button"
+                                                onClick={() => setSelectedVehicleId(vehicle.id)}
+                                                className="sr-object-row"
+                                            >
+                                                <span className="sr-tree-branch" aria-hidden="true" />
+                                                <span
+                                                    className={`sr-list-vehicle-icon ${stateStyles[vehicle.status].marker} kind-${vehicle.kind}`}
+                                                    dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(vehicle.name, vehicle.kind) }}
+                                                />
+                                                <span className="sr-object-main">
+                                                    <span className="sr-object-name">{vehicle.name}</span>
+                                                    <span className="sr-object-address">{vehicle.address}</span>
+                                                </span>
+                                                <span className="sr-object-telemetry">
+                                                    <LocateFixed size={17} className="sr-muted-icon" />
+                                                    <Radio size={16} className={vehicle.status === 'offline' ? 'sr-red-icon' : 'sr-green-icon'} />
+                                                    <KeyRound size={16} className={vehicle.ignition ? 'sr-green-icon' : 'sr-muted-icon'} />
+                                                    <span className={vehicle.satellites == null ? 'sr-muted-text' : 'sr-green-text'}>
+                                                        {vehicle.satellites ?? '?'}
+                                                    </span>
+                                                    <span className="sr-blue-text">{formatMetric(vehicle.speed, '')}</span>
+                                                    <span className={vehicle.fuelLevel == null ? 'sr-muted-text' : 'sr-slate-text'}>
+                                                        {vehicle.fuelLevel == null ? '?' : formatMetric(vehicle.fuelLevel)}
+                                                    </span>
+                                                    <MoreVertical size={17} className="sr-muted-icon" />
+                                                </span>
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </aside>
+
+                        <section className="glass-panel relative min-h-[560px] overflow-hidden rounded-2xl border border-slate-700/55 xl:h-[calc(100vh-10.5rem)] xl:min-h-[680px]">
+                            <MapContainer
+                                center={MAP_FALLBACK_CENTER}
+                                zoom={9}
+                                minZoom={4}
+                                maxZoom={18}
+                                scrollWheelZoom
+                                className="absolute inset-0 h-full w-full sr-live-map"
+                            >
+                                <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
+                                <MapResizeHandler />
+                                <MapAutoFit
+                                    vehicles={filteredVehicles}
+                                    selectedVehicle={filteredVehicles.some((vehicle) => vehicle.id === selectedVehicle?.id) ? selectedVehicle : null}
+                                    fitKey={`${statusFilter}:${query.trim().toLowerCase() || 'all'}`}
+                                />
+
+                                <VehicleMarkers
+                                    vehicles={filteredVehicles}
+                                    selectedVehicleId={selectedVehicleId}
+                                    onSelect={setSelectedVehicleId}
+                                />
+                            </MapContainer>
+
+                        </section>
                     </div>
-                </aside>
-
-                <section className="glass-panel relative min-h-[560px] overflow-hidden rounded-2xl border border-slate-700/55 xl:h-[calc(100vh-10.5rem)] xl:min-h-[680px]">
-                    <MapContainer
-                        center={MAP_FALLBACK_CENTER}
-                        zoom={9}
-                        minZoom={4}
-                        maxZoom={18}
-                        scrollWheelZoom
-                        className="absolute inset-0 h-full w-full sr-live-map"
-                    >
-                        <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
-                        <MapResizeHandler />
-                        <MapAutoFit
-                            vehicles={filteredVehicles}
-                            selectedVehicle={filteredVehicles.some((vehicle) => vehicle.id === selectedVehicle?.id) ? selectedVehicle : null}
-                            fitKey={`${statusFilter}:${query.trim().toLowerCase() || 'all'}`}
-                        />
-
-                        <VehicleMarkers
-                            vehicles={filteredVehicles}
-                            selectedVehicleId={selectedVehicleId}
-                            onSelect={setSelectedVehicleId}
-                        />
-                    </MapContainer>
-
-                </section>
-            </div>
                 </>
             )}
 

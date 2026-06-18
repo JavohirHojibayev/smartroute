@@ -19,11 +19,24 @@ export class ToolsController {
     
     const query = this.toolIssueRepo.createQueryBuilder('t').orderBy('t.id', 'DESC');
     
-    // Optionally filter by date if needed, but usually we want current status
-    if (startDate) {
-      query.andWhere('t.issued_at >= :startDate', { startDate: new Date(startDate) });
-    }
-    
+    // We want to show currently ISSUED tools regardless of the date filter.
+    // We also want to show tools that were issued OR returned within the date range.
+    if (startDate && endDate) {
+      query.andWhere(
+        '(t.issued_at BETWEEN :startDate AND :endDate OR t.returned_at BETWEEN :startDate AND :endDate OR t.status = :status)',
+        { startDate: new Date(startDate), endDate: new Date(endDate), status: 'ISSUED' }
+      );
+    } else if (startDate) {
+      query.andWhere(
+        '(t.issued_at >= :startDate OR t.returned_at >= :startDate OR t.status = :status)',
+        { startDate: new Date(startDate), status: 'ISSUED' }
+      );
+    } else if (endDate) {
+      query.andWhere(
+        '(t.issued_at <= :endDate OR t.returned_at <= :endDate OR t.status = :status)',
+        { endDate: new Date(endDate), status: 'ISSUED' }
+      );
+    }    
     const allLogs = await query.getMany();
     const latestPerEmployee = new Map<string, ToolIssue>();
     

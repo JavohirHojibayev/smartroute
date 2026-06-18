@@ -1065,6 +1065,9 @@ function App() {
               </div>
             </div>
 
+            {/* GPS Monitoring Charts on Dashboard */}
+            <LiveTracker lang={lang} dashboardOnly={true} />
+
           </motion.div>
         );
       case 'fleet':
