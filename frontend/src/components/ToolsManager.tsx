@@ -117,7 +117,7 @@ export const ToolsManager = () => {
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'GIVEN' | 'NOT_RETURNED' | 'NOT_ISSUED' | 'DONE'>('ALL');
+    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'ISSUED' | 'NOT_ISSUED' | 'DONE' | 'RETURNED' | 'COMPLETED'>('ALL');
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<Record<number, 'issue' | 'return' | undefined>>({});
     const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<ToolIssueRow>>>(() => {
@@ -189,14 +189,6 @@ export const ToolsManager = () => {
 
             const passedEsmo = esmoRows.filter((r) => {
                 if (r.status !== 'passed') return false;
-                if (!dateFrom && !dateTo) {
-                    // Only today's records
-                    if (!r.time || !r.time.startsWith(todayStr) && !r.time.includes(new Date().toISOString().split('T')[0])) {
-                        // Let's use a robust date check
-                        const rowDate = new Date(r.timeMs).toLocaleDateString('en-GB', { timeZone: 'Asia/Tashkent' }).split('/').reverse().join('-');
-                        if (rowDate !== todayStr) return false;
-                    }
-                }
                 return true;
             });
 
@@ -273,7 +265,36 @@ export const ToolsManager = () => {
                 });
 
                 /* Remove from tool map so we don't duplicate */
-                if (tool) toolByName.delete(nameKey);
+                if (tool) {
+                    toolByName.delete(nameKey);
+                    if (noKey) toolByNo.delete(noKey);
+                }
+            }
+
+            /* Append remaining tools that didn't have an ESMO record today/in range */
+            const remainingTools = new Set([...toolByName.values(), ...toolByNo.values()]);
+            for (const tool of remainingTools) {
+                counter++;
+                mergedRows.push({
+                    id: `${tool.employee_id}-${tool.employee_no}-${counter}`,
+                    employee_id: tool.employee_id,
+                    employee_no: tool.employee_no,
+                    full_name: tool.full_name,
+                    turnstile_time: tool.turnstile_time ?? null,
+                    esmo_time: '-',
+                    esmo_status: '-',
+                    tool_name: tool.tool_name ?? '',
+                    quantity: tool.quantity ?? 0,
+                    issued_at: tool.issued_at ?? null,
+                    returned_at: tool.returned_at ?? null,
+                    issuer: tool.issuer ?? null,
+                    status: tool.status ?? 'NOT_ISSUED',
+                    esmo_bp: null,
+                    esmo_pulse: null,
+                    esmo_temperature: null,
+                    esmo_alcohol: null,
+                    esmo_alcohol_detected: null,
+                });
             }
 
             setRows(mergedRows);
@@ -388,12 +409,12 @@ export const ToolsManager = () => {
     const filteredRows = useMemo(() => {
         let result = mergedRowsState;
 
-        if (headerFilter === 'GIVEN') {
-            result = result.filter(r => r.status === 'ISSUED' || r.status === 'DONE');
-        } else if (headerFilter === 'NOT_RETURNED') {
+        if (headerFilter === 'ISSUED') {
             result = result.filter(r => r.status === 'ISSUED');
         } else if (headerFilter === 'NOT_ISSUED') {
             result = result.filter(r => r.status === 'NOT_ISSUED');
+        } else if (headerFilter === 'RETURNED' || headerFilter === 'COMPLETED') {
+            result = result.filter(r => r.status === 'DONE');
         } else if (headerFilter === 'DONE') {
             result = result.filter(r => r.status === 'DONE');
         }
@@ -531,43 +552,67 @@ export const ToolsManager = () => {
         return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     };
 
-    /* ---------- Stat cards (widget values from ESMO data) ---------- */
+    /* ---------- Stat cards (widget values from TODAY's data only) ---------- */
     const stats = useMemo(() => {
-        const total = filteredRows.length;
-        const issued = filteredRows.filter((r) => r.status === 'ISSUED' || isActiveIssue(r)).length;
-        const returned = filteredRows.filter((r) => r.status === 'DONE').length;
-        const problems = filteredRows.filter((r) => r.status === 'FAIL' || r.esmo_alcohol_detected === true).length;
-        return { total, issued, returned, problems };
-    }, [filteredRows]);
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const isToday = (dateStr: string | null | undefined): boolean => {
+            if (!dateStr || dateStr === '-') return false;
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return false;
+            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return dStr === todayStr;
+        };
+
+        /* Jami xodimlar = bugun ESMO dan o'tgan (ruxsat olgan) xodimlar soni */
+        const total = mergedRowsState.filter(r => isToday(r.esmo_time)).length;
+        /* Berilgan = bugun vosita berilgan va hali qaytarmagan */
+        const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.issued_at)).length;
+        /* Qaytarilgan = bugun vosita qaytargan */
+        const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
+        /* Yakunlangan = bugun yakunlangan (qaytarilgan) */
+        const completed = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
+        return { total, issued, returned, completed };
+    }, [mergedRowsState]);
+
+    const handleWidgetClick = (filterId: 'ALL' | 'ISSUED' | 'RETURNED' | 'COMPLETED') => {
+        setHeaderFilter(prev => prev === filterId ? 'ALL' : filterId);
+        setCurrentPage(1);
+    };
 
     const toolStatCards = [
         {
-            id: 'total',
+            id: 'total' as const,
+            filterId: 'ALL' as const,
             title: lang === 'uz' ? 'Jami xodimlar' : lang === 'ru' ? 'Всего сотрудников' : 'Total Employees',
             value: String(stats.total),
             color: 'from-blue-500 to-cyan-400',
             icon: <HardHat />,
         },
         {
-            id: 'issued',
+            id: 'issued' as const,
+            filterId: 'ISSUED' as const,
             title: lang === 'uz' ? 'Berilgan' : lang === 'ru' ? 'Выдано' : 'Issued',
             value: String(stats.issued),
             color: 'from-violet-500 to-fuchsia-400',
             icon: <Clock />,
         },
         {
-            id: 'returned',
+            id: 'returned' as const,
+            filterId: 'RETURNED' as const,
             title: lang === 'uz' ? 'Qaytarilgan' : lang === 'ru' ? 'Возвращено' : 'Returned',
             value: String(stats.returned),
             color: 'from-emerald-500 to-teal-400',
             icon: <CheckCircle2 />,
         },
         {
-            id: 'problems',
-            title: lang === 'uz' ? 'Muammoli' : lang === 'ru' ? 'Проблемные' : 'Problems',
-            value: String(stats.problems),
+            id: 'completed' as const,
+            filterId: 'COMPLETED' as const,
+            title: lang === 'uz' ? 'Yakunlangan' : lang === 'ru' ? 'Завершено' : 'Completed',
+            value: String(stats.completed),
             color: 'from-amber-500 to-orange-400',
-            icon: <AlertCircle />,
+            icon: <CheckCircle2 />,
         },
     ];
 
@@ -577,7 +622,12 @@ export const ToolsManager = () => {
                 {toolStatCards.map((card) => (
                     <div
                         key={card.id}
-                        className="glass-panel rounded-2xl p-4 border border-slate-700/50 relative overflow-hidden group"
+                        onClick={() => handleWidgetClick(card.filterId)}
+                        className={`glass-panel rounded-2xl p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
+                            headerFilter === card.filterId
+                                ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
+                                : 'border-slate-700/50 hover:border-slate-600/60'
+                        }`}
                     >
                         <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
                         <div className="relative z-10 flex items-start justify-between gap-4">
@@ -677,38 +727,32 @@ export const ToolsManager = () => {
                                         onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                                     >
                                         <span>{tCols.status}</span>
-                                        <span className={`text-[10px] transition-colors ${['NOT_RETURNED', 'NOT_ISSUED', 'DONE'].includes(headerFilter) ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400/50'}`}>▼</span>
+                                        <span className={`text-[10px] transition-colors ${headerFilter !== 'ALL' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400/50'}`}>▼</span>
                                     </div>
 
                                     {statusDropdownOpen && (
                                         <div className="absolute top-full right-1/2 translate-x-1/2 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
                                             <button
                                                 className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('ALL'); setStatusDropdownOpen(false); }}
+                                                onClick={() => { setHeaderFilter('ALL'); setStatusDropdownOpen(false); setCurrentPage(1); }}
                                             >
                                                 Barchasi
                                             </button>
                                             <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'GIVEN' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('GIVEN'); setStatusDropdownOpen(false); }}
+                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                onClick={() => { setHeaderFilter('ISSUED'); setStatusDropdownOpen(false); setCurrentPage(1); }}
                                             >
                                                 Berilgan
                                             </button>
                                             <button
                                                 className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('NOT_ISSUED'); setStatusDropdownOpen(false); }}
+                                                onClick={() => { setHeaderFilter('NOT_ISSUED'); setStatusDropdownOpen(false); setCurrentPage(1); }}
                                             >
                                                 Berilmagan
                                             </button>
                                             <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_RETURNED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('NOT_RETURNED'); setStatusDropdownOpen(false); }}
-                                            >
-                                                Qaytarilmagan
-                                            </button>
-                                            <button
                                                 className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'DONE' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('DONE'); setStatusDropdownOpen(false); }}
+                                                onClick={() => { setHeaderFilter('DONE'); setStatusDropdownOpen(false); setCurrentPage(1); }}
                                             >
                                                 Yakunlangan
                                             </button>

@@ -974,7 +974,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
         },
         body: JSON.stringify({ sensorsMask: [] }),
       },
-      Math.max(config.timeoutMs, 30_000),
+      Math.max(config.timeoutMs, 45_000),
       Math.max(config.requestRetries, 3),
     );
 
@@ -994,7 +994,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     endUnix: number,
     unitIds: number[] = [],
   ): Promise<GarvexTripRow[]> {
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 3;
     const batches: number[][] = [];
     for (let i = 0; i < unitIds.length; i += BATCH_SIZE) {
       batches.push(unitIds.slice(i, i + BATCH_SIZE));
@@ -1044,7 +1044,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
         },
         body: JSON.stringify({}),
       },
-      Math.max(config.timeoutMs, 30_000),
+      Math.max(config.timeoutMs, 45_000),
       Math.max(config.requestRetries, 3),
     );
 
@@ -1064,7 +1064,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
     endUnix: number,
     unitIds: number[] = [],
   ): Promise<GarvexTripEvent[]> {
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 3;
     const batches: number[][] = [];
     for (let i = 0; i < unitIds.length; i += BATCH_SIZE) {
       batches.push(unitIds.slice(i, i + BATCH_SIZE));

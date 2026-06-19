@@ -75,7 +75,7 @@
 
         window.addEventListener('message', async (event) => {
           const data = event.data || {};
-          if (!allowedOrigins.has(event.origin) || data.type !== MESSAGE_REQUEST) {
+          if (event.source !== window.parent || data.type !== MESSAGE_REQUEST) {
             return;
           }
 
@@ -97,8 +97,8 @@
           }
         });
 
-        if (window.parent && parentOrigin) {
-          window.parent.postMessage({ type: MESSAGE_READY }, parentOrigin);
+        if (window.parent) {
+          window.parent.postMessage({ type: MESSAGE_READY }, parentOrigin || '*');
         }
       })();
     </script>

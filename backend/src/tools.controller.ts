@@ -36,7 +36,9 @@ export class ToolsController {
         '(t.issued_at <= :endDate OR t.returned_at <= :endDate OR t.status = :status)',
         { endDate: new Date(endDate), status: 'ISSUED' }
       );
-    }    
+    }
+    // When no date filters: return ALL records (no filter applied)
+    
     const allLogs = await query.getMany();
     const latestPerEmployee = new Map<string, ToolIssue>();
     

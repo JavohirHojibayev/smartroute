@@ -53,6 +53,7 @@ import chakmanPng from '../assets/icon/man.png';
 import sedanPng from '../assets/icon/sedan.png';
 import traktorPng from '../assets/icon/traktor.png';
 import ekskovatorPng from '../assets/icon/ekskovator.png';
+import vodavozPng from '../assets/icon/vodavoz.png';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
 type VehicleKind = 'car' | 'truck' | 'forklift' | 'loader';
@@ -352,6 +353,7 @@ const vehicleIconCache = new Map<string, ReturnType<typeof divIcon>>();
 const getVehicleSvgForName = (name?: string): string | null => {
     if (!name) return null;
     const n = name.toLowerCase();
+    if (n.includes('vodavoz') || n.includes('водовоз')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${vodavozPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('nexia') || n.includes('damas') || n.includes('tracker') || n.includes('niva') || n.includes('chevrolet') || n.includes('kia sorento') || n.includes('bongo') || n.includes('gentra')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${sedanPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('maz') && !n.includes('kamaz')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${manPng}" x="4" y="4" width="40" height="40"/></svg>`;
     if (n.includes('shantui') || n.includes('traktor')) return `<svg viewBox="0 0 48 48" aria-hidden="true"><image href="${traktorPng}" x="4" y="4" width="40" height="40"/></svg>`;
@@ -438,14 +440,14 @@ const formatDateTime = (value: string | null | undefined) => {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString('uz-UZ', {
+    return date.toLocaleString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-    });
+    }).replace(',', '');
 };
 
 const formatAgo = (value: string | null | undefined) => {
@@ -477,14 +479,15 @@ const formatChartNumber = (value: number | null | undefined, digits = 1) => {
 // Render a small percent label inside each slice (midway between inner and outer radius)
 // Always render the percent (show 0% for empty slices) and use integer percent for compact display.
 const createLabelRenderer = (total: number) => (props: any) => {
-    const { midAngle, innerRadius, outerRadius, percent, viewBox, value } = props;
+    const { midAngle, innerRadius, outerRadius, percent, value } = props;
 
-    const cx = typeof props.cx === 'number' ? props.cx : (viewBox?.cx ?? 105);
-    const cy = typeof props.cy === 'number' ? props.cy : (viewBox?.cy ?? 135);
+    // By using props.cx as SVG 'x' and xOffset as SVG 'dx', it works flawlessly
+    // whether recharts passes a string like "50%" or parsed pixel number like 150.
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5; // EXACT center of the ring
-    const x = cx + radius * Math.cos(-RADIAN * midAngle);
-    const y = cy + radius * Math.sin(-RADIAN * midAngle);
+    const mAngle = midAngle !== undefined ? midAngle : ((props.startAngle || 0) + (props.endAngle || 0)) / 2;
+    const xOffset = radius * Math.cos(-RADIAN * mAngle);
+    const yOffset = radius * Math.sin(-RADIAN * mAngle);
 
     let p = 0;
     if (typeof percent === 'number') p = percent;
@@ -496,14 +499,14 @@ const createLabelRenderer = (total: number) => (props: any) => {
     const pctString = (p * 100).toFixed(1).replace(/\.0$/, '') + '%';
 
     return (
-        <text x={x} y={y} fill="#ffffff" fontWeight={800} fontSize={13} textAnchor="middle" dominantBaseline="central" pointerEvents="none">
+        <text x={props.cx} y={props.cy} dx={xOffset} dy={yOffset} fill="#ffffff" fontWeight={800} fontSize={13} textAnchor="middle" dominantBaseline="central" pointerEvents="none" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }}>
             {pctString}
         </text>
     );
 };
 
 // Active slice renderer: only enlarge the slice and add a subtle halo; labels are shown by `renderLabelInside`
-const renderActiveShape = (props: any) => {
+const createActiveShapeRenderer = (total: number) => (props: any) => {
     const {
         cx,
         cy,
@@ -512,11 +515,32 @@ const renderActiveShape = (props: any) => {
         startAngle,
         endAngle,
         fill,
+        midAngle,
+        percent,
+        value,
     } = props;
+
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const mAngle = midAngle !== undefined ? midAngle : (startAngle + endAngle) / 2;
+    const xOffset = radius * Math.cos(-RADIAN * mAngle);
+    const yOffset = radius * Math.sin(-RADIAN * mAngle);
+
+    let p = 0;
+    if (typeof percent === 'number') p = percent;
+    else if (total > 0 && typeof value === 'number') p = value / total;
+
+    const pctString = (p * 100).toFixed(1).replace(/\.0$/, '') + '%';
+
     return (
         <g>
             <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} />
             <Sector cx={cx} cy={cy} innerRadius={outerRadius + 9} outerRadius={outerRadius + 12} startAngle={startAngle} endAngle={endAngle} fill={fill} opacity={0.12} />
+            {p > 0 && (
+                <text x={cx} y={cy} dx={xOffset} dy={yOffset} fill="#ffffff" fontWeight={800} fontSize={14} textAnchor="middle" dominantBaseline="central" pointerEvents="none" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }}>
+                    {pctString}
+                </text>
+            )}
         </g>
     );
 };
@@ -747,8 +771,8 @@ const VehicleMarkers = ({
                                         <div className="sr-popup-header">
                                             <div className="min-w-0">
                                                 <div className="sr-popup-title-row">
-                                                    <span
-                                                        className={`sr-popup-vehicle-icon ${stateStyles[representative.status].marker} kind-${representative.kind}`}
+                                                    <div 
+                                                        className="sr-popup-vehicle-image"
                                                         dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(representative.name, representative.kind) }}
                                                     />
                                                     <span className="sr-popup-title">{representative.name}</span>
@@ -764,41 +788,40 @@ const VehicleMarkers = ({
                                         </div>
 
                                         <div className="sr-popup-metrics">
-                                            <div><Gauge size={16} /> <b>{formatMetric(representative.speed, ' km/h')}</b></div>
-                                            <div><KeyRound size={16} /> <b>{representative.ignition ? 'On' : 'Off'}</b></div>
-                                            <div><Satellite size={16} /> <b>{formatMetric(representative.satellites)}</b></div>
+                                            <div><Gauge size={16} /> <b>{formatMetric(representative.speed, ' км/ч')}</b></div>
+                                            <div><KeyRound size={16} /> <b>{representative.ignition == null ? 'N/A' : representative.ignition ? 'вкл' : 'выкл'}</b></div>
+                                            <div><Satellite size={16} /> <b>{representative.satellites ?? 'N/A'}</b></div>
                                         </div>
 
                                         <div className="sr-popup-details">
-                                            <div><span>Koordinatalar:</span> {formatCoordinates(representative)}</div>
+                                            <div className="sr-popup-detail-row">
+                                                <span><span>Координаты:</span> {formatCoordinates(representative)}</span>
+                                            </div>
                                             <div className="sr-popup-address">
-                                                <span>Adres:</span> {representative.address}
-                                                <span className="sr-popup-detail-actions">
-                                                    <Copy size={15} />
-                                                    <ExternalLink size={15} />
-                                                </span>
+                                                <span>Адрес:</span> {representative.address}
                                             </div>
                                         </div>
 
                                         <div className="sr-popup-sensors">
                                             <div className="sr-popup-sensors-header">
-                                                <span>Datchiklar</span>
-                                                <span>v</span>
+                                                <span>Датчики</span>
+                                                <ChevronDown size={16} />
                                             </div>
                                             <div className="sr-popup-sensor-grid">
-                                                <div>DART: <b>N/A</b></div>
-                                                <div>Zajiganie: <b>{representative.ignition == null ? 'N/A' : representative.ignition ? 'On' : 'Off'}</b></div>
-                                                <div>Moment rashod: <b>N/A</b></div>
-                                                <div>Kuchlanish: <b>N/A</b></div>
-                                                <div>Skorost: <b>{formatMetric(representative.speed, ' km/h')}</b></div>
-                                                <div>Sputniklar: <b>{formatMetric(representative.satellites)}</b></div>
+                                                <div>Зажигание: <b>{representative.ignition == null ? 'N/A' : representative.ignition ? 'вкл' : 'выкл'}</b></div>
+                                                <div>Напряжение: <b>N/A</b></div>
+                                                <div>Сигнал GMS (1-5) : <b>N/A</b></div>
+                                                <div>Скорость: <b>{representative.speed == null ? 'N/A' : formatMetric(representative.speed, ' км/ч')}</b></div>
+                                                <div>Спутники: <b>{representative.satellites ?? 'N/A'}</b></div>
+                                                <div>Уровень топлива: <b>{representative.fuelLevel == null ? 'N/A' : `${representative.fuelLevel.toFixed(3)}л`}</b></div>
                                             </div>
                                         </div>
 
                                         <div className="sr-popup-toolbar">
-                                            <span><CircleDot size={17} /></span>
-                                            <span><Wrench size={17} /></span>
-                                            <span><Satellite size={17} /></span>
+                                            <span><LocateFixed size={17} /></span>
+                                            <span><RotateCw size={17} /></span>
+                                            <span><List size={17} /></span>
+                                            <span><LayoutGrid size={17} /></span>
                                             <span><MessageSquare size={17} /></span>
                                             <span><Radio size={17} /></span>
                                             <span><Pencil size={17} /></span>
@@ -1293,7 +1316,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                             <Pie
                                                 {...({ activeIndex: activeConnectionIndex ?? undefined } as any)}
-                                                activeShape={renderActiveShape}
+                                                activeShape={createActiveShapeRenderer(dashboardChartData.connection.total ?? counters.total) as any}
                                                 label={createLabelRenderer(dashboardChartData.connection.total ?? counters.total) as any}
                                                 // rounded segments with a dark stroke to create a gap
                                                 cornerRadius={8}
@@ -1343,8 +1366,8 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                         <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                             <Pie
                                                 {...({ activeIndex: activeMovementIndex ?? undefined } as any)}
-                                                activeShape={renderActiveShape}
-                                                label={createLabelRenderer(dashboardChartData.connection.total ?? counters.total) as any}
+                                                activeShape={createActiveShapeRenderer(dashboardChartData.movement.total ?? counters.total) as any}
+                                                label={createLabelRenderer(dashboardChartData.movement.total ?? counters.total) as any}
                                                 cornerRadius={8}
                                                 stroke={CARD_BG_COLOR}
                                                 strokeWidth={2}
@@ -1555,7 +1578,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                                 <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                                                     <Pie
                                                         {...({ activeIndex: activeFuelIndex ?? undefined } as any)}
-                                                        activeShape={renderActiveShape}
+                                                        activeShape={createActiveShapeRenderer(dashboardChartData.fuelDonut.reduce((s, i) => s + i.value, 0)) as any}
                                                         label={createLabelRenderer(dashboardChartData.fuelDonut.reduce((s, i) => s + i.value, 0)) as any}
                                                         cornerRadius={8}
                                                         stroke={CARD_BG_COLOR}
@@ -2286,20 +2309,23 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                     min-width: 0;
                     gap: 8px;
                 }
-                .sr-popup-vehicle-icon {
+                .sr-popup-vehicle-icon,
+                .sr-popup-vehicle-image {
                     width: 24px;
                     height: 24px;
                     flex: 0 0 auto;
                     color: #2563eb;
                 }
+                .sr-popup-vehicle-image svg,
+                .sr-popup-vehicle-image img {
+                    width: 24px;
+                    height: 24px;
+                    object-fit: contain;
+                }
                 .sr-popup-title {
-                    min-width: 0;
                     color: #4b5563;
                     font-size: 16px;
                     font-weight: 800;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
                 }
                 .sr-popup-status {
                     margin-left: 32px;
@@ -2346,13 +2372,20 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                     border-right: 0;
                 }
                 .sr-popup-details {
-                    padding: 4px 14px 10px;
-                    color: #4b5563;
-                    line-height: 1.35;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
                 }
                 .sr-popup-details span {
-                    color: #374151;
-                    font-weight: 700;
+                    color: #64748b;
+                    font-weight: 500;
+                    margin-right: 4px;
+                }
+                .sr-popup-detail-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
                 }
                 .sr-popup-address {
                     position: relative;
