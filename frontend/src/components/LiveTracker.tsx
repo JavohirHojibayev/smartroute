@@ -753,9 +753,7 @@ const VehicleMarkers = ({
                         )}
                         eventHandlers={{
                             click: () => {
-                                if (isCluster) {
-                                    map.setView([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, 18), { animate: true });
-                                } else {
+                                if (!isCluster) {
                                     onSelect(representative.id);
                                 }
                             },
@@ -830,7 +828,26 @@ const VehicleMarkers = ({
                                     </div>
                                 </Popup>
                             </>
-                        ) : null}
+                        ) : (
+                            <Popup className="sr-cluster-popup" minWidth={240} maxWidth={280}>
+                                <div className="sr-cluster-list">
+                                    {cluster.vehicles.map(vehicle => (
+                                        <div key={vehicle.id} className="sr-cluster-list-item" onClick={() => onSelect(vehicle.id)}>
+                                            <div 
+                                                className="sr-cluster-item-image"
+                                                dangerouslySetInnerHTML={{ __html: getVehicleInnerSvg(vehicle.name, vehicle.kind) }} 
+                                            />
+                                            <div className="sr-cluster-item-info">
+                                                <div className="sr-cluster-item-title">{vehicle.name}</div>
+                                                <div className={`sr-cluster-item-status ${stateStyles[vehicle.status].marker}`}>
+                                                    {stateStyles[vehicle.status].label}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Popup>
+                        )}
                     </Marker>
                 );
             })}
@@ -2438,10 +2455,71 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                     border-top: 1px solid #eef0f3;
                 }
                 .sr-popup-toolbar span {
-                    display: inline-flex;
+                    display: flex;
                     align-items: center;
                     justify-content: center;
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 4px;
+                    background: #f8f9fa;
+                    color: #6b7280;
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
+                .sr-popup-toolbar span:hover {
+                    background: #e5e7eb;
+                    color: #1f2937;
+                }
+                .sr-cluster-popup .leaflet-popup-content {
+                    width: 260px !important;
+                    max-height: 350px;
+                    overflow-y: auto;
+                    margin: 0;
+                    padding: 8px 0;
+                }
+                .sr-cluster-list {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .sr-cluster-list-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 10px 16px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+                .sr-cluster-list-item:hover {
+                    background: #f3f4f6;
+                }
+                .sr-cluster-item-image {
+                    width: 24px;
+                    height: 24px;
+                    flex: 0 0 auto;
+                }
+                .sr-cluster-item-image svg,
+                .sr-cluster-item-image img {
+                    width: 24px;
+                    height: 24px;
+                    object-fit: contain;
+                }
+                .sr-cluster-item-info {
+                    flex: 1;
+                    min-width: 0;
+                }
+                .sr-cluster-item-title {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #4b5563;
+                }
+                .sr-cluster-item-status {
+                    font-size: 12px;
+                    font-weight: 600;
+                    margin-top: 2px;
+                }
+                .sr-cluster-item-status.is-moving { color: #16a34a; }
+                .sr-cluster-item-status.is-stopped { color: #2563eb; }
+                .sr-cluster-item-status.is-offline { color: #dc2626; }
             `}</style>
         </div>
     );
