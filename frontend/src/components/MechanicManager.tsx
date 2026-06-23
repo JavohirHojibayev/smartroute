@@ -153,6 +153,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | InspectionStatus>('all');
+  const [topFilterDropdownOpen, setTopFilterDropdownOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -486,18 +487,47 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
             />
           </div>
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400" size={15} />
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as 'all' | InspectionStatus)}
-              aria-label="Texnik ko'rik holati bo'yicha filtrlash"
-              className="pl-9 pr-7 py-2 bg-slate-900/50 border border-slate-700 rounded-xl focus:outline-none focus:border-amber-500 transition-all text-sm"
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setTopFilterDropdownOpen(!topFilterDropdownOpen)}
+              className={`flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${
+                statusFilter !== 'all' || topFilterDropdownOpen
+                  ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+                  : 'border-slate-700/60 bg-slate-900/50 text-yellow-500 hover:text-yellow-400'
+              }`}
             >
-              <option value="all">Barcha holatlar</option>
-              <option value="pending">KO'RIKDA</option>
-              <option value="failed">NOSOZ</option>
-            </select>
+              <Filter size={18} />
+            </button>
+
+            {topFilterDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setTopFilterDropdownOpen(false)}
+                />
+                <div className="absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
+                  <button
+                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'all' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    onClick={() => { setStatusFilter('all'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                  >
+                    Barcha holatlar
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'pending' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    onClick={() => { setStatusFilter('pending'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                  >
+                    KO'RIKDA
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'failed' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    onClick={() => { setStatusFilter('failed'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                  >
+                    NOSOZ
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
         </div>

@@ -1179,14 +1179,28 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     if (mode === 'dut') {
       return this.parseNumber(payload?.issuedDut) ?? 0;
     }
+    const num = (x: unknown) => {
+      const v = this.parseNumber(x);
+      return v && v > 0 ? v : null;
+    };
+    if (mode === 'counter') {
+      return (
+        num(payload?.value) ??
+        num(payload?.issuedValue) ??
+        num(payload?.issuedDut) ??
+        num(payload?.issuedVirtual) ??
+        num(payload?.differenceRefuel) ??
+        this.parseNumber(row?.liters) ??
+        0
+      );
+    }
     return (
-      this.parseNumber(
-        payload?.issuedDut ??
-          payload?.issuedVirtual ??
-          payload?.differenceRefuel ??
-          payload?.issuedValue ??
-          row?.liters,
-      ) ?? 0
+      num(payload?.issuedDut) ??
+      num(payload?.issuedVirtual) ??
+      num(payload?.differenceRefuel) ??
+      num(payload?.issuedValue) ??
+      this.parseNumber(row?.liters) ??
+      0
     );
   }
 
@@ -3261,7 +3275,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   /** Ingest / operator ko‘rinishi — bir nechta maydon */
   private issuedLitersSql(alias: string): string {
     const j = (path: string) => `CAST(json_extract(${alias}.payload, '${path}') AS REAL)`;
-    return `COALESCE(${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${j('$.differenceRefuel')}, ${j('$.issuedValue')}, ${alias}.liters, 0)`;
+    return `COALESCE(NULLIF(${j('$.issuedDut')}, 0), NULLIF(${j('$.issuedVirtual')}, 0), NULLIF(${j('$.differenceRefuel')}, 0), NULLIF(${j('$.issuedValue')}, 0), ${alias}.liters, 0)`;
   }
 
   /**
@@ -3270,9 +3284,13 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
    */
   private issuedLitersSummarySql(alias: string): string {
     const mode = this.normalizeWhitespace(process.env.AZS_SUMMARY_LITERS_MODE || 'hybrid').toLowerCase();
+    const j = (path: string) => `CAST(json_extract(${alias}.payload, '${path}') AS REAL)`;
     if (mode === 'dut') {
       const dut = `CAST(json_extract(${alias}.payload, '$.issuedDut') AS REAL)`;
       return `COALESCE(${dut}, 0)`;
+    }
+    if (mode === 'counter') {
+      return `COALESCE(NULLIF(${j('$.value')}, 0), NULLIF(${j('$.issuedValue')}, 0), NULLIF(${j('$.issuedDut')}, 0), NULLIF(${j('$.issuedVirtual')}, 0), NULLIF(${j('$.differenceRefuel')}, 0), ${alias}.liters, 0)`;
     }
     return this.issuedLitersSql(alias);
   }
@@ -3282,12 +3300,12 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const mode = this.normalizeWhitespace(process.env.AZS_OPERATIONS_LITERS_MODE || 'counter').toLowerCase();
     const j = (path: string) => `CAST(json_extract(${alias}.payload, '${path}') AS REAL)`;
     if (mode === 'dut') {
-      return `COALESCE(${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${alias}.liters, 0)`;
+      return `COALESCE(NULLIF(${j('$.issuedDut')}, 0), NULLIF(${j('$.issuedVirtual')}, 0), ${alias}.liters, 0)`;
     }
     if (mode === 'hybrid') {
-      return `COALESCE(${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${j('$.differenceRefuel')}, ${j('$.issuedValue')}, ${j('$.value')}, ${alias}.liters, 0)`;
+      return `COALESCE(NULLIF(${j('$.issuedDut')}, 0), NULLIF(${j('$.issuedVirtual')}, 0), NULLIF(${j('$.differenceRefuel')}, 0), NULLIF(${j('$.issuedValue')}, 0), NULLIF(${j('$.value')}, 0), ${alias}.liters, 0)`;
     }
-    return `COALESCE(${j('$.value')}, ${j('$.issuedValue')}, ${j('$.issuedDut')}, ${j('$.issuedVirtual')}, ${j('$.differenceRefuel')}, ${alias}.liters, 0)`;
+    return `COALESCE(NULLIF(${j('$.value')}, 0), NULLIF(${j('$.issuedValue')}, 0), NULLIF(${j('$.issuedDut')}, 0), NULLIF(${j('$.issuedVirtual')}, 0), NULLIF(${j('$.differenceRefuel')}, 0), ${alias}.liters, 0)`;
   }
 
   private sqlDatetimeShiftHoursSqlite(columnSql: string): string {
@@ -3318,11 +3336,22 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const num = (x: unknown): number | null => {
       if (x == null || x === '') return null;
       const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
-      return Number.isFinite(v) ? v : null;
+      return Number.isFinite(v) && v > 0 ? v : null;
     };
     const mode = this.normalizeWhitespace(process.env.AZS_SUMMARY_LITERS_MODE || 'hybrid').toLowerCase();
     if (mode === 'dut') {
       return num(p.issuedDut) ?? row.liters ?? 0;
+    }
+    if (mode === 'counter') {
+      return (
+        num(p.value) ??
+        num(p.issuedValue) ??
+        num(p.issuedDut) ??
+        num(p.issuedVirtual) ??
+        num(p.differenceRefuel) ??
+        row.liters ??
+        0
+      );
     }
     return (
       num(p.issuedDut) ??

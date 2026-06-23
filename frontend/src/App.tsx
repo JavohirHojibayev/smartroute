@@ -65,9 +65,6 @@ const FuelManager = lazy(() =>
 const WaybillManager = lazy(() =>
   import('./components/WaybillManager').then((module) => ({ default: module.WaybillManager })),
 );
-const ReportsManager = lazy(() =>
-  import('./components/ReportsManager').then((module) => ({ default: module.ReportsManager })),
-);
 const LiveTracker = lazy(() =>
   import('./components/LiveTracker').then((module) => ({ default: module.LiveTracker })),
 );

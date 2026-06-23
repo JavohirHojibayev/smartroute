@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Table2, FileText, CheckCircle2, AlertCircle, HardHat, Clock } from 'lucide-react';
+import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, Filter } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -118,7 +118,7 @@ export const ToolsManager = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [headerFilter, setHeaderFilter] = useState<'ALL' | 'ISSUED' | 'NOT_ISSUED' | 'DONE' | 'RETURNED' | 'COMPLETED'>('ALL');
-    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [topFilterDropdownOpen, setTopFilterDropdownOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<Record<number, 'issue' | 'return' | undefined>>({});
     const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<ToolIssueRow>>>(() => {
         try {
@@ -185,8 +185,6 @@ export const ToolsManager = () => {
             }
 
             /* Keep only "passed" status rows from ESMO */
-            const todayStr = new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Tashkent' }).split('/').reverse().join('-'); // basic fallback for YYYY-MM-DD
-
             const passedEsmo = esmoRows.filter((r) => {
                 if (r.status !== 'passed') return false;
                 return true;
@@ -675,13 +673,63 @@ export const ToolsManager = () => {
                                 onChange={(v) => { setDateFrom(v); setCurrentPage(1); }}
                                 minWidth={148}
                             />
-                            <LocalizedDateInput
-                                label={t('dateToSanagacha')}
-                                value={dateTo}
-                                minDate={dateFrom || undefined}
-                                onChange={(v) => { setDateTo(v); setCurrentPage(1); }}
-                                minWidth={148}
-                            />
+                            <div className="flex items-end gap-2 sm:gap-2.5">
+                                <LocalizedDateInput
+                                    label={t('dateToSanagacha')}
+                                    value={dateTo}
+                                    minDate={dateFrom || undefined}
+                                    onChange={(v) => { setDateTo(v); setCurrentPage(1); }}
+                                    minWidth={148}
+                                />
+                                <div className="relative shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTopFilterDropdownOpen(!topFilterDropdownOpen)}
+                                        className={`flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${
+                                            headerFilter !== 'ALL' || topFilterDropdownOpen 
+                                            ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' 
+                                            : 'border-slate-700/60 bg-slate-900/50 text-yellow-500 hover:text-yellow-400'
+                                        }`}
+                                    >
+                                        <Filter size={18} />
+                                    </button>
+                                    
+                                    {topFilterDropdownOpen && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setTopFilterDropdownOpen(false)}
+                                            />
+                                            <div className="absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
+                                                <button
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('ALL'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                >
+                                                    Barchasi
+                                                </button>
+                                                <button
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                >
+                                                    Berilgan
+                                                </button>
+                                                <button
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('NOT_ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                >
+                                                    Berilmagan
+                                                </button>
+                                                <button
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'DONE' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('DONE'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                >
+                                                    Yakunlangan
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-3">
@@ -715,50 +763,7 @@ export const ToolsManager = () => {
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.esmoStatus}</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.issuedAt}</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{tCols.returnedAt}</th>
-                                <th className="px-4 md:px-6 py-4 text-center relative">
-                                    {statusDropdownOpen && (
-                                        <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={() => setStatusDropdownOpen(false)}
-                                        />
-                                    )}
-                                    <div
-                                        className="flex items-center justify-center gap-1.5 cursor-pointer hover:text-blue-400 select-none transition-colors group relative z-50"
-                                        onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                                    >
-                                        <span>{tCols.status}</span>
-                                        <span className={`text-[10px] transition-colors ${headerFilter !== 'ALL' ? 'text-blue-400' : 'text-slate-600 group-hover:text-blue-400/50'}`}>▼</span>
-                                    </div>
-
-                                    {statusDropdownOpen && (
-                                        <div className="absolute top-full right-1/2 translate-x-1/2 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
-                                            <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('ALL'); setStatusDropdownOpen(false); setCurrentPage(1); }}
-                                            >
-                                                Barchasi
-                                            </button>
-                                            <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('ISSUED'); setStatusDropdownOpen(false); setCurrentPage(1); }}
-                                            >
-                                                Berilgan
-                                            </button>
-                                            <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('NOT_ISSUED'); setStatusDropdownOpen(false); setCurrentPage(1); }}
-                                            >
-                                                Berilmagan
-                                            </button>
-                                            <button
-                                                className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'DONE' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                onClick={() => { setHeaderFilter('DONE'); setStatusDropdownOpen(false); setCurrentPage(1); }}
-                                            >
-                                                Yakunlangan
-                                            </button>
-                                        </div>
-                                    )}
-                                </th>
+                                <th className="px-4 md:px-6 py-4 text-center">{tCols.status}</th>
                                 <th className="hidden md:table-cell px-6 py-4 text-center">{tCols.issuer}</th>
                             </tr>
                         </thead>
