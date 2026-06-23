@@ -1,13 +1,14 @@
-﻿import { ExternalLink, X } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import { PdfOverlayEditorPage } from '../pdfWaybillEditor/components/PdfOverlayEditorPage';
 
 type WaybillFormModalProps = {
     open: boolean;
     onClose: () => void;
     templatePdfUrl: string;
+    initialValues?: Record<string, string>;
 };
 
-export const WaybillFormModal = ({ open, onClose, templatePdfUrl }: WaybillFormModalProps) => {
+export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues }: WaybillFormModalProps) => {
     const openBlankTemplate = () => {
         window.open(templatePdfUrl, '_blank', 'noopener,noreferrer');
     };
@@ -48,7 +49,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl }: WaybillFormM
 
                 <div className="min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-2 flex flex-col gap-2">
                     <div className="flex-1 overflow-hidden border border-slate-600 bg-slate-950 shadow-inner p-2">
-                        <PdfOverlayEditorPage templatePdfUrl={templatePdfUrl} onClose={onClose} />
+                        <PdfOverlayEditorPage templatePdfUrl={templatePdfUrl} onClose={onClose} initialValues={initialValues} />
                     </div>
                 </div>
             </div>

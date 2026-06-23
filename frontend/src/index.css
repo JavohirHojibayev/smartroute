@@ -535,6 +535,7 @@
   line-height: 1.2;
   flex-shrink: 0;
   display: inline-block;
+  width: fit-content;
   max-width: 100%;
   color: transparent;
   background-image: linear-gradient(90deg, #93c5fd 0%, #60a5fa 38%, #22d3ee 100%);

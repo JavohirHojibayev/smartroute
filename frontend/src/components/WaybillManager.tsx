@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Table2, FileText, RefreshCw } from 'lucide-react';
+import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, AlertTriangle, Download } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -10,7 +10,7 @@ import { LocalizedDateInput } from './LocalizedDateInput';
 import yolVaraqasiPdfUrl from "../assets/yo'l_varaqasi.pdf?url";
 import { WaybillFormModal } from './WaybillFormModal';
 
-type EsmoHealthStatus = 'passed' | 'failed' | 'review';
+type EsmoHealthStatus = 'passed' | 'review' | 'failed';
 
 type EsmoJournalRow = {
     id?: number;
@@ -99,30 +99,22 @@ const formatDateTime = (iso: string) => {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return iso;
     const pad = (value: number) => String(value).padStart(2, '0');
-    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const hasVitalsData = (row: Pick<WaybillRow, 'bp' | 'pulse' | 'temperature'>) =>
-    Boolean((row.bp && String(row.bp).trim()) || row.pulse != null || row.temperature != null);
-
-const formatTemperature = (value: number | null | undefined) => {
+const formatNumber = (value: number | null | undefined, fractionDigits = 1) => {
     if (value == null || Number.isNaN(Number(value))) return '-';
     const numeric = Number(value);
-    return Number.isInteger(numeric) ? `${numeric}°C` : `${numeric.toFixed(1)}°C`;
-};
-
-const statusBadgeClass = (status: EsmoHealthStatus) => {
-    if (status === 'passed') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-    if (status === 'review') return 'bg-orange-500/10 text-orange-400 border-orange-500/30';
-    return 'bg-red-500/10 text-red-400 border-red-500/30';
+    return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(fractionDigits);
 };
 
 export const WaybillManager = () => {
-    const { t } = useI18n();
+    const { t, lang } = useI18n();
     const [waybills, setWaybills] = useState<WaybillRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -130,161 +122,225 @@ export const WaybillManager = () => {
     const [exportingXls, setExportingXls] = useState(false);
     const [exportingPdf, setExportingPdf] = useState(false);
     const [isWaybillFormOpen, setIsWaybillFormOpen] = useState(false);
+    const [waybillFormInitialValues, setWaybillFormInitialValues] = useState<Record<string, string> | undefined>(undefined);
+    
+    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'PASSED' | 'REVIEW' | 'FAILED'>('ALL');
+
+    const tCols = {
+        name: lang === 'uz' ? 'F.I.SH' : lang === 'ru' ? 'Ф.И.О' : 'Name',
+        passId: lang === 'uz' ? 'ID raqam' : lang === 'ru' ? 'ID номер' : 'Pass ID',
+        esmoTime: lang === 'uz' ? 'ESMO vaqti' : lang === 'ru' ? 'Время ESMO' : 'ESMO Time',
+        esmoStatus: lang === 'uz' ? 'ESMO Xulosasi' : lang === 'ru' ? 'Заключение ESMO' : 'ESMO Status',
+        status: lang === 'uz' ? 'Holat' : lang === 'ru' ? 'Статус' : 'Status',
+    };
+
+    const loadWaybills = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
+
+        try {
+            const params = new URLSearchParams({ limit: '5000' });
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+
+            const response = await fetch(`${API_BASE}/integrations/esmo/journal?${params.toString()}`);
+            if (!response.ok) throw new Error('esmo_journal_failed');
+
+            const payload = await response.json();
+            const rows = Array.isArray(payload) ? (payload as EsmoJournalRow[]) : [];
+
+            const waybillRows: WaybillRow[] = rows.map(row => {
+                const driverName = cleanEmployeeName(String(row?.name || ''), t('unknownEmployee'));
+                const passIdRaw = normalizeWhitespace(row?.passId);
+                const healthStatus = normalizeEsmoStatus(row?.statusCode || row?.status);
+                const eventMs = parseTimeMs(String(row?.time || ''));
+                const bp = normalizeWhitespace(row?.bp || row?.bloodPressure || '') || null;
+                const pulse = row?.pulse == null || Number.isNaN(Number(row.pulse)) ? null : Number(row.pulse);
+                const temperature = row?.temperature == null || Number.isNaN(Number(row.temperature)) ? null : Number(row.temperature);
+                
+                return {
+                    id: `ESMO-${row?.esmoId ?? row?.id ?? `${passIdRaw || 'unknown'}-${eventMs}`}`,
+                    driver: driverName,
+                    passId: passIdRaw || '-',
+                    healthStatus,
+                    plate: '-',
+                    cargo: '-',
+                    weight: '-',
+                    tripTime: '-',
+                    tripState: '-',
+                    sourceTime: String(row?.time || ''),
+                    eventMs,
+                    bp,
+                    pulse,
+                    temperature,
+                };
+            }).sort((a, b) => b.eventMs - a.eventMs);
+
+            setWaybills(waybillRows);
+            setError(null);
+        } catch {
+            setError(t('esmoServerError'));
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }, [dateFrom, dateTo, t]);
+
     useEffect(() => {
-        let active = true;
+        const timeout = window.setTimeout(() => {
+            setSearchQuery(searchInput);
+            setCurrentPage(1);
+        }, 300);
+        return () => window.clearTimeout(timeout);
+    }, [searchInput]);
 
-        const loadWaybills = async (silent = false) => {
-            if (active && !silent) setLoading(true);
-
-            try {
-                const params = new URLSearchParams({ limit: '5000' });
-                if (dateFrom) params.set('dateFrom', dateFrom);
-                if (dateTo) params.set('dateTo', dateTo);
-                if (!dateFrom && !dateTo) params.set('day', getTodayTashkent());
-
-                const response = await fetch(`${API_BASE}/integrations/esmo/journal?${params.toString()}`);
-                if (!response.ok) throw new Error('esmo_journal_failed');
-
-                const payload = await response.json();
-                const rows = Array.isArray(payload) ? (payload as EsmoJournalRow[]) : [];
-                const byPerson = new Map<string, WaybillRow>();
-
-                for (const row of rows) {
-                    const driverName = cleanEmployeeName(String(row?.name || ''), t('unknownEmployee'));
-                    const passIdRaw = normalizeWhitespace(row?.passId);
-                    const passKey = normalizeDriverKey(passIdRaw);
-                    const nameKey = normalizeDriverKey(driverName);
-
-                    const dedupeKey = passKey
-                        ? `id:${passKey}`
-                        : nameKey
-                            ? `name:${nameKey}`
-                            : `row:${String(row?.id ?? row?.esmoId ?? Math.random())}`;
-
-                    const healthStatus = normalizeEsmoStatus(row?.statusCode || row?.status);
-                    const eventMs = parseTimeMs(String(row?.time || ''));
-                    const bp = normalizeWhitespace(row?.bp || row?.bloodPressure || '') || null;
-                    const pulse = row?.pulse == null || Number.isNaN(Number(row.pulse)) ? null : Number(row.pulse);
-                    const temperature = row?.temperature == null || Number.isNaN(Number(row.temperature)) ? null : Number(row.temperature);
-                    const candidate: WaybillRow = {
-                        id: `ESMO-${passIdRaw || String(row?.esmoId ?? row?.id ?? dedupeKey).replace(/\s+/g, '')}`,
-                        driver: driverName,
-                        passId: passIdRaw || '-',
-                        healthStatus,
-                        plate: '-',
-                        cargo: '-',
-                        weight: '-',
-                        tripTime: '-',
-                        tripState: '-',
-                        sourceTime: String(row?.time || ''),
-                        eventMs,
-                        bp,
-                        pulse,
-                        temperature,
-                    };
-
-                    const existing = byPerson.get(dedupeKey);
-                    if (!existing) {
-                        byPerson.set(dedupeKey, candidate);
-                        continue;
-                    }
-
-                    const existingRank = statusRank(existing.healthStatus);
-                    const nextRank = statusRank(candidate.healthStatus);
-
-                    if (nextRank > existingRank || (nextRank === existingRank && candidate.eventMs > existing.eventMs)) {
-                        byPerson.set(dedupeKey, candidate);
-                    } else if (existing.passId === '-' && candidate.passId !== '-') {
-                        byPerson.set(dedupeKey, { ...existing, passId: candidate.passId, id: candidate.id });
-                    } else if (!hasVitalsData(existing) && hasVitalsData(candidate)) {
-                        byPerson.set(dedupeKey, { ...existing, bp: candidate.bp, pulse: candidate.pulse, temperature: candidate.temperature });
-                    }
-                }
-
-                const merged = Array.from(byPerson.values()).sort((a, b) => b.eventMs - a.eventMs);
-                if (active) {
-                    setWaybills(merged);
-                    setError(null);
-                }
-            } catch {
-                if (active) setError(t('esmoServerError'));
-            } finally {
-                if (active && !silent) setLoading(false);
-            }
-        };
-
+    useEffect(() => {
         void loadWaybills(false);
+    }, [loadWaybills]);
+
+    useEffect(() => {
         const interval = setInterval(() => {
             void loadWaybills(true);
-        }, 3000);
-        return () => {
-            active = false;
-            clearInterval(interval);
-        };
-    }, [t, dateFrom, dateTo]);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [loadWaybills]);
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, dateFrom, dateTo]);
+    const filteredRows = useMemo(() => {
+        const query = normalizeDriverKey(searchQuery);
+        let result = waybills;
 
-    const filteredWaybills = useMemo(() => {
-        const query = normalizeDriverKey(searchTerm);
-        const fromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
-        const toMs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+        if (headerFilter === 'PASSED') result = result.filter(r => r.healthStatus === 'passed');
+        else if (headerFilter === 'REVIEW') result = result.filter(r => r.healthStatus === 'review');
+        else if (headerFilter === 'FAILED') result = result.filter(r => r.healthStatus === 'failed');
 
-        return waybills.filter((row) => {
-            if (fromMs !== null || toMs !== null) {
-                const rowMs = parseTimeMs(row.sourceTime);
-                if (!rowMs) return false;
-                if (fromMs !== null && rowMs < fromMs) return false;
-                if (toMs !== null && rowMs > toMs) return false;
-            }
-            if (!query) return true;
+        if (!query) return result;
+        return result.filter((row) => {
             return (
                 normalizeDriverKey(row.driver).includes(query) ||
                 normalizeDriverKey(row.passId).includes(query)
             );
         });
-    }, [waybills, searchTerm, dateFrom, dateTo]);
+    }, [waybills, searchQuery, headerFilter]);
 
-    const groupedWaybills = useMemo(() => {
-        const grouped: Array<Array<WaybillRow | undefined>> = [];
-        for (let index = 0; index < filteredWaybills.length; index += 3) {
-            grouped.push([filteredWaybills[index], filteredWaybills[index + 1], filteredWaybills[index + 2]]);
+    const allRowPairs = useMemo(() => {
+        const pairs: [WaybillRow, WaybillRow | null][] = [];
+        for (let i = 0; i < filteredRows.length; i += 2) {
+            pairs.push([filteredRows[i], filteredRows[i + 1] || null]);
         }
-        return grouped;
-    }, [filteredWaybills]);
+        return pairs;
+    }, [filteredRows]);
 
-    const totalGroupedRows = groupedWaybills.length;
-    const totalEmployees = filteredWaybills.length;
-    const totalPages = Math.max(1, Math.ceil(totalGroupedRows / rowsPerPage));
+    const totalRowsCount = allRowPairs.length;
+    const totalPages = Math.max(1, Math.ceil(totalRowsCount / rowsPerPage));
 
     useEffect(() => {
         setCurrentPage((prev) => Math.min(prev, totalPages));
     }, [totalPages]);
 
-    const pagedRows = useMemo(() => {
+    const pagedRowPairs = useMemo(() => {
         const start = (currentPage - 1) * rowsPerPage;
-        return groupedWaybills.slice(start, start + rowsPerPage);
-    }, [groupedWaybills, currentPage, rowsPerPage]);
+        return allRowPairs.slice(start, start + rowsPerPage);
+    }, [allRowPairs, currentPage, rowsPerPage]);
 
-    const pagedRowsFlat = useMemo(
-        () =>
-            pagedRows.flatMap((group) =>
-                group.filter((row): row is WaybillRow => Boolean(row)),
-            ),
-        [pagedRows],
-    );
+    const stats = useMemo(() => {
+        const todayStr = getTodayTashkent();
+        const isToday = (isoStr: string) => {
+            if (!isoStr || isoStr === '-') return false;
+            const date = new Date(isoStr);
+            if (Number.isNaN(date.getTime())) return false;
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Tashkent',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            }).formatToParts(date);
+            const year = parts.find((p) => p.type === 'year')?.value ?? '1970';
+            const month = parts.find((p) => p.type === 'month')?.value ?? '01';
+            const day = parts.find((p) => p.type === 'day')?.value ?? '01';
+            return `${year}-${month}-${day}` === todayStr;
+        };
+        const todayWaybills = waybills.filter(r => isToday(r.sourceTime));
+        
+        const bestByEmployee = new Map<string, { status: EsmoHealthStatus; rank: number; eventMs: number }>();
+        for (const row of todayWaybills) {
+            const key = row.passId !== '-' ? `pass:${row.passId}` : `name:${row.driver}`;
+            const rank = statusRank(row.healthStatus);
+            const existing = bestByEmployee.get(key);
+            if (!existing || rank > existing.rank || (rank === existing.rank && row.eventMs > existing.eventMs)) {
+                bestByEmployee.set(key, { status: row.healthStatus, rank, eventMs: row.eventMs });
+            }
+        }
 
-    const mapRowsToExport = (rows: WaybillRow[]) => {
-        return rows.map((row) => ({
-            driver: row.driver,
-            passId: row.passId,
-            health: row.healthStatus === 'passed' ? t('allowed') : row.healthStatus === 'review' ? t('review') : t('rejected'),
-            plate: row.plate,
-            cargoWeight: `${row.cargo} / ${row.weight}`,
-            eventTime: formatDateTime(row.sourceTime),
-        }));
+        let passed = 0;
+        let review = 0;
+        let failed = 0;
+        for (const entry of bestByEmployee.values()) {
+            if (entry.status === 'passed') passed++;
+            else if (entry.status === 'review') review++;
+            else failed++;
+        }
+        
+        return { total: bestByEmployee.size, passed, review, failed };
+    }, [waybills]);
+
+    const handleWidgetClick = (filterId: 'ALL' | 'PASSED' | 'REVIEW' | 'FAILED') => {
+        setHeaderFilter(prev => prev === filterId ? 'ALL' : filterId);
+        setCurrentPage(1);
+    };
+
+    const handleDownloadClick = (row: WaybillRow) => {
+        setWaybillFormInitialValues({
+            haydovchi: row.driver,
+            tabNo: row.passId === '-' ? '' : row.passId
+        });
+        setIsWaybillFormOpen(true);
+    };
+
+    const statCards = [
+        {
+            id: 'total' as const,
+            filterId: 'ALL' as const,
+            title: lang === 'uz' ? 'Jami xodimlar' : lang === 'ru' ? 'Всего' : 'Total',
+            value: String(stats.total),
+            color: 'from-blue-500 to-cyan-400',
+            icon: <HardHat />,
+        },
+        {
+            id: 'passed' as const,
+            filterId: 'PASSED' as const,
+            title: lang === 'uz' ? 'Ruxsat etildi' : lang === 'ru' ? 'Допущено' : 'Allowed',
+            value: String(stats.passed),
+            color: 'from-emerald-500 to-teal-400',
+            icon: <CheckCircle2 />,
+        },
+        {
+            id: 'review' as const,
+            filterId: 'REVIEW' as const,
+            title: lang === 'uz' ? "Ko'rikda" : lang === 'ru' ? 'Осмотр' : 'Review',
+            value: String(stats.review),
+            color: 'from-amber-500 to-orange-400',
+            icon: <Clock />,
+        },
+        {
+            id: 'failed' as const,
+            filterId: 'FAILED' as const,
+            title: lang === 'uz' ? 'Rad etildi' : lang === 'ru' ? 'Отклонено' : 'Rejected',
+            value: String(stats.failed),
+            color: 'from-red-500 to-rose-400',
+            icon: <AlertTriangle />,
+        },
+    ];
+
+    const formatEsmoReadings = (row: WaybillRow): string => {
+        const parts: string[] = [];
+        if (row.bp) parts.push(row.bp);
+        if (row.pulse != null) parts.push(`P:${formatNumber(row.pulse, 0)}`);
+        if (row.temperature != null) parts.push(`${formatNumber(row.temperature)}°C`);
+        return parts.length > 0 ? parts.join(' | ') : '-';
+    };
+
+    const downloadButtonClass = (status: EsmoHealthStatus) => {
+        if (status === 'passed') return 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400';
+        if (status === 'review') return 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400';
+        return 'bg-red-500/10 hover:bg-red-500/20 text-red-400';
     };
 
     const buildExportFileName = (ext: 'xls' | 'pdf') => {
@@ -296,14 +352,16 @@ export const WaybillManager = () => {
         if (exportingXls || exportingPdf) return;
         setExportingXls(true);
         try {
-            const exportRows = mapRowsToExport(filteredWaybills);
-            if (exportRows.length === 0) return;
-
-            const headers = [t('employee'), t('passId'), 'ESMO', t('fleet'), `${t('cargoType')} / ${t('weight')}`, t('time')];
-            const dataRows = exportRows.map((row) => [row.driver, row.passId, row.health, row.plate, row.cargoWeight, row.eventTime]);
+            if (filteredRows.length === 0) return;
+            const headers = [tCols.name, tCols.passId, tCols.esmoTime, tCols.status, 'Vitals'];
+            const dataRows = filteredRows.map((row) => [
+                row.driver, 
+                row.passId, 
+                formatDateTime(row.sourceTime),
+                row.healthStatus === 'passed' ? t('allowed') : row.healthStatus === 'review' ? t('review') : t('rejected'),
+                formatEsmoReadings(row)
+            ]);
             downloadXls(headers, dataRows, buildExportFileName('xls'));
-        } catch {
-            setError(t('exportDataError'));
         } finally {
             setExportingXls(false);
         }
@@ -313,11 +371,8 @@ export const WaybillManager = () => {
         if (exportingPdf || exportingXls) return;
         setExportingPdf(true);
         try {
-            const exportRows = mapRowsToExport(filteredWaybills);
-            if (exportRows.length === 0) return;
-
+            if (filteredRows.length === 0) return;
             const doc = new jsPDF({ orientation: 'landscape' });
-
             try {
                 const fontRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Regular.ttf');
                 const buf = await fontRes.arrayBuffer();
@@ -329,29 +384,30 @@ export const WaybillManager = () => {
                 doc.addFont('Roboto.ttf', 'Roboto', 'normal');
                 doc.setFont('Roboto');
             } catch {
-                // Keep default font if loading fails.
+                // Ignore font error
             }
-
             doc.setFontSize(16);
             doc.text(t('waybills'), 14, 18);
             doc.setFontSize(10);
             doc.setTextColor(100);
             doc.text(`${t('createdAt')}: ${new Date().toLocaleString()}`, 14, 25);
 
-            const tableData = exportRows.map((row) => [row.driver, row.passId, row.health, row.plate, row.cargoWeight, row.eventTime]);
+            const tableData = filteredRows.map((row) => [
+                row.driver, 
+                row.passId, 
+                formatDateTime(row.sourceTime),
+                row.healthStatus === 'passed' ? t('allowed') : row.healthStatus === 'review' ? t('review') : t('rejected'),
+                formatEsmoReadings(row)
+            ]);
             autoTable(doc, {
-                head: [[t('employee'), t('passId'), 'ESMO', t('fleet'), `${t('cargoType')} / ${t('weight')}`, t('time')]],
+                head: [[tCols.name, tCols.passId, tCols.esmoTime, tCols.status, 'Vitals']],
                 body: tableData,
                 startY: 30,
                 theme: 'grid',
                 headStyles: { fillColor: [59, 130, 246], font: 'Roboto' },
                 styles: { fontSize: 8, font: 'Roboto' },
-                columnStyles: { 0: { cellWidth: 85 } },
             });
-
             doc.save(buildExportFileName('pdf'));
-        } catch {
-            setError(t('pdfExportError'));
         } finally {
             setExportingPdf(false);
         }
@@ -359,48 +415,80 @@ export const WaybillManager = () => {
 
     return (
         <div className="space-y-6">
-            <div className="glass-panel rounded-2xl overflow-hidden border border-slate-700/50">
-                <div className="p-6 border-b border-slate-700/50 bg-slate-800/20 space-y-4">
-                    <div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
-                        <div className="flex items-center gap-4 min-w-0 flex-1 flex-wrap w-full lg:w-auto">
-                            <h3 className="app-module-heading">
-                                {t('waybills')}
-                            </h3>
-                            <div className="relative w-full md:max-w-md min-w-0 md:min-w-[260px] ml-0 md:ml-2 lg:ml-auto">
-                                <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(event) => setSearchTerm(event.target.value)}
-                                    placeholder={t('searchByEmployee')}
-                                    className="w-full bg-slate-900/50 border border-slate-700/60 rounded-lg pl-11 pr-4 py-3 text-base text-slate-200 placeholder:text-slate-500 outline-none focus:border-blue-500/60"
-                                />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {statCards.map((card) => (
+                    <div
+                        key={card.id}
+                        onClick={() => handleWidgetClick(card.filterId)}
+                        className={`glass-panel rounded-2xl p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
+                            headerFilter === card.filterId
+                                ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
+                                : 'border-slate-700/50 hover:border-slate-600/60'
+                        }`}
+                    >
+                        <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
+                        <div className="relative z-10 flex items-start justify-between gap-4">
+                            <div>
+                                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{card.title}</div>
+                                <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{card.value}</div>
                             </div>
-                            <div className="flex w-full md:w-auto items-stretch md:items-center gap-2 flex-wrap md:flex-nowrap ml-0 md:ml-2">
-                                <div className="flex w-full flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                    <LocalizedDateInput
-                                        label={t('dateFromSanadan')}
-                                        value={dateFrom}
-                                        maxDate={dateTo || undefined}
-                                        onChange={setDateFrom}
-                                        minWidth={168}
-                                    />
-                                    <LocalizedDateInput
-                                        label={t('dateToSanagacha')}
-                                        value={dateTo}
-                                        minDate={dateFrom || undefined}
-                                        onChange={setDateTo}
-                                        minWidth={168}
-                                    />
-                                </div>
+                            <div className={`p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-[26px] [&>svg]:h-[26px]`}>
+                                {card.icon}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full lg:w-auto shrink-0">
+                    </div>
+                ))}
+            </div>
+
+            {error && (
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                </div>
+            )}
+
+            <div className="glass-panel rounded-2xl overflow-hidden border border-slate-700/50">
+                <div className="p-4 sm:p-6 border-b border-slate-700/50 flex flex-col gap-5">
+                    <h3 className="app-module-heading">
+                        {t('waybills')}
+                    </h3>
+
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-3 flex-1">
+                            <div className="relative flex-1 min-w-[200px] max-w-[280px]">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <input
+                                    type="text"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    placeholder={t('searchByEmployee')}
+                                    className="h-10 pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500 transition-all w-full text-sm text-slate-200"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <LocalizedDateInput
+                                    label={t('dateFromSanadan')}
+                                    value={dateFrom}
+                                    maxDate={dateTo || undefined}
+                                    onChange={(v) => { setDateFrom(v); setCurrentPage(1); }}
+                                    minWidth={140}
+                                />
+                                <LocalizedDateInput
+                                    label={t('dateToSanagacha')}
+                                    value={dateTo}
+                                    minDate={dateFrom || undefined}
+                                    onChange={(v) => { setDateTo(v); setCurrentPage(1); }}
+                                    minWidth={140}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <button
                                 type="button"
                                 onClick={handleExportExcel}
-                                disabled={totalEmployees === 0 || exportingXls || exportingPdf}
-                                className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={filteredRows.length === 0 || exportingXls || exportingPdf}
+                                className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 <Table2 size={16} />
                                 {exportingXls ? t('exportingXls') : t('exportXls')}
@@ -408,167 +496,164 @@ export const WaybillManager = () => {
                             <button
                                 type="button"
                                 onClick={handleExportPdf}
-                                disabled={totalEmployees === 0 || exportingPdf || exportingXls}
-                                className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-4 text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={filteredRows.length === 0 || exportingPdf || exportingXls}
+                                className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 <FileText size={16} />
                                 {exportingPdf ? t('exportingPdf') : t('exportPdf')}
                             </button>
-                            {loading && <RefreshCw size={14} className="animate-spin text-blue-400" />}
                         </div>
                     </div>
-
                 </div>
-
-                {error && (
-                    <div className="px-6 py-3 text-xs text-red-400 bg-red-500/5 border-b border-red-500/20">
-                        {error}
-                    </div>
-                )}
-
-                <div className="overflow-hidden">
-                    <table className="hidden md:table w-full table-fixed text-left">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-slate-900/50 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                                <th className="w-[22%] px-4 py-4">{t('employee')}</th>
-                                <th className="w-[11%] px-4 py-4">ESMO</th>
-                                <th className="w-[22%] px-4 py-4">{t('employee')}</th>
-                                <th className="w-[11%] px-4 py-4">ESMO</th>
-                                <th className="w-[22%] px-4 py-4">{t('employee')}</th>
-                                <th className="w-[11%] px-4 py-4">ESMO</th>
+                            <tr className="bg-slate-900/50 text-slate-300 text-xs uppercase tracking-wide">
+                                <th className="px-4 md:px-6 py-4 !font-normal">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
+                                <th className="px-4 md:px-6 py-4 !font-normal border-l border-slate-700/50">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
-                            {pagedRows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-slate-500 text-sm">
-                                        {loading ? t('syncing') : (searchTerm.trim() || dateFrom || dateTo ? t('noEventsForFilter') : t('dataNotFound'))}
-                                    </td>
-                                </tr>
-                            ) : (
-                                pagedRows.map((group, groupIndex) => (
-                                    <motion.tr
-                                        key={`${group[0]?.id ?? 'row'}-${groupIndex}`}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="transition-all text-sm"
-                                    >
-                                        {group.map((row, columnIndex) => (
-                                            <Fragment key={`${row?.id ?? `empty-${groupIndex}-${columnIndex}`}`}>
-                                                <td className="px-4 py-4 !font-normal">
-                                                    <div className="!font-normal text-slate-300 hover:text-blue-400 transition-colors break-words whitespace-normal leading-6">
-                                                        {row?.driver ?? '-'}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-4">
-                                                    {row ? (
-                                                        <div className="relative inline-flex group/esmo">
-                                                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border ${statusBadgeClass(row.healthStatus)}`}>
-                                                                {row.healthStatus === 'passed' ? t('allowed') : row.healthStatus === 'review' ? t('review') : t('rejected')}
-                                                            </span>
-                                                            <div
-                                                                className={`waybill-esmo-tooltip pointer-events-none absolute left-1/2 z-40 w-44 -translate-x-1/2 rounded-xl border border-slate-700/70 bg-slate-950/95 px-3 py-2 text-xs text-slate-100 opacity-0 shadow-[0_8px_24px_rgba(2,6,23,0.55)] transition-opacity duration-150 group-hover/esmo:opacity-100 ${
-                                                                    groupIndex === 0 ? 'top-full mt-2' : 'bottom-full mb-2'
-                                                                }`}
-                                                            >
-                                                                <div className="flex items-center justify-between gap-2">
-                                                                    <span className="text-slate-400">{t('bloodPressure')}</span>
-                                                                    <span>{row.bp || '-'}</span>
+                            {pagedRowPairs.map(([rowA, rowB], index) => (
+                                <motion.tr key={rowA.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hover:bg-slate-800/40 transition-all text-sm group">
+                                    <td className="px-4 md:px-6 py-4">
+                                        <div className="relative inline-block group/tooltip max-w-full">
+                                            <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
+                                                {rowA.driver}
+                                            </div>
+                                            <div className={`absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
+                                                <div>
+                                                    <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
+                                                    {rowA.bp || rowA.pulse != null || rowA.temperature != null ? (
+                                                        <div className="space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
+                                                            {rowA.bp && (
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-slate-400">{t('bloodPressure')}:</span>
+                                                                    <span>{rowA.bp}</span>
                                                                 </div>
-                                                                <div className="mt-1 flex items-center justify-between gap-2">
-                                                                    <span className="text-slate-400">{t('pulse')}</span>
-                                                                    <span>{row.pulse == null ? '-' : row.pulse}</span>
+                                                            )}
+                                                            {rowA.pulse != null && (
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-slate-400">{t('pulse')}:</span>
+                                                                    <span>{rowA.pulse} p/m</span>
                                                                 </div>
-                                                                <div className="mt-1 flex items-center justify-between gap-2">
-                                                                    <span className="text-slate-400">{t('temperature')}</span>
-                                                                    <span>{formatTemperature(row.temperature)}</span>
+                                                            )}
+                                                            {rowA.temperature != null && (
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-slate-400">{t('temperature')}:</span>
+                                                                    <span>{formatNumber(rowA.temperature)}°C</span>
                                                                 </div>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     ) : (
-                                                        <span className="text-slate-500">-</span>
+                                                        <span className="text-slate-500 italic">{t('noDataAvailable')}</span>
                                                     )}
-                                                </td>
-                                            </Fragment>
-                                        ))}
-                                    </motion.tr>
-                                ))
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadClick(rowA)}
+                                            className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowA.healthStatus)}`}
+                                            title={t('downloadWaybill')}
+                                        >
+                                            <Download size={20} />
+                                        </button>
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 border-l border-slate-700/30">
+                                        {rowB ? (
+                                            <div className="relative inline-block group/tooltip max-w-full">
+                                                <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
+                                                    {rowB.driver}
+                                                </div>
+                                                <div className={`absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
+                                                    <div>
+                                                        <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
+                                                        {rowB.bp || rowB.pulse != null || rowB.temperature != null ? (
+                                                            <div className="space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
+                                                                {rowB.bp && (
+                                                                    <div className="flex justify-between gap-4">
+                                                                        <span className="text-slate-400">{t('bloodPressure')}:</span>
+                                                                        <span>{rowB.bp}</span>
+                                                                    </div>
+                                                                )}
+                                                                {rowB.pulse != null && (
+                                                                    <div className="flex justify-between gap-4">
+                                                                        <span className="text-slate-400">{t('pulse')}:</span>
+                                                                        <span>{rowB.pulse} p/m</span>
+                                                                    </div>
+                                                                )}
+                                                                {rowB.temperature != null && (
+                                                                    <div className="flex justify-between gap-4">
+                                                                        <span className="text-slate-400">{t('temperature')}:</span>
+                                                                        <span>{formatNumber(rowB.temperature)}°C</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-500 italic">{t('noDataAvailable')}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-500">-</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        {rowB ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadClick(rowB)}
+                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowB.healthStatus)}`}
+                                                title={t('downloadWaybill')}
+                                            >
+                                                <Download size={20} />
+                                            </button>
+                                        ) : (
+                                            <span className="text-slate-500">-</span>
+                                        )}
+                                    </td>
+                                </motion.tr>
+                            ))}
+                            {!loading && totalRowsCount === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
+                                        {t('dataNotFound')}
+                                    </td>
+                                </tr>
                             )}
                         </tbody>
                     </table>
-
-                    <div className="md:hidden p-3 space-y-3">
-                        {pagedRowsFlat.length === 0 ? (
-                            <div className="rounded-xl border border-slate-700/50 bg-slate-900/30 px-4 py-8 text-center text-slate-500 text-sm">
-                                {loading ? t('syncing') : (searchTerm.trim() || dateFrom || dateTo ? t('noEventsForFilter') : t('dataNotFound'))}
-                            </div>
-                        ) : (
-                            pagedRowsFlat.map((row) => (
-                                <motion.div
-                                    key={`mobile-${row.id}`}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="rounded-2xl border border-slate-700/50 bg-slate-900/30 p-4"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-100 break-words">{row.driver}</p>
-                                            <p className="mt-1 text-xs text-slate-400 break-all">{t('passId')}: {row.passId}</p>
-                                        </div>
-                                        <span className={`shrink-0 inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border ${statusBadgeClass(row.healthStatus)}`}>
-                                            {row.healthStatus === 'passed' ? t('allowed') : row.healthStatus === 'review' ? t('review') : t('rejected')}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                                        <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 px-2.5 py-2">
-                                            <span className="text-slate-400">{t('time')}</span>
-                                            <p className="mt-1 text-slate-200 break-words">{formatDateTime(row.sourceTime)}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 px-2.5 py-2">
-                                            <span className="text-slate-400">{t('bloodPressure')}</span>
-                                            <p className="mt-1 text-slate-200">{row.bp || '-'}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 px-2.5 py-2">
-                                            <span className="text-slate-400">{t('pulse')}</span>
-                                            <p className="mt-1 text-slate-200">{row.pulse == null ? '-' : row.pulse}</p>
-                                        </div>
-                                        <div className="rounded-lg border border-slate-700/50 bg-slate-950/40 px-2.5 py-2">
-                                            <span className="text-slate-400">{t('temperature')}</span>
-                                            <p className="mt-1 text-slate-200">{formatTemperature(row.temperature)}</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
-                        )}
-                    </div>
                 </div>
-
                 <div className="table-pagination-bar px-6 py-4 border-t border-slate-700/50 bg-slate-900/30 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <p className="text-sm text-slate-400">
-                        {totalEmployees === 0
+                        {totalRowsCount === 0
                             ? '0 / 0'
-                            : `${(currentPage - 1) * rowsPerPage * 3 + 1}-${Math.min((currentPage - 1) * rowsPerPage * 3 + pagedRowsFlat.length, totalEmployees)} / ${totalEmployees}`}
+                            : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min((currentPage - 1) * rowsPerPage + pagedRowPairs.length, totalRowsCount)} / ${totalRowsCount}`}
                     </p>
                     <div className="flex flex-wrap items-center gap-3">
-                        <span id="waybill-rows-per-page-label" className="text-sm text-slate-400">
-                            {t('rowsPerPage')}:
-                        </span>
-                        <select
-                            aria-labelledby="waybill-rows-per-page-label"
-                            value={rowsPerPage}
-                            onChange={(event) => {
-                                const value = Math.max(10, Number.parseInt(event.target.value, 10) || 10);
-                                setRowsPerPage(value);
-                                setCurrentPage(1);
-                            }}
-                            className="bg-slate-900/70 border border-slate-700/70 rounded-lg px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-blue-500/60"
-                        >
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                        </select>
+                        <label className="text-sm text-slate-400 flex items-center gap-2">
+                            <span>{t('rowsPerPage')}:</span>
+                            <select
+                                value={rowsPerPage}
+                                onChange={(e) => {
+                                    const value = Math.max(10, Number.parseInt(e.target.value, 10) || 10);
+                                    setRowsPerPage(value);
+                                    setCurrentPage(1);
+                                }}
+                                className="bg-slate-900/70 border border-slate-700/70 rounded-lg px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-blue-500/60"
+                            >
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </label>
                         <button
                             type="button"
                             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -590,23 +675,13 @@ export const WaybillManager = () => {
                         </button>
                     </div>
                 </div>
-
-            </div>
-
-            <div className="flex justify-start">
-                <button
-                    type="button"
-                    onClick={() => setIsWaybillFormOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 h-10 rounded-full px-5 text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors"
-                >
-                    Yo'l varaqa shakllantirish
-                </button>
             </div>
 
             <WaybillFormModal
                 open={isWaybillFormOpen}
                 onClose={() => setIsWaybillFormOpen(false)}
                 templatePdfUrl={yolVaraqasiPdfUrl}
+                initialValues={waybillFormInitialValues}
             />
         </div>
     );

@@ -128,6 +128,7 @@ export const AccessControlManager = () => {
     const [tabVisible, setTabVisible] = useState(
         () => typeof document !== 'undefined' && document.visibilityState === 'visible',
     );
+    const [filterType, setFilterType] = useState<'all' | 'entrance' | 'exit'>('all');
     const isFetchingRef = useRef(false);
     const latestLogIdRef = useRef(0);
     const normalizeLogRows = (rows: AccessLogRow[]) =>
@@ -190,6 +191,9 @@ export const AccessControlManager = () => {
             if (useIncremental) {
                 logsParams.set('sinceId', String(latestLogIdRef.current));
             }
+            if (filterType !== 'all') {
+                logsParams.set('eventType', filterType);
+            }
 
             const [summaryRes, logsRes] = await Promise.all([
                 fetch(`${API_BASE}/integrations/hikvision/summary${summaryQs ? `?${summaryQs}` : ''}`),
@@ -241,7 +245,7 @@ export const AccessControlManager = () => {
         } finally {
             isFetchingRef.current = false;
         }
-    }, [currentPage, dateFrom, dateTo, rowsPerPage, searchQuery, t]);
+    }, [currentPage, dateFrom, dateTo, rowsPerPage, searchQuery, filterType, t]);
 
     useEffect(() => {
         loadData();
@@ -479,6 +483,7 @@ export const AccessControlManager = () => {
             if (searchValue) params.set('search', searchValue);
             if (dateFrom) params.set('dateFrom', dateFrom);
             if (dateTo) params.set('dateTo', dateTo);
+            if (filterType !== 'all') params.set('eventType', filterType);
 
             const response = await fetch(`${API_BASE}/integrations/hikvision/logs?${params.toString()}`);
             if (!response.ok) {
@@ -582,7 +587,13 @@ export const AccessControlManager = () => {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_max-content] gap-4 md:gap-5">
-                <div className="glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0">
+                <div 
+                    onClick={() => {
+                        setFilterType(prev => prev === 'entrance' ? 'all' : 'entrance');
+                        setCurrentPage(1);
+                    }}
+                    className={`glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'entrance' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                >
                     <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
                     <div className="relative z-10 p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0">
                         <LogIn size={24} />
@@ -592,7 +603,13 @@ export const AccessControlManager = () => {
                         <p className="text-2xl sm:text-3xl font-bold tabular-nums">{summary.totalToday}</p>
                     </div>
                 </div>
-                <div className="glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0">
+                <div 
+                    onClick={() => {
+                        setFilterType(prev => prev === 'exit' ? 'all' : 'exit');
+                        setCurrentPage(1);
+                    }}
+                    className={`glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'exit' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                >
                     <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
                     <div className="relative z-10 p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0">
                         <ArrowLeftToLine size={24} />

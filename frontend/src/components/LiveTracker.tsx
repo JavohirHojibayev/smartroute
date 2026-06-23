@@ -3,8 +3,6 @@ import { startTransition } from 'react';
 import {
     ChevronDown,
     CircleDot,
-    Copy,
-    ExternalLink,
     Fuel,
     Gauge,
     KeyRound,
@@ -20,7 +18,6 @@ import {
     Satellite,
     Search,
     Truck,
-    Wrench,
     X,
     type LucideIcon,
 } from 'lucide-react';
@@ -267,10 +264,12 @@ const getDashboardRange = (preset: DashboardPreset) => {
     };
 };
 
+/*
 const toDashboardDateDraft = (range: { from: string; to: string }) => ({
     from: range.from.slice(0, 10),
     to: range.to.slice(0, 10),
 });
+*/
 
 const vehicleSvgByKind: Record<VehicleKind, string> = {
     car: `
@@ -888,9 +887,9 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
     const healthRef = useRef<GarvexHealthResponse | null>(null);
     const vehiclesSignatureRef = useRef('');
     const searchInputRef = useRef<HTMLInputElement | null>(null);
-    const [dashboardPreset, setDashboardPreset] = useState<DashboardPreset>('today');
-    const [dashboardRange, setDashboardRange] = useState(() => getDashboardRange('today'));
-    const [dashboardDraftDates, setDashboardDraftDates] = useState(() => toDashboardDateDraft(getDashboardRange('today')));
+    const [dashboardPreset] = useState<DashboardPreset>('today');
+    const [dashboardRange] = useState(() => getDashboardRange('today'));
+    // const [dashboardDraftDates, setDashboardDraftDates] = useState(() => toDashboardDateDraft(getDashboardRange('today')));
     const [dashboardData, setDashboardData] = useState<GarvexDashboardResponse | null>(null);
 
     const [dashboardError, setDashboardError] = useState<string | null>(null);
@@ -1082,6 +1081,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
         }
     };
 
+    /*
     const applyDashboardPreset = (preset: DashboardPreset) => {
         if (preset === 'custom') return;
         const nextRange = getDashboardRange(preset);
@@ -1106,6 +1106,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
             to: `${toDate}T23:59`,
         });
     };
+    */
 
     useEffect(() => {
         void load(true);

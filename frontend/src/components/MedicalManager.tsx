@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Droplets, AlertCircle, CheckCircle2, Search, Table2, FileText, Server } from 'lucide-react';
+import { Activity, Droplets, AlertCircle, CheckCircle2, Search, Table2, FileText, Server, HardHat, Clock, AlertTriangle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -184,7 +184,7 @@ const getDateKeyInTashkent = (value: string): string | null => {
 };
 
 export const MedicalManager = () => {
-    const { t } = useI18n();
+    const { t, lang } = useI18n();
     const [summary, setSummary] = useState<EsmoSummary>({
         day: getTodayTashkent(),
         totalToday: 0,
@@ -500,73 +500,71 @@ export const MedicalManager = () => {
     };
 
     const summaryTitle = dateFrom || dateTo ? t('selectedPeriodSummary') : t('todaySummary');
-    const toggleStatusFilter = (value: Exclude<SummaryStatusFilter, 'all'>) => {
-        setStatusFilter((prev) => (prev === value ? 'all' : value));
+    const handleWidgetClick = (filterId: SummaryStatusFilter) => {
+        setStatusFilter((prev) => (prev === filterId ? 'all' : filterId));
+        setCurrentPage(1);
     };
+
+    const statCards = [
+        {
+            id: 'ALL',
+            filterId: 'all' as const,
+            title: lang === 'uz' ? 'JAMI XODIMLAR' : 'ВСЕГО СОТРУДНИКОВ',
+            value: formatNumber(widgetSummary.totalToday),
+            color: 'from-blue-500 to-cyan-400',
+            icon: <HardHat />,
+        },
+        {
+            id: 'PASSED',
+            filterId: 'passed' as const,
+            title: lang === 'uz' ? 'RUXSAT ETILDI' : 'ДОПУЩЕНО',
+            value: formatNumber(widgetSummary.passedToday),
+            color: 'from-emerald-500 to-teal-400',
+            icon: <CheckCircle2 />,
+        },
+        {
+            id: 'REVIEW',
+            filterId: 'review' as const,
+            title: lang === 'uz' ? "KO'RIKDA" : 'НА ОСМОТРЕ',
+            value: formatNumber(widgetSummary.reviewToday),
+            color: 'from-orange-500 to-amber-400',
+            icon: <Clock />,
+        },
+        {
+            id: 'FAILED',
+            filterId: 'failed' as const,
+            title: lang === 'uz' ? 'RAD ETILDI' : 'ОТКЛОНЕНО',
+            value: formatNumber(widgetSummary.failedToday),
+            color: 'from-red-500 to-rose-400',
+            icon: <AlertTriangle />,
+        },
+    ];
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-start sm:items-center gap-3 bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50">
-                <div className="flex flex-wrap gap-3 items-center w-full lg:w-auto">
-                    <div className="relative w-full sm:w-auto sm:min-w-[240px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            placeholder={t('searchByEmployee')}
-                            className="pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500 transition-all w-full sm:w-72"
-                        />
-                    </div>
-
-                    <div className="flex w-full sm:w-auto flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <LocalizedDateInput
-                            label={t('dateFromSanadan')}
-                            value={dateFrom}
-                            maxDate={dateTo || undefined}
-                            onChange={(v) => {
-                                setDateFrom(v);
-                                setCurrentPage(1);
-                            }}
-                            minWidth={168}
-                        />
-                        <LocalizedDateInput
-                            label={t('dateToSanagacha')}
-                            value={dateTo}
-                            minDate={dateFrom || undefined}
-                            onChange={(v) => {
-                                setDateTo(v);
-                                setCurrentPage(1);
-                            }}
-                            minWidth={168}
-                        />
-                    </div>
-
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap w-full lg:w-auto shrink-0">
-                    <button
-                        type="button"
-                        onClick={handleExportExcel}
-                        disabled={exportScopedRows.length === 0 || exportingXls || exportingPdf}
-                        className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {statCards.map((card) => (
+                    <div
+                        key={card.id}
+                        onClick={() => handleWidgetClick(card.filterId)}
+                        className={`glass-panel rounded-2xl p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
+                            statusFilter === card.filterId
+                                ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
+                                : 'border-slate-700/50 hover:border-slate-600/60'
+                        }`}
                     >
-                        <Table2 size={16} />
-                        {exportingXls ? t('exportingXls') : t('exportXls')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleExportPdf}
-                        disabled={exportScopedRows.length === 0 || exportingPdf || exportingXls}
-                        className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <FileText size={16} />
-                        {exportingPdf ? t('exportingPdf') : t('exportPdf')}
-                    </button>
-                </div>
+                        <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
+                        <div className="relative z-10 flex items-start justify-between gap-4">
+                            <div>
+                                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{card.title}</div>
+                                <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{card.value}</div>
+                            </div>
+                            <div className={`p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-[26px] [&>svg]:h-[26px]`}>
+                                {card.icon}
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {error && (
@@ -577,44 +575,71 @@ export const MedicalManager = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 <div className="lg:col-span-3 glass-panel rounded-2xl overflow-hidden border border-slate-700/50">
-                    <div className="p-6 border-b border-slate-700/50 flex flex-wrap items-center justify-between gap-3">
+                    <div className="p-6 border-b border-slate-700/50 flex flex-col gap-5">
                         <h3 className="app-module-heading">
                             {t('esmoJournalTitle')}
                         </h3>
-                        <div className="flex flex-wrap gap-2 text-[10px] font-bold w-full sm:w-auto">
-                            <button
-                                type="button"
-                                onClick={() => toggleStatusFilter('passed')}
-                                className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full border transition-colors ${
-                                    statusFilter === 'passed'
-                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/60'
-                                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15'
-                                }`}
-                            >
-                                {widgetSummary.passedToday} {t('allowed')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => toggleStatusFilter('review')}
-                                className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full border transition-colors ${
-                                    statusFilter === 'review'
-                                        ? 'bg-orange-500/20 text-orange-300 border-orange-400/60'
-                                        : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/15'
-                                }`}
-                            >
-                                {widgetSummary.reviewToday} {t('review')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => toggleStatusFilter('failed')}
-                                className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-full border transition-colors ${
-                                    statusFilter === 'failed'
-                                        ? 'bg-red-500/20 text-red-300 border-red-400/60'
-                                        : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/15'
-                                }`}
-                            >
-                                {widgetSummary.failedToday} {t('rejected')}
-                            </button>
+                        
+                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-3 flex-1">
+                                <div className="relative flex-1 min-w-[200px] max-w-[280px]">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                        placeholder={t('searchByEmployee')}
+                                        className="pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500 transition-all w-full"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <LocalizedDateInput
+                                        label={t('dateFromSanadan')}
+                                        value={dateFrom}
+                                        maxDate={dateTo || undefined}
+                                        onChange={(v) => {
+                                            setDateFrom(v);
+                                            setCurrentPage(1);
+                                        }}
+                                        minWidth={140}
+                                    />
+                                    <LocalizedDateInput
+                                        label={t('dateToSanagacha')}
+                                        value={dateTo}
+                                        minDate={dateFrom || undefined}
+                                        onChange={(v) => {
+                                            setDateTo(v);
+                                            setCurrentPage(1);
+                                        }}
+                                        minWidth={140}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={handleExportExcel}
+                                    disabled={exportScopedRows.length === 0 || exportingXls || exportingPdf}
+                                    className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <Table2 size={16} />
+                                    {exportingXls ? t('exportingXls') : t('exportXls')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleExportPdf}
+                                    disabled={exportScopedRows.length === 0 || exportingPdf || exportingXls}
+                                    className="inline-flex min-w-0 flex-1 sm:flex-none justify-center items-center gap-2 h-10 rounded-full px-3 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap text-white bg-blue-600 hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <FileText size={16} />
+                                    {exportingPdf ? t('exportingPdf') : t('exportPdf')}
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div className="overflow-x-auto">

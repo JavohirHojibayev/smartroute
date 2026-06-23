@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PdfPageMetrics } from '../types';
 import { exportFilledPdf } from '../utils/pdfExport';
 import { printPdfBlob } from '../utils/print';
@@ -11,9 +11,10 @@ import { PdfDocumentRenderer } from './PdfDocumentRenderer';
 type PdfOverlayEditorPageProps = {
   templatePdfUrl: string;
   onClose?: () => void;
+  initialValues?: Record<string, string>;
 };
 
-export const PdfOverlayEditorPage = ({ templatePdfUrl, onClose }: PdfOverlayEditorPageProps) => {
+export const PdfOverlayEditorPage = ({ templatePdfUrl, onClose, initialValues }: PdfOverlayEditorPageProps) => {
   const [zoom, setZoom] = useState(1.2);
   const [calibrationMode, setCalibrationMode] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -26,7 +27,23 @@ export const PdfOverlayEditorPage = ({ templatePdfUrl, onClose }: PdfOverlayEdit
     save: saveDefinitions,
     loading: fieldsLoading,
   } = useFieldDefinitions();
-  const { values, updateValue, saving, forceSave, loading: draftLoading } = useWaybillDraft();
+  const { values, setValues, updateValue, saving, forceSave, loading: draftLoading } = useWaybillDraft();
+
+  useEffect(() => {
+    if (!draftLoading && initialValues && Object.keys(initialValues).length > 0) {
+      setValues((prev) => {
+        const updated = { ...prev };
+        let changed = false;
+        for (const [k, v] of Object.entries(initialValues)) {
+          if (updated[k] !== v) {
+            updated[k] = v;
+            changed = true;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    }
+  }, [draftLoading, initialValues, setValues]);
 
   const upsertMetric = (metric: PdfPageMetrics) => {
     setPageMetricsMap((prev) => {

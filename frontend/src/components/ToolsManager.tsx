@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, Filter } from 'lucide-react';
+import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, Filter, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -117,7 +117,7 @@ export const ToolsManager = () => {
     const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'ISSUED' | 'NOT_ISSUED' | 'DONE' | 'RETURNED' | 'COMPLETED'>('ALL');
+    const [headerFilter, setHeaderFilter] = useState<'ALL' | 'ISSUED' | 'NOT_ISSUED' | 'DONE' | 'RETURNED' | 'WIDGET_ALL' | 'WIDGET_ISSUED' | 'WIDGET_RETURNED' | 'WIDGET_NOT_ISSUED'>('ALL');
     const [topFilterDropdownOpen, setTopFilterDropdownOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState<Record<number, 'issue' | 'return' | undefined>>({});
     const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<ToolIssueRow>>>(() => {
@@ -142,8 +142,8 @@ export const ToolsManager = () => {
         returnedAt: lang === 'uz' ? 'Qaytarilgan vaqt' : lang === 'ru' ? 'Время возврата' : 'Returned At',
         status: lang === 'uz' ? 'Holat' : lang === 'ru' ? 'Статус' : 'Status',
         issuer: lang === 'uz' ? 'Beruvchi' : lang === 'ru' ? 'Выдал' : 'Issuer',
-        issueNow: lang === 'uz' ? 'Berildi' : lang === 'ru' ? 'Выдать' : 'Issue',
-        returnNow: lang === 'uz' ? 'Qaytarildi' : lang === 'ru' ? 'Вернуть' : 'Return',
+        issueNow: lang === 'uz' ? 'Berish' : lang === 'ru' ? 'Выдать' : 'Issue',
+        returnNow: lang === 'uz' ? 'Qaytarish' : lang === 'ru' ? 'Вернуть' : 'Return',
         statusIssued: lang === 'uz' ? 'BERILGAN' : lang === 'ru' ? 'ВЫДАНО' : 'ISSUED',
         statusDone: lang === 'uz' ? 'YAKUNLANGAN' : lang === 'ru' ? 'ЗАВЕРШЕНО' : 'DONE',
         statusFail: lang === 'uz' ? 'XATOLIK' : lang === 'ru' ? 'ОШИБКА' : 'FAIL',
@@ -407,14 +407,31 @@ export const ToolsManager = () => {
     const filteredRows = useMemo(() => {
         let result = mergedRowsState;
 
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const isToday = (dateStr: string | null | undefined): boolean => {
+            if (!dateStr || dateStr === '-') return false;
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return false;
+            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return dStr === todayStr;
+        };
+
         if (headerFilter === 'ISSUED') {
             result = result.filter(r => r.status === 'ISSUED');
         } else if (headerFilter === 'NOT_ISSUED') {
             result = result.filter(r => r.status === 'NOT_ISSUED');
-        } else if (headerFilter === 'RETURNED' || headerFilter === 'COMPLETED') {
+        } else if (headerFilter === 'DONE' || headerFilter === 'RETURNED') {
             result = result.filter(r => r.status === 'DONE');
-        } else if (headerFilter === 'DONE') {
-            result = result.filter(r => r.status === 'DONE');
+        } else if (headerFilter === 'WIDGET_ALL') {
+            result = result.filter(r => isToday(r.esmo_time));
+        } else if (headerFilter === 'WIDGET_ISSUED') {
+            result = result.filter(r => r.status === 'ISSUED' && isToday(r.issued_at));
+        } else if (headerFilter === 'WIDGET_RETURNED') {
+            result = result.filter(r => r.status === 'DONE' && isToday(r.returned_at));
+        } else if (headerFilter === 'WIDGET_NOT_ISSUED') {
+            result = result.filter(r => r.status === 'NOT_ISSUED' && isToday(r.esmo_time));
         }
 
         const query = searchQuery.trim().toLowerCase();
@@ -569,12 +586,12 @@ export const ToolsManager = () => {
         const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.issued_at)).length;
         /* Qaytarilgan = bugun vosita qaytargan */
         const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
-        /* Yakunlangan = bugun yakunlangan (qaytarilgan) */
-        const completed = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
-        return { total, issued, returned, completed };
+        /* Berilmagan = bugun ESMO dan o'tgan, lekin vosita berilmagan */
+        const notIssued = mergedRowsState.filter(r => r.status === 'NOT_ISSUED' && isToday(r.esmo_time)).length;
+        return { total, issued, returned, notIssued };
     }, [mergedRowsState]);
 
-    const handleWidgetClick = (filterId: 'ALL' | 'ISSUED' | 'RETURNED' | 'COMPLETED') => {
+    const handleWidgetClick = (filterId: 'WIDGET_ALL' | 'WIDGET_ISSUED' | 'WIDGET_RETURNED' | 'WIDGET_NOT_ISSUED') => {
         setHeaderFilter(prev => prev === filterId ? 'ALL' : filterId);
         setCurrentPage(1);
     };
@@ -582,15 +599,23 @@ export const ToolsManager = () => {
     const toolStatCards = [
         {
             id: 'total' as const,
-            filterId: 'ALL' as const,
+            filterId: 'WIDGET_ALL' as const,
             title: lang === 'uz' ? 'Jami xodimlar' : lang === 'ru' ? 'Всего сотрудников' : 'Total Employees',
             value: String(stats.total),
             color: 'from-blue-500 to-cyan-400',
             icon: <HardHat />,
         },
         {
+            id: 'not_issued' as const,
+            filterId: 'WIDGET_NOT_ISSUED' as const,
+            title: lang === 'uz' ? 'Berilmagan' : lang === 'ru' ? 'Не выдано' : 'Not Issued',
+            value: String(stats.notIssued),
+            color: 'from-amber-500 to-orange-400',
+            icon: <AlertCircle />,
+        },
+        {
             id: 'issued' as const,
-            filterId: 'ISSUED' as const,
+            filterId: 'WIDGET_ISSUED' as const,
             title: lang === 'uz' ? 'Berilgan' : lang === 'ru' ? 'Выдано' : 'Issued',
             value: String(stats.issued),
             color: 'from-violet-500 to-fuchsia-400',
@@ -598,18 +623,10 @@ export const ToolsManager = () => {
         },
         {
             id: 'returned' as const,
-            filterId: 'RETURNED' as const,
+            filterId: 'WIDGET_RETURNED' as const,
             title: lang === 'uz' ? 'Qaytarilgan' : lang === 'ru' ? 'Возвращено' : 'Returned',
             value: String(stats.returned),
             color: 'from-emerald-500 to-teal-400',
-            icon: <CheckCircle2 />,
-        },
-        {
-            id: 'completed' as const,
-            filterId: 'COMPLETED' as const,
-            title: lang === 'uz' ? 'Yakunlangan' : lang === 'ru' ? 'Завершено' : 'Completed',
-            value: String(stats.completed),
-            color: 'from-amber-500 to-orange-400',
             icon: <CheckCircle2 />,
         },
     ];
@@ -720,10 +737,10 @@ export const ToolsManager = () => {
                                                     Berilmagan
                                                 </button>
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'DONE' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                    onClick={() => { setHeaderFilter('DONE'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'RETURNED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('RETURNED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
-                                                    Yakunlangan
+                                                    Qaytarilgan
                                                 </button>
                                             </div>
                                         </>

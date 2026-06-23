@@ -1,4 +1,4 @@
-﻿import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
 import { Driver } from './driver.entity';
 import { CheckStatus } from './medical.entity';
 import { Module, Controller, Post, Body, Get, Query, UnauthorizedException, Headers, Req, Logger, Res, HttpCode, OnModuleInit } from '@nestjs/common';
@@ -2211,6 +2211,7 @@ export class HikvisionController implements OnModuleInit {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('sinceId') sinceId?: string,
+    @Query('eventType') eventType?: string,
   ) {
     const parsedLimit = Number.parseInt(limit ?? '50', 10);
     const safeLimit = Number.isFinite(parsedLimit)
@@ -2256,6 +2257,10 @@ export class HikvisionController implements OnModuleInit {
         `(${perVariantClauses.join(' OR ')})`,
         searchParams,
       );
+    }
+
+    if (eventType === 'entrance' || eventType === 'exit') {
+      baseQuery = baseQuery.andWhere('log.event_type = :eventType', { eventType });
     }
 
     if (rangeFrom) {

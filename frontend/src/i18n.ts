@@ -366,6 +366,10 @@ export const uz = {
   cargoLastSync: 'Oxirgi sync',
   cargoTypes: 'Yuk turlari',
   cargoNoData: "Ma'lumot yo'q",
+  download: 'Yuklash',
+  indicators: "Ko'rsatkichlar",
+  noDataAvailable: "Ma'lumot mavjud emas",
+  downloadWaybill: "Yo'l varaqasini yuklash",
 };
 
 export const ru: typeof uz = {
@@ -731,6 +735,10 @@ export const ru: typeof uz = {
   cargoLastSync: 'Последняя синхронизация',
   cargoTypes: 'Типы груза',
   cargoNoData: 'Нет данных',
+  download: 'Скачать',
+  indicators: 'Показатели',
+  noDataAvailable: 'Нет данных',
+  downloadWaybill: 'Скачать путевой лист',
 };
 
 export const en: typeof uz = {
@@ -1096,6 +1104,10 @@ export const en: typeof uz = {
   cargoLastSync: 'Last sync',
   cargoTypes: 'Cargo types',
   cargoNoData: 'No data',
+  download: 'Download',
+  indicators: 'Indicators',
+  noDataAvailable: 'No data available',
+  downloadWaybill: 'Download waybill',
 };
 
 export const dicts = { uz, ru, en };
