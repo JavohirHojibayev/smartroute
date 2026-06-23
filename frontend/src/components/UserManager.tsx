@@ -86,13 +86,13 @@ const modules: Array<{ id: PermissionModule; labelKey: string }> = [
   { id: 'dashboard', labelKey: 'dashboard' },
   { id: 'access', labelKey: 'accessControl' },
   { id: 'medical', labelKey: 'medicalChecks' },
-  { id: 'shiftSchedule', labelKey: 'shiftSchedule' },
+  { id: 'tools', labelKey: 'tools' },
+  { id: 'waybills', labelKey: 'waybills' },
+  { id: 'fuel', labelKey: 'fuel' },
+  { id: 'tracking', labelKey: 'liveTracking' },
   { id: 'fleet', labelKey: 'fleet' },
   { id: 'drivers', labelKey: 'drivers' },
-  { id: 'waybills', labelKey: 'waybills' },
-  { id: 'tracking', labelKey: 'liveTracking' },
   { id: 'mechanic', labelKey: 'vehicleInspections' },
-  { id: 'fuel', labelKey: 'fuel' },
   { id: 'cargo', labelKey: 'cargoStats' },
   { id: 'settings', labelKey: 'settings' },
 ];
@@ -879,49 +879,25 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                     {modules.map((mod) => {
                       const currentSelection = selectedRolePermissions?.[mod.id] ?? ['none'];
                       const currentAccess = getEffectivePermissionLevel(currentSelection);
-                      const rowAccentClass =
-                        currentAccess === 'full'
-                          ? 'border-emerald-500/40'
-                          : currentAccess === 'read'
-                            ? 'border-blue-500/40'
-                            : 'border-slate-600/40';
+                      const isOn = currentAccess === 'full' || currentAccess === 'read';
+                      const rowAccentClass = isOn ? 'border-blue-500/40' : 'border-slate-600/40';
                       return (
-                        <div key={mod.id} className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between p-4 rounded-2xl transition-all border border-transparent hover:border-slate-700/50 border-l-2 ${rowAccentClass} ${currentAccess === 'none' ? 'hover:bg-slate-800/30' : 'bg-slate-800/30 hover:bg-slate-800/50'}`}>
+                        <div key={mod.id} className={`flex flex-row items-center justify-between p-4 rounded-2xl transition-all border border-transparent hover:border-slate-700/50 border-l-2 ${rowAccentClass} ${!isOn ? 'hover:bg-slate-800/30' : 'bg-slate-800/30 hover:bg-slate-800/50'}`}>
                           <div className="flex items-center gap-3 md:gap-4 min-w-0">
-                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                            <span className="text-sm font-medium text-slate-200 break-words">{t(mod.labelKey as any)}</span>
+                            <div className={`w-2 h-2 rounded-full transition-colors ${isOn ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'bg-slate-600'}`} />
+                            <span className={`text-sm font-medium transition-colors break-words ${isOn ? 'text-slate-200' : 'text-slate-400'}`}>{t(mod.labelKey as any)}</span>
                           </div>
-                          <div className="grid grid-cols-3 gap-2 w-full md:w-auto md:flex md:gap-2">
-                            {(['none', 'read', 'full'] as const).map((access) => {
-                              const isActive = currentSelection.includes(access);
-                              const activeClass =
-                                access === 'full'
-                                  ? 'text-emerald-300 border-emerald-400/50 bg-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.42)]'
-                                  : access === 'read'
-                                    ? 'text-blue-300 border-blue-400/50 bg-blue-500/20 shadow-[0_0_16px_rgba(59,130,246,0.42)]'
-                                    : 'text-slate-200 border-slate-500/60 bg-slate-700/50 shadow-[0_0_12px_rgba(148,163,184,0.34)]';
-
-                              const inactiveClass =
-                                access === 'full'
-                                  ? 'text-emerald-300 border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/15'
-                                  : access === 'read'
-                                    ? 'text-blue-300 border-blue-500/25 bg-blue-500/5 hover:bg-blue-500/15'
-                                    : 'text-slate-400 border-slate-700/60 bg-slate-900/40 hover:bg-slate-700/40';
-                              return (
-                                <button
-                                  key={access}
-                                  type="button"
-                                  disabled={!canManage}
-                                  onClick={() => updateRoleAccess(mod.id, access)}
-                                  className={`w-full md:min-w-[68px] px-2 md:px-4 py-2 md:py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all disabled:opacity-45 disabled:cursor-not-allowed ${isActive ? activeClass : inactiveClass}`}
-                                >
-                                  <span className="inline-flex items-center justify-center gap-1">
-                                    {access}
-                                    {isActive ? <span className="text-[11px] leading-none">✓</span> : null}
-                                  </span>
-                                </button>
-                              );
-                            })}
+                          <div className="flex items-center">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={isOn}
+                                onChange={(e) => updateRoleAccess(mod.id, e.target.checked ? 'full' : 'none')}
+                                disabled={!canManage}
+                              />
+                              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                            </label>
                           </div>
                         </div>
                       );

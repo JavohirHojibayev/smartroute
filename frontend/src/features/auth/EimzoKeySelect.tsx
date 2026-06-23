@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, BadgeCheck, FileBadge } from 'lucide-react';
+import { ChevronDown, BadgeCheck, KeyRound } from 'lucide-react';
 import { dicts, type Language } from '../../i18n';
 import type { EimzoKey } from './eimzo/eimzo.types';
 
@@ -68,7 +68,7 @@ export const EimzoKeySelect = ({ lang, keys, selectedIndex, disabled, onChange }
           {selectedKey ? (
             <BadgeCheck className="text-emerald-400 shrink-0" size={18} />
           ) : (
-            <FileBadge className="text-slate-400 shrink-0" size={18} />
+            <KeyRound className="text-slate-400 shrink-0" size={18} />
           )}
           <span className="truncate">
             {keys.length === 0 

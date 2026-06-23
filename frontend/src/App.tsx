@@ -891,7 +891,7 @@ function App() {
 
             {/* Ayni damdagi ma'lumotlar (yuqori qism) */}
             {/* Stat Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               {statCards.map((stat, idx) => (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -904,23 +904,19 @@ function App() {
                       setActiveTab(nextTab);
                     }
                   }}
-                  className="glass-panel p-6 rounded-2xl relative overflow-hidden group cursor-pointer hover:border-slate-500/50 transition-colors"
+                  className="glass-panel p-4 sm:p-6 rounded-2xl relative overflow-hidden group cursor-pointer hover:border-slate-500/50 transition-colors"
                 >
                   <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${stat.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
-                  <div className="flex justify-between items-start relative z-10">
-                    <div>
-                      <p className="text-slate-400 text-xs font-medium mb-1 uppercase tracking-wider">{stat.title}</p>
-                      <h3 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                  <div className="flex justify-between items-start relative z-10 gap-2">
+                    <div className="min-w-0">
+                      <p className="text-slate-400 text-[10px] sm:text-xs font-medium mb-1 uppercase tracking-wider truncate">{stat.title}</p>
+                      <h3 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 truncate">
                         {stat.value}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                        <ArrowUpRight size={12} className="text-emerald-400" />
-                        {stat.subValue}
-                      </p>
                     </div>
                     <div
                       data-stat={stat.id}
-                      className={`dashboard-stat-icon p-4 rounded-xl bg-gradient-to-br ${stat.color} bg-opacity-10 shadow-xl [&>svg]:w-[26px] [&>svg]:h-[26px]`}
+                      className={`dashboard-stat-icon p-2.5 sm:p-4 rounded-xl bg-gradient-to-br ${stat.color} bg-opacity-10 shadow-xl [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-[26px] sm:[&>svg]:h-[26px] shrink-0`}
                     >
                       {stat.icon}
                     </div>
@@ -1291,11 +1287,11 @@ function App() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10 animate-float-delay-minus3"></div>
 
         {/* Top Header */}
-        <header className="h-20 glass-panel px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 z-10">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+        <header className="h-16 sm:h-20 glass-panel px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 z-10">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink-0">
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="md:hidden h-10 w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors"
+              className="md:hidden h-9 w-9 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0"
               aria-label={t('menuOpen')}
             >
               <Menu className="w-[18px] h-[18px]" />
@@ -1303,14 +1299,14 @@ function App() {
             <button
               type="button"
               onClick={() => setActiveTab('dashboard')}
-              className="md:hidden flex items-center gap-2 text-left min-w-0"
+              className="md:hidden flex items-center gap-1.5 sm:gap-2 text-left min-w-0"
             >
               <img
                 src="/smartroute-logo.svg"
                 alt="SmartRoute logo"
-                className="w-8 h-8 rounded-lg shadow-lg shadow-blue-500/20 shrink-0"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-lg shadow-blue-500/20 shrink-0"
               />
-              <span className="brand-title font-bold text-base tracking-wide uppercase truncate max-w-[140px] max-[380px]:max-w-[92px]">
+              <span className="brand-title font-bold text-sm sm:text-base tracking-wide uppercase truncate max-w-[80px] min-[380px]:max-w-[140px]">
                 SmartRoute
               </span>
             </button>
@@ -1323,29 +1319,29 @@ function App() {
           <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0">
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-4 h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer"
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-9 sm:w-auto sm:px-4 h-9 sm:h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer shrink-0"
               title={theme === 'dark' ? t('themeSwitchToLight') : t('themeSwitchToDark')}
             >
               {theme === 'dark' ? (
-                <Moon className="text-indigo-300 w-[18px] h-[18px] shrink-0" />
+                <Moon className="text-indigo-300 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] shrink-0" />
               ) : (
-                <Sun className="text-amber-400 w-[18px] h-[18px] shrink-0" />
+                <Sun className="text-amber-400 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] shrink-0" />
               )}
               <span className="hidden sm:inline font-medium">{theme === 'dark' ? t('themeNight') : t('themeDay')}</span>
             </button>
             <button
               onClick={toggleLang}
-              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-4 h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer"
+              className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2 w-9 sm:w-auto sm:px-4 h-9 sm:h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer shrink-0"
             >
-              <Globe className="text-blue-400 w-[18px] h-[18px] shrink-0" />
-              <span className="font-medium uppercase">{lang}</span>
+              <Globe className="text-blue-400 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] shrink-0 hidden sm:block" />
+              <span className="font-bold sm:font-medium uppercase text-[11px] sm:text-base leading-none">{lang}</span>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2 sm:px-4 h-10 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-100 hover:border-red-500/50 hover:text-red-500 transition-colors cursor-pointer"
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-9 sm:w-auto sm:px-4 h-9 sm:h-10 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-100 hover:border-red-500/50 hover:text-red-500 transition-colors cursor-pointer shrink-0"
               title={t('exit')}
             >
-              <LogOut className="w-[18px] h-[18px] shrink-0" />
+              <LogOut className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] shrink-0" />
               <span className="hidden sm:inline font-medium">{t('exit')}</span>
             </button>
             <div ref={notificationsRef} className="relative shrink-0">
@@ -1353,7 +1349,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
-                className={`relative flex items-center justify-center px-2 sm:px-3 h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer ${notificationsOpen
+                className={`relative flex items-center justify-center w-9 sm:w-auto sm:px-3 h-9 sm:h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer shrink-0 ${notificationsOpen
                     ? 'border-blue-500/50 text-slate-200'
                     : 'border-slate-700 hover:border-blue-500/50 text-slate-300'
                   }`}
@@ -1361,9 +1357,9 @@ function App() {
                 aria-label={t('notifications')}
                 aria-haspopup="dialog"
               >
-                <Bell className="text-blue-400 w-[18px] h-[18px] shrink-0" />
+                <Bell className="text-blue-400 w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] shrink-0" />
                 {notificationsCount > 0 ? (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold inline-flex items-center justify-center shadow-lg shadow-red-500/20">
+                  <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 min-w-4 sm:min-w-5 h-4 sm:h-5 px-1 rounded-full bg-red-500 text-white text-[9px] sm:text-[10px] font-bold inline-flex items-center justify-center shadow-lg shadow-red-500/20">
                     {notificationsCount > 9 ? '9+' : notificationsCount}
                   </span>
                 ) : null}

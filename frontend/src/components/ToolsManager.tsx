@@ -581,13 +581,18 @@ export const ToolsManager = () => {
         };
 
         /* Jami xodimlar = bugun ESMO dan o'tgan (ruxsat olgan) xodimlar soni */
-        const total = mergedRowsState.filter(r => isToday(r.esmo_time)).length;
-        /* Berilgan = bugun vosita berilgan va hali qaytarmagan */
-        const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.issued_at)).length;
-        /* Qaytarilgan = bugun vosita qaytargan */
-        const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
-        /* Berilmagan = bugun ESMO dan o'tgan, lekin vosita berilmagan */
-        const notIssued = mergedRowsState.filter(r => r.status === 'NOT_ISSUED' && isToday(r.esmo_time)).length;
+        const todayRows = mergedRowsState.filter(r => isToday(r.esmo_time));
+        const total = todayRows.length;
+        
+        /* Berilgan = bugun ESMO dan o'tib, vosita berilgan va hali qaytarmagan */
+        const issued = todayRows.filter(r => r.status === 'ISSUED').length;
+        
+        /* Qaytarilgan = bugun ESMO dan o'tib, vosita qaytargan */
+        const returned = todayRows.filter(r => r.status === 'DONE').length;
+        
+        /* Berilmagan = bugun ESMO dan o'tgan, lekin vosita berilmagan (yoki xatolik) */
+        const notIssued = total > 0 ? total - issued - returned : 0;
+        
         return { total, issued, returned, notIssued };
     }, [mergedRowsState]);
 
@@ -633,24 +638,24 @@ export const ToolsManager = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
                 {toolStatCards.map((card) => (
                     <div
                         key={card.id}
                         onClick={() => handleWidgetClick(card.filterId)}
-                        className={`glass-panel rounded-2xl p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
+                        className={`glass-panel rounded-2xl p-3 sm:p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
                             headerFilter === card.filterId
                                 ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
                                 : 'border-slate-700/50 hover:border-slate-600/60'
                         }`}
                     >
                         <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
-                        <div className="relative z-10 flex items-start justify-between gap-4">
-                            <div>
-                                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{card.title}</div>
-                                <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{card.value}</div>
+                        <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-4">
+                            <div className="min-w-0">
+                                <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mb-1 sm:mb-2 truncate">{card.title}</div>
+                                <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent truncate">{card.value}</div>
                             </div>
-                            <div className={`p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-[26px] [&>svg]:h-[26px]`}>
+                            <div className={`p-2.5 sm:p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-[26px] sm:[&>svg]:h-[26px] shrink-0`}>
                                 {card.icon}
                             </div>
                         </div>
