@@ -421,7 +421,7 @@ export const ToolsManager = () => {
         if (headerFilter === 'ISSUED') {
             result = result.filter(r => r.status === 'ISSUED');
         } else if (headerFilter === 'NOT_ISSUED') {
-            result = result.filter(r => r.status === 'NOT_ISSUED');
+            result = result.filter(r => r.status !== 'ISSUED' && r.status !== 'DONE');
         } else if (headerFilter === 'DONE' || headerFilter === 'RETURNED') {
             result = result.filter(r => r.status === 'DONE');
         } else if (headerFilter === 'WIDGET_ALL') {
@@ -431,7 +431,7 @@ export const ToolsManager = () => {
         } else if (headerFilter === 'WIDGET_RETURNED') {
             result = result.filter(r => r.status === 'DONE' && isToday(r.returned_at));
         } else if (headerFilter === 'WIDGET_NOT_ISSUED') {
-            result = result.filter(r => r.status === 'NOT_ISSUED' && isToday(r.esmo_time));
+            result = result.filter(r => r.status !== 'ISSUED' && r.status !== 'DONE' && isToday(r.esmo_time));
         }
 
         const query = searchQuery.trim().toLowerCase();
@@ -580,18 +580,10 @@ export const ToolsManager = () => {
             return dStr === todayStr;
         };
 
-        /* Jami xodimlar = bugun ESMO dan o'tgan (ruxsat olgan) xodimlar soni */
-        const todayRows = mergedRowsState.filter(r => isToday(r.esmo_time));
-        const total = todayRows.length;
-        
-        /* Berilgan = bugun ESMO dan o'tib, vosita berilgan va hali qaytarmagan */
-        const issued = todayRows.filter(r => r.status === 'ISSUED').length;
-        
-        /* Qaytarilgan = bugun ESMO dan o'tib, vosita qaytargan */
-        const returned = todayRows.filter(r => r.status === 'DONE').length;
-        
-        /* Berilmagan = bugun ESMO dan o'tgan, lekin vosita berilmagan (yoki xatolik) */
-        const notIssued = total > 0 ? total - issued - returned : 0;
+        const total = mergedRowsState.filter(r => isToday(r.esmo_time)).length;
+        const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.issued_at)).length;
+        const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
+        const notIssued = mergedRowsState.filter(r => r.status !== 'ISSUED' && r.status !== 'DONE' && isToday(r.esmo_time)).length;
         
         return { total, issued, returned, notIssued };
     }, [mergedRowsState]);
@@ -621,9 +613,9 @@ export const ToolsManager = () => {
         {
             id: 'issued' as const,
             filterId: 'WIDGET_ISSUED' as const,
-            title: lang === 'uz' ? 'Berilgan' : lang === 'ru' ? 'Выдано' : 'Issued',
+            title: lang === 'uz' ? 'Qaytarilmagan' : lang === 'ru' ? 'Не возвращено' : 'Not Returned',
             value: String(stats.issued),
-            color: 'from-violet-500 to-fuchsia-400',
+            color: 'from-red-500 to-rose-400',
             icon: <Clock />,
         },
         {
@@ -733,7 +725,7 @@ export const ToolsManager = () => {
                                                     className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
-                                                    Berilgan
+                                                    Qaytarilmagan
                                                 </button>
                                                 <button
                                                     className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
