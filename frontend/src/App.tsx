@@ -202,7 +202,16 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
 
 function App() {
   const { t, lang, setLang } = useI18n();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab && ['dashboard', 'access', 'medical', 'tools', 'waybills', 'fuel', 'tracking', 'fleet', 'drivers', 'mechanic', 'cargo', 'settings'].includes(tab)) {
+            return tab;
+        }
+    }
+    return 'dashboard';
+  });
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') {
       return 'dark';
@@ -1435,8 +1444,7 @@ function App() {
                 </div>
               </div>
               <div>
-                <p className="text-sm font-semibold">{currentUserName}</p>
-                <p className="text-xs text-slate-400 capitalize">{t(userRole as any)}</p>
+                <p className="text-sm font-semibold capitalize">{t(userRole as any)}</p>
               </div>
             </button>
           </div>

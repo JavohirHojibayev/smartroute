@@ -7,7 +7,7 @@ import { downloadXls } from '../utils/exportXls';
 import { resolveApiBaseUrl } from '../utils/apiBase';
 import { useI18n } from '../i18n';
 import { LocalizedDateInput } from './LocalizedDateInput';
-import yolVaraqasiPdfUrl from "../assets/yo'l_varaqasi.pdf?url";
+import yolVaraqasiPdfUrl from "../assets/000000.pdf?url";
 import { WaybillFormModal } from './WaybillFormModal';
 
 type EsmoHealthStatus = 'passed' | 'review' | 'failed';
@@ -289,7 +289,8 @@ export const WaybillManager = () => {
     const handleDownloadClick = (row: WaybillRow) => {
         setWaybillFormInitialValues({
             haydovchi: row.driver,
-            tabNo: row.passId === '-' ? '' : row.passId
+            tabNo: row.passId === '-' ? '' : row.passId,
+            time: formatDateTime(row.sourceTime)
         });
         setIsWaybillFormOpen(true);
     };

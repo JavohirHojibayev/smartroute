@@ -199,7 +199,13 @@ export const MedicalManager = () => {
     const [exportingXls, setExportingXls] = useState(false);
     const [exportingPdf, setExportingPdf] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('search') || '';
+        }
+        return '';
+    });
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [statusFilter, setStatusFilter] = useState<SummaryStatusFilter>('all');
