@@ -1269,8 +1269,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
         <div className="min-w-0 space-y-4">
             <style>{`
                 .mileage-chart-tooltip span[style] { background-color: var(--sr-color); }
-                /* Hide all Recharts default tooltips globally so only our custom tooltip is visible */
-                .recharts-default-tooltip, .recharts-tooltip-wrapper { display: none !important; }
                 /* tooltip container for mileage chart; position set via JS to avoid JSX inline styles */
                 .mileage-tooltip { position: absolute; z-index: 50; pointer-events: none; visibility: hidden; }
                 /* Center text inside the mileage tooltip only (do not affect other components) */

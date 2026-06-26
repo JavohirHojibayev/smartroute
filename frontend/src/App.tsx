@@ -204,11 +204,11 @@ function App() {
   const { t, lang, setLang } = useI18n();
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get('tab');
-        if (tab && ['dashboard', 'access', 'medical', 'tools', 'waybills', 'fuel', 'tracking', 'fleet', 'drivers', 'mechanic', 'cargo', 'settings'].includes(tab)) {
-            return tab;
-        }
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab && ['dashboard', 'access', 'medical', 'tools', 'waybills', 'fuel', 'tracking', 'fleet', 'drivers', 'mechanic', 'cargo', 'settings'].includes(tab)) {
+        return tab;
+      }
     }
     return 'dashboard';
   });
@@ -1027,8 +1027,8 @@ function App() {
                         onClick={() => openAlertTarget(alert.targetTab)}
                         disabled={!alert.targetTab}
                         className={`w-full p-3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex gap-3 text-left transition-colors ${alert.targetTab
-                            ? 'hover:border-blue-500/40 hover:bg-slate-900/70 cursor-pointer'
-                            : 'cursor-default'
+                          ? 'hover:border-blue-500/40 hover:bg-slate-900/70 cursor-pointer'
+                          : 'cursor-default'
                           }`}
                       >
                         <div className={`mt-0.5 p-1 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>
@@ -1359,8 +1359,8 @@ function App() {
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 className={`relative flex items-center justify-center w-9 sm:w-auto sm:px-3 h-9 sm:h-10 rounded-lg bg-slate-800/50 border transition-colors cursor-pointer shrink-0 ${notificationsOpen
-                    ? 'border-blue-500/50 text-slate-200'
-                    : 'border-slate-700 hover:border-blue-500/50 text-slate-300'
+                  ? 'border-blue-500/50 text-slate-200'
+                  : 'border-slate-700 hover:border-blue-500/50 text-slate-300'
                   }`}
                 title={t('notifications')}
                 aria-label={t('notifications')}
@@ -1414,8 +1414,8 @@ function App() {
                           onClick={() => openAlertTarget(alert.targetTab)}
                           disabled={!alert.targetTab}
                           className={`w-full rounded-xl border border-slate-800 bg-slate-950/50 p-3 flex gap-3 text-left transition-colors ${alert.targetTab
-                              ? 'hover:border-blue-500/40 hover:bg-slate-950/70 cursor-pointer'
-                              : 'cursor-default'
+                            ? 'hover:border-blue-500/40 hover:bg-slate-950/70 cursor-pointer'
+                            : 'cursor-default'
                             }`}
                         >
                           <div className={`mt-0.5 p-1.5 rounded-full aspect-square h-fit ${alert.type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}`}>

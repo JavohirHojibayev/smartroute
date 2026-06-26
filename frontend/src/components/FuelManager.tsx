@@ -1,4 +1,4 @@
-﻿import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { startTransition } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1146,11 +1146,10 @@ export const FuelManager = () => {
                                 key={item.id}
                                 type="button"
                                 onClick={() => setFuelNavTab(item.id)}
-                                className={`flex min-h-[3.25rem] min-w-[4.5rem] max-w-[7.5rem] flex-shrink-0 flex-col items-center justify-center gap-1 border-b-[3px] px-1.5 py-2.5 text-center text-[10px] font-medium leading-tight transition-colors sm:min-h-[3.75rem] sm:min-w-[5rem] sm:max-w-[9rem] sm:gap-1.5 sm:px-2 sm:py-3 sm:text-xs md:max-w-none md:min-h-[4rem] md:min-w-0 md:flex-1 md:basis-0 md:gap-1.5 md:px-3 md:py-4 md:text-sm lg:text-base xl:text-lg ${
-                                    active
-                                        ? 'border-blue-500 bg-blue-500/10 text-blue-300'
-                                        : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                                }`}
+                                className={`flex min-h-[3.25rem] min-w-[4.5rem] max-w-[7.5rem] flex-shrink-0 flex-col items-center justify-center gap-1 border-b-[3px] px-1.5 py-2.5 text-center text-[10px] font-medium leading-tight transition-colors sm:min-h-[3.75rem] sm:min-w-[5rem] sm:max-w-[9rem] sm:gap-1.5 sm:px-2 sm:py-3 sm:text-xs md:max-w-none md:min-h-[4rem] md:min-w-0 md:flex-1 md:basis-0 md:gap-1.5 md:px-3 md:py-4 md:text-sm lg:text-base xl:text-lg ${active
+                                    ? 'border-blue-500 bg-blue-500/10 text-blue-300'
+                                    : 'border-transparent text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                                    }`}
                             >
                                 <Icon
                                     size={22}
@@ -1180,11 +1179,10 @@ export const FuelManager = () => {
                                         key={view}
                                         type="button"
                                         onClick={() => setFuelCardsView(view)}
-                                        className={`inline-flex min-h-[3.4rem] min-w-[11rem] items-center justify-center gap-2.5 border-b-2 px-5 text-base font-semibold transition-colors sm:min-h-[3.7rem] sm:px-6 sm:text-lg ${
-                                            active
-                                                ? 'border-blue-500 text-blue-300'
-                                                : 'border-transparent text-slate-400 hover:text-slate-200'
-                                        }`}
+                                        className={`inline-flex min-h-[3.4rem] min-w-[11rem] items-center justify-center gap-2.5 border-b-2 px-5 text-base font-semibold transition-colors sm:min-h-[3.7rem] sm:px-6 sm:text-lg ${active
+                                            ? 'border-blue-500 text-blue-300'
+                                            : 'border-transparent text-slate-400 hover:text-slate-200'
+                                            }`}
                                     >
                                         <Icon size={19} />
                                         <span className={`fuel-tab-heading ${active ? '' : 'opacity-80'}`.trim()}>{label}</span>
@@ -1503,11 +1501,10 @@ export const FuelManager = () => {
                                                     <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.objectKindLabel}</td>
                                                     <td className="px-2 py-1.5 sm:px-3 sm:py-2">
                                                         <span
-                                                            className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold sm:px-2 sm:text-xs ${
-                                                                row.isOnline
-                                                                    ? 'bg-emerald-500/15 text-emerald-400'
-                                                                    : 'bg-slate-600/40 text-slate-400'
-                                                            }`}
+                                                            className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold sm:px-2 sm:text-xs ${row.isOnline
+                                                                ? 'bg-emerald-500/15 text-emerald-400'
+                                                                : 'bg-slate-600/40 text-slate-400'
+                                                                }`}
                                                         >
                                                             {row.isOnline ? t('fuelObjectsOnline') : t('fuelObjectsOffline')}
                                                         </span>
@@ -1601,11 +1598,9 @@ export const FuelManager = () => {
                                             <Fragment key={row.id}>
                                                 <tr
                                                     onClick={hasChildren ? toggleOpen : undefined}
-                                                    className={`text-slate-200 transition-colors hover:bg-slate-800/30 ${
-                                                        hasChildren ? 'cursor-pointer' : ''
-                                                    } ${open ? 'bg-blue-500/10' : ''} ${
-                                                        index % 2 === 0 ? 'bg-slate-900/25' : 'bg-slate-800/15'
-                                                    }`}
+                                                    className={`text-slate-200 transition-colors hover:bg-slate-800/30 ${hasChildren ? 'cursor-pointer' : ''
+                                                        } ${open ? 'bg-blue-500/10' : ''} ${index % 2 === 0 ? 'bg-slate-900/25' : 'bg-slate-800/15'
+                                                        }`}
                                                 >
                                                     <td className="px-1 py-1.5 align-middle sm:px-2 sm:py-2">
                                                         {hasChildren ? (
@@ -1710,454 +1705,453 @@ export const FuelManager = () => {
 
             {/* 4 ta info card: AZS asosiy sahifasi */}
             {showMainDashboard && (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
-                {/* Kolonnalar */}
-                <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
-                    <div className="mb-2 flex items-center gap-1.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400 sm:h-9 sm:w-9">
-                            <Fuel size={17} />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
+                    {/* Kolonnalar */}
+                    <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
+                        <div className="mb-2 flex items-center gap-1.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400 sm:h-9 sm:w-9">
+                                <Fuel size={17} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashColumnsTitle')}</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashColumnsTitle')}</span>
+                        <div className="space-y-1 text-xs sm:text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashColumnsTotal')}</span>
+                                <span className="font-bold text-slate-100">{devicesTotal}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashColumnsOnline')}</span>
+                                <span className="font-semibold text-emerald-400">{devicesOnline}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashColumnsOffline')}</span>
+                                <span className={`font-semibold ${devicesOffline > 0 ? 'text-red-400' : 'text-slate-500'}`}>{devicesOffline}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-1 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashColumnsTotal')}</span>
-                            <span className="font-bold text-slate-100">{devicesTotal}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashColumnsOnline')}</span>
-                            <span className="font-semibold text-emerald-400">{devicesOnline}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashColumnsOffline')}</span>
-                            <span className={`font-semibold ${devicesOffline > 0 ? 'text-red-400' : 'text-slate-500'}`}>{devicesOffline}</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Seksiya darajasi */}
-                <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
-                    <div className="mb-2 flex items-center gap-1.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 sm:h-9 sm:w-9">
-                            <Layers size={17} />
+                    {/* Seksiya darajasi */}
+                    <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
+                        <div className="mb-2 flex items-center gap-1.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 sm:h-9 sm:w-9">
+                                <Layers size={17} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashSectionLevelsTitle')}</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashSectionLevelsTitle')}</span>
+                        <div className="space-y-1 text-xs sm:text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-slate-400">
+                                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                                    {t('fuelDashCriticalShort')}
+                                </span>
+                                <span className="font-semibold text-red-400">{secCritical}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-slate-400">
+                                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+                                    {t('fuelDashLowShort')}
+                                </span>
+                                <span className="font-semibold text-amber-400">{secLow}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-slate-400">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                    {t('fuelDashNormalShort')}
+                                </span>
+                                <span className="font-semibold text-emerald-400">{secNormal}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-1 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
-                                <span className="h-2 w-2 rounded-full bg-red-500" />
-                                {t('fuelDashCriticalShort')}
-                            </span>
-                            <span className="font-semibold text-red-400">{secCritical}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
-                                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                                {t('fuelDashLowShort')}
-                            </span>
-                            <span className="font-semibold text-amber-400">{secLow}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-slate-400">
-                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                                {t('fuelDashNormalShort')}
-                            </span>
-                            <span className="font-semibold text-emerald-400">{secNormal}</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Yoqilg'i kartalari */}
-                <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
-                    <div className="mb-2 flex items-center gap-1.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400 sm:h-9 sm:w-9">
-                            <CreditCard size={17} />
+                    {/* Yoqilg'i kartalari */}
+                    <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
+                        <div className="mb-2 flex items-center gap-1.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400 sm:h-9 sm:w-9">
+                                <CreditCard size={17} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelNavFuelCards')}</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelNavFuelCards')}</span>
+                        <div className="space-y-1 text-xs sm:text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashCardsTotal')}</span>
+                                <span className="font-bold text-slate-100">{cardsTotal}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashCardsSynced')}</span>
+                                <span className="font-semibold text-emerald-400">{cardsSynced}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashCardsUnsynced')}</span>
+                                <span className="font-semibold text-slate-500">{cardsUnsynced}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-1 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashCardsTotal')}</span>
-                            <span className="font-bold text-slate-100">{cardsTotal}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashCardsSynced')}</span>
-                            <span className="font-semibold text-emerald-400">{cardsSynced}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashCardsUnsynced')}</span>
-                            <span className="font-semibold text-slate-500">{cardsUnsynced}</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Zapravkalar */}
-                <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
-                    <div className="mb-2 flex items-center gap-1.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400 sm:h-9 sm:w-9">
-                            <Droplets size={17} />
+                    {/* Zapravkalar */}
+                    <div className="glass-panel rounded-xl border border-slate-700/50 p-3 sm:rounded-2xl sm:p-3.5">
+                        <div className="mb-2 flex items-center gap-1.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400 sm:h-9 sm:w-9">
+                                <Droplets size={17} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashRefuelsTitle')}</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-300 sm:text-sm">{t('fuelDashRefuelsTitle')}</span>
-                    </div>
-                    <div className="space-y-1 text-xs sm:text-sm">
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashRefuelToday')}</span>
-                            <span className="font-bold text-slate-100">{refuelToday}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashRefuelWeek')}</span>
-                            <span className="font-semibold text-slate-200">{refuelWeek}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-400">{t('fuelDashRefuelMonth')}</span>
-                            <span className="font-semibold text-slate-200">{refuelMonth}</span>
+                        <div className="space-y-1 text-xs sm:text-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashRefuelToday')}</span>
+                                <span className="font-bold text-slate-100">{refuelToday}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashRefuelWeek')}</span>
+                                <span className="font-semibold text-slate-200">{refuelWeek}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-slate-400">{t('fuelDashRefuelMonth')}</span>
+                                <span className="font-semibold text-slate-200">{refuelMonth}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             )}
 
             {showMainDashboard && (
-            <div className="glass-panel rounded-2xl border border-slate-700/50 p-4 md:p-5">
-                {/* Sarlavha chapda, filtrlar qator oxirida */}
-                <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
-                    <div className="min-w-0 shrink-0 lg:max-w-[min(100%,32rem)] lg:pr-2">
-                        <FuelPanelGradientHeading>
-                            {t('fuelChartByColumnsTitle')}
-                        </FuelPanelGradientHeading>
-                    </div>
-                    <div className="w-full min-w-0 shrink-0 sm:max-w-2xl lg:w-auto lg:max-w-[min(100%,48rem)]">
-                        <div className="grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(11rem,14rem)] sm:gap-x-3 sm:gap-y-2">
-                            <div className="relative min-w-0 sm:col-start-1 sm:row-start-1">
-                                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
-                                    <LocalizedDateInput
-                                        label={t('dateFromSanadan')}
-                                        value={dateFrom}
-                                        maxDate={dateTo || undefined}
-                                        minWidth={132}
-                                        onChange={(v) => {
-                                            setPreset('today');
-                                            setDateFrom(v);
-                                            if (dateTo && v > dateTo) setDateTo(v);
-                                        }}
-                                    />
-                                    <ArrowRight size={14} className="mx-auto shrink-0 text-slate-500 sm:mx-0.5" />
-                                    <LocalizedDateInput
-                                        label={t('dateToSanagacha')}
-                                        value={dateTo}
-                                        minDate={dateFrom || undefined}
-                                        minWidth={132}
-                                        onChange={(v) => {
-                                            setPreset('today');
-                                            setDateTo(v);
-                                            if (dateFrom && v < dateFrom) setDateFrom(v);
-                                        }}
-                                    />
+                <div className="glass-panel rounded-2xl border border-slate-700/50 p-4 md:p-5">
+                    {/* Sarlavha chapda, filtrlar qator oxirida */}
+                    <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+                        <div className="min-w-0 shrink-0 lg:max-w-[min(100%,32rem)] lg:pr-2">
+                            <FuelPanelGradientHeading>
+                                {t('fuelChartByColumnsTitle')}
+                            </FuelPanelGradientHeading>
+                        </div>
+                        <div className="w-full min-w-0 shrink-0 sm:max-w-2xl lg:w-auto lg:max-w-[min(100%,48rem)]">
+                            <div className="grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_minmax(11rem,14rem)] sm:gap-x-3 sm:gap-y-2">
+                                <div className="relative min-w-0 sm:col-start-1 sm:row-start-1">
+                                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                                        <LocalizedDateInput
+                                            label={t('dateFromSanadan')}
+                                            value={dateFrom}
+                                            maxDate={dateTo || undefined}
+                                            minWidth={132}
+                                            onChange={(v) => {
+                                                setPreset('today');
+                                                setDateFrom(v);
+                                                if (dateTo && v > dateTo) setDateTo(v);
+                                            }}
+                                        />
+                                        <ArrowRight size={14} className="mx-auto shrink-0 text-slate-500 sm:mx-0.5" />
+                                        <LocalizedDateInput
+                                            label={t('dateToSanagacha')}
+                                            value={dateTo}
+                                            minDate={dateFrom || undefined}
+                                            minWidth={132}
+                                            onChange={(v) => {
+                                                setPreset('today');
+                                                setDateTo(v);
+                                                if (dateFrom && v < dateFrom) setDateFrom(v);
+                                            }}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 rounded-lg border border-slate-700 sm:col-start-1 sm:row-start-2 sm:grid-cols-4">
-                                {(
-                                    [
-                                        { key: 'today' as const, labelKey: 'fuelPresetToday' as const },
-                                        { key: 'yesterday' as const, labelKey: 'fuelPresetYesterday' as const },
-                                        { key: 'week' as const, labelKey: 'fuelPresetWeek' as const },
-                                        { key: 'month' as const, labelKey: 'fuelPresetMonth' as const },
-                                    ] as const
-                                ).map((item) => {
-                                    const active = preset === item.key;
-                                    return (
-                                        <button
-                                            key={item.key}
-                                            type="button"
-                                            onClick={() => applyPreset(item.key)}
-                                            className={`flex min-h-10 items-center justify-center border-r border-slate-700 px-1 py-2.5 text-[11px] font-semibold uppercase leading-snug tracking-wide last:border-r-0 sm:min-h-11 sm:px-2 sm:text-xs ${
-                                                active ? 'fuel-preset-active bg-blue-500/25 text-blue-200' : 'bg-slate-900/40 text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                                            }`}
-                                        >
-                                            {t(item.labelKey)}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div className="relative min-w-0 sm:col-start-2 sm:row-start-1 sm:self-end">
-                                <select
-                                    aria-label={t('fuelAriaFilterByPost')}
-                                    value={selectedStation}
-                                    onChange={(event) => setSelectedStation(event.target.value)}
-                                    className="h-10 w-full appearance-none rounded-lg border border-slate-700 bg-slate-900/60 px-3 pr-9 text-sm text-slate-200 outline-none focus:border-blue-500 sm:h-11 sm:px-4 sm:pr-10 sm:text-base"
-                                >
-                                    <option value="all">{t('fuelAllPosts')}</option>
-                                    {stations.map((station) => (
-                                        <option key={station.name} value={station.name}>{station.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 sm:right-3" />
-                            </div>
-                            <div className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-2 text-center text-base font-bold text-blue-400 sm:col-start-2 sm:row-start-2 sm:self-stretch sm:text-lg md:text-xl">
-                                {t('fuelTotalPrefix')} {formatLitersInt(totalLitersDisplay, numLocale)} {t('fuelUnitL')}
+                                <div className="grid grid-cols-2 rounded-lg border border-slate-700 sm:col-start-1 sm:row-start-2 sm:grid-cols-4">
+                                    {(
+                                        [
+                                            { key: 'today' as const, labelKey: 'fuelPresetToday' as const },
+                                            { key: 'yesterday' as const, labelKey: 'fuelPresetYesterday' as const },
+                                            { key: 'week' as const, labelKey: 'fuelPresetWeek' as const },
+                                            { key: 'month' as const, labelKey: 'fuelPresetMonth' as const },
+                                        ] as const
+                                    ).map((item) => {
+                                        const active = preset === item.key;
+                                        return (
+                                            <button
+                                                key={item.key}
+                                                type="button"
+                                                onClick={() => applyPreset(item.key)}
+                                                className={`flex min-h-10 items-center justify-center border-r border-slate-700 px-1 py-2.5 text-[11px] font-semibold uppercase leading-snug tracking-wide last:border-r-0 sm:min-h-11 sm:px-2 sm:text-xs ${active ? 'fuel-preset-active bg-blue-500/25 text-blue-200' : 'bg-slate-900/40 text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                                                    }`}
+                                            >
+                                                {t(item.labelKey)}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="relative min-w-0 sm:col-start-2 sm:row-start-1 sm:self-end">
+                                    <select
+                                        aria-label={t('fuelAriaFilterByPost')}
+                                        value={selectedStation}
+                                        onChange={(event) => setSelectedStation(event.target.value)}
+                                        className="h-10 w-full appearance-none rounded-lg border border-slate-700 bg-slate-900/60 px-3 pr-9 text-sm text-slate-200 outline-none focus:border-blue-500 sm:h-11 sm:px-4 sm:pr-10 sm:text-base"
+                                    >
+                                        <option value="all">{t('fuelAllPosts')}</option>
+                                        {stations.map((station) => (
+                                            <option key={station.name} value={station.name}>{station.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={16} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 sm:right-3" />
+                                </div>
+                                <div className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-2 text-center text-base font-bold text-blue-400 sm:col-start-2 sm:row-start-2 sm:self-stretch sm:text-lg md:text-xl">
+                                    {t('fuelTotalPrefix')} {formatLitersInt(totalLitersDisplay, numLocale)} {t('fuelUnitL')}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {error && (
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-                        <span className="text-red-400">{error}</span>
-                    </div>
-                )}
+                    {error && (
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                            <span className="text-red-400">{error}</span>
+                        </div>
+                    )}
 
-                <div className="mt-5 h-[200px] w-full rounded-xl border border-slate-700/50 bg-slate-900/40 p-1.5 sm:h-[240px] sm:p-2 md:h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis
-                                dataKey="day"
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 10 }}
-                                angle={chartData.length > 12 ? -40 : 0}
-                                textAnchor={chartData.length > 12 ? 'end' : 'middle'}
-                                height={chartData.length > 12 ? 56 : 28}
-                                interval="preserveStartEnd"
-                            />
-                            <YAxis
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 11 }}
-                                width={40}
-                                unit={t('fuelYAxisLiter')}
-                                domain={[0, chartYAxisMax]}
-                                ticks={chartYAxisTicks}
-                                allowDecimals={false}
-                            />
-                            {/* custom dark tooltip to match Probeg chart tooltip */}
-                            {(() => {
-                                const FuelTooltip = (props: any) => {
-                                    const { active, payload, label, coordinate } = props;
-                                    const tooltipRef = useRef<HTMLDivElement | null>(null);
-                                    useEffect(() => {
-                                        if (!tooltipRef.current) return;
-                                        if (!active || !coordinate) {
-                                            tooltipRef.current.style.visibility = 'hidden';
-                                            return;
-                                        }
-                                        const left = Math.max(8, Math.round(coordinate.x));
-                                        const top = Math.max(8, Math.round(coordinate.y) - 64);
-                                        tooltipRef.current.style.left = `${left}px`;
-                                        tooltipRef.current.style.top = `${top}px`;
-                                        tooltipRef.current.style.visibility = 'visible';
-                                    }, [active, coordinate]);
-                                    if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
-                                    const entry = payload[0];
-                                    const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
-                                    const color = entry.color || '#2563eb';
-                                    return (
-                                        <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
-                                            <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
-                                                <div className="mb-2 flex items-center gap-2">
-                                                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
-                                                    <div className="text-xs text-slate-300">{label}</div>
+                    <div className="mt-5 h-[200px] w-full rounded-xl border border-slate-700/50 bg-slate-900/40 p-1.5 sm:h-[240px] sm:p-2 md:h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis
+                                    dataKey="day"
+                                    stroke="#94a3b8"
+                                    tick={{ fontSize: 10 }}
+                                    angle={chartData.length > 12 ? -40 : 0}
+                                    textAnchor={chartData.length > 12 ? 'end' : 'middle'}
+                                    height={chartData.length > 12 ? 56 : 28}
+                                    interval="preserveStartEnd"
+                                />
+                                <YAxis
+                                    stroke="#94a3b8"
+                                    tick={{ fontSize: 11 }}
+                                    width={40}
+                                    unit={t('fuelYAxisLiter')}
+                                    domain={[0, chartYAxisMax]}
+                                    ticks={chartYAxisTicks}
+                                    allowDecimals={false}
+                                />
+                                {/* custom dark tooltip to match Probeg chart tooltip */}
+                                {(() => {
+                                    const FuelTooltip = (props: any) => {
+                                        const { active, payload, label, coordinate } = props;
+                                        const tooltipRef = useRef<HTMLDivElement | null>(null);
+                                        useEffect(() => {
+                                            if (!tooltipRef.current) return;
+                                            if (!active || !coordinate) {
+                                                tooltipRef.current.style.visibility = 'hidden';
+                                                return;
+                                            }
+                                            const left = Math.max(8, Math.round(coordinate.x));
+                                            const top = Math.max(8, Math.round(coordinate.y) - 64);
+                                            tooltipRef.current.style.left = `${left}px`;
+                                            tooltipRef.current.style.top = `${top}px`;
+                                            tooltipRef.current.style.visibility = 'visible';
+                                        }, [active, coordinate]);
+                                        if (!active || !payload || !payload.length) return <div ref={tooltipRef} className="fuel-tooltip-pos" />;
+                                        const entry = payload[0];
+                                        const value = typeof entry.value === 'number' ? entry.value : Number(entry.value || 0);
+                                        const color = entry.color || '#2563eb';
+                                        return (
+                                            <div ref={tooltipRef} className="fuel-tooltip-pos absolute z-50 pointer-events-none">
+                                                <div className="rounded-md border border-slate-700 bg-slate-900/90 p-3 text-sm text-slate-100 shadow-lg min-w-[180px]">
+                                                    <div className="mb-2 flex items-center gap-2">
+                                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="2" fill={color} /></svg>
+                                                        <div className="text-xs text-slate-300">{label}</div>
+                                                    </div>
+                                                    <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
+                                                    <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(numLocale, { maximumFractionDigits: 2 }) : '---'}{t('fuelYAxisLiter')}</div>
                                                 </div>
-                                                <div className="text-sm font-bold text-slate-100">{t('fuelChartSeriesIssued')}</div>
-                                                <div className="mt-2 text-lg font-black text-white">{Number.isFinite(value) ? value.toLocaleString(numLocale, { maximumFractionDigits: 2 }) : '---'}{t('fuelYAxisLiter')}</div>
                                             </div>
-                                        </div>
-                                    );
-                                };
+                                        );
+                                    };
 
-                                return <>
-                                    <style>{`
+                                    return <>
+                                        <style>{`
                                         /* Center text only inside fuel tooltip */
                                         .fuel-tooltip-pos > div { text-align: center; }
                                         .fuel-tooltip-pos > div > .mb-2 { display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
                                         .fuel-tooltip-pos svg { margin-right: 0; }
                                     `}</style>
-                                    <Tooltip content={(props) => <FuelTooltip {...props} />} />
-                                </>;
-                            })()}
-                            <Area
-                                isAnimationActive={false}
-                                type="monotone"
-                                dataKey="consumption"
-                                name={t('fuelChartSeriesIssued')}
-                                stroke="#2563eb"
-                                fill="#3b82f6"
-                                fillOpacity={0.2}
-                                strokeWidth={2}
-                                dot={{ r: 3, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 1 }}
-                                activeDot={{ r: 4 }}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                                        <Tooltip content={(props) => <FuelTooltip {...props} />} />
+                                    </>;
+                                })()}
+                                <Area
+                                    isAnimationActive={false}
+                                    type="monotone"
+                                    dataKey="consumption"
+                                    name={t('fuelChartSeriesIssued')}
+                                    stroke="#2563eb"
+                                    fill="#3b82f6"
+                                    fillOpacity={0.2}
+                                    strokeWidth={2}
+                                    dot={{ r: 3, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 1 }}
+                                    activeDot={{ r: 4 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
-            </div>
             )}
 
             {/* 'Seksiya darajasi grafigi' removed as requested */}
 
             {showReports && (
-            <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
-                <div className="flex min-h-[96px] flex-col gap-4 border-b border-slate-700/50 bg-slate-800/20 px-5 py-5 sm:px-6 sm:py-6 xl:flex-row xl:items-center xl:justify-between">
-                    <FuelPanelGradientHeading className="min-w-0 max-w-full flex-1 xl:min-w-[520px]">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
-                    <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
-                        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
-                            <LocalizedDateInput
-                                label={t('dateFromSanadan')}
-                                value={operationsDateFrom}
-                                maxDate={operationsDateTo || undefined}
-                                onChange={(v) => {
-                                    setOperationsDateFrom(v);
-                                    if (v && operationsDateTo && v > operationsDateTo) setOperationsDateTo(v);
-                                }}
-                                minWidth={152}
-                            />
-                            <LocalizedDateInput
-                                label={t('dateToSanagacha')}
-                                value={operationsDateTo}
-                                minDate={operationsDateFrom || undefined}
-                                onChange={(v) => {
-                                    setOperationsDateTo(v);
-                                    if (v && operationsDateFrom && v < operationsDateFrom) setOperationsDateFrom(v);
-                                }}
-                                minWidth={152}
-                            />
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => void handleOperationsExportXls()}
-                            disabled={operationsTotalRows === 0 || operationsExportingXls || operationsExportingPdf}
-                            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
-                        >
-                            <Table2 size={16} />
-                            {operationsExportingXls ? t('exportingXls') : t('exportXls')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => void handleOperationsExportPdf()}
-                            disabled={operationsTotalRows === 0 || operationsExportingPdf || operationsExportingXls}
-                            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
-                        >
-                            <FileText size={16} />
-                            {operationsExportingPdf ? t('exportingPdf') : t('exportPdf')}
-                        </button>
-                    </div>
-                </div>
-                <div className="border-b border-slate-700/45 bg-slate-950/15 px-5 py-3 sm:px-6">
-                    <div className="flex flex-col gap-2 text-sm text-slate-200 md:flex-row md:items-start md:justify-between">
-                        <div className="min-w-0">
-                            <p className="text-sm text-slate-300">
-                                <span className="font-bold text-slate-100">{t('fuelOpsSummaryTitle')}</span>{' '}
-                                <span className="tabular-nums">{operationsSummaryPeriod}</span>
-                            </p>
-                            <div className="mt-2 grid max-w-5xl grid-cols-1 items-center gap-2 text-sm sm:grid-cols-[minmax(220px,1fr)_minmax(120px,220px)]">
-                                <span className="text-slate-300">{t('fuelOpsCounterIssued')}</span>
-                                <strong className="text-left text-base font-bold tabular-nums text-slate-100 sm:text-center">
-                                    {formatLiters(operationsTotalLiters, numLocale)}
-                                </strong>
+                <div className="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
+                    <div className="flex min-h-[96px] flex-col gap-4 border-b border-slate-700/50 bg-slate-800/20 px-5 py-5 sm:px-6 sm:py-6 xl:flex-row xl:items-center xl:justify-between">
+                        <FuelPanelGradientHeading className="min-w-0 max-w-full flex-1 xl:min-w-[520px]">{t('fuelReportsTitle')}</FuelPanelGradientHeading>
+                        <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+                            <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+                                <LocalizedDateInput
+                                    label={t('dateFromSanadan')}
+                                    value={operationsDateFrom}
+                                    maxDate={operationsDateTo || undefined}
+                                    onChange={(v) => {
+                                        setOperationsDateFrom(v);
+                                        if (v && operationsDateTo && v > operationsDateTo) setOperationsDateTo(v);
+                                    }}
+                                    minWidth={152}
+                                />
+                                <LocalizedDateInput
+                                    label={t('dateToSanagacha')}
+                                    value={operationsDateTo}
+                                    minDate={operationsDateFrom || undefined}
+                                    onChange={(v) => {
+                                        setOperationsDateTo(v);
+                                        if (v && operationsDateFrom && v < operationsDateFrom) setOperationsDateFrom(v);
+                                    }}
+                                    minWidth={152}
+                                />
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => void handleOperationsExportXls()}
+                                disabled={operationsTotalRows === 0 || operationsExportingXls || operationsExportingPdf}
+                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-bold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                            >
+                                <Table2 size={16} />
+                                {operationsExportingXls ? t('exportingXls') : t('exportXls')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleOperationsExportPdf()}
+                                disabled={operationsTotalRows === 0 || operationsExportingPdf || operationsExportingXls}
+                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+                            >
+                                <FileText size={16} />
+                                {operationsExportingPdf ? t('exportingPdf') : t('exportPdf')}
+                            </button>
                         </div>
-                        <span className="inline-flex min-h-9 w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:w-auto sm:text-sm">
-                            {t('fuelReportsTodayCount')}{' '}
-                            <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
-                        </span>
                     </div>
-                </div>
-                <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
-                    <table className="w-full min-w-[1080px] text-left text-xs sm:text-sm">
-                        <thead>
-                            <tr className="bg-slate-900/45 text-[10px] uppercase tracking-[0.06em] text-slate-400 sm:text-[11px]">
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColStartTime')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColCardNumber')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColCardName')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColGroup')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColPost')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColSection')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColStartDut')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColEndDut')}</th>
-                                <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColIssued')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/35">
-                            {operationsRows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={9} className="px-3 py-6 text-center text-xs text-slate-500 sm:py-7 sm:text-sm">
-                                        {t('dataNotFound')}
-                                    </td>
+                    <div className="border-b border-slate-700/45 bg-slate-950/15 px-5 py-3 sm:px-6">
+                        <div className="flex flex-col gap-2 text-sm text-slate-200 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0">
+                                <p className="text-sm text-slate-300">
+                                    <span className="font-bold text-slate-100">{t('fuelOpsSummaryTitle')}</span>{' '}
+                                    <span className="tabular-nums">{operationsSummaryPeriod}</span>
+                                </p>
+                                <div className="mt-2 grid max-w-5xl grid-cols-1 items-center gap-2 text-sm sm:grid-cols-[minmax(220px,1fr)_minmax(120px,220px)]">
+                                    <span className="text-slate-300">{t('fuelOpsCounterIssued')}</span>
+                                    <strong className="text-left text-base font-bold tabular-nums text-slate-100 sm:text-center">
+                                        {formatLiters(operationsTotalLiters, numLocale)}
+                                    </strong>
+                                </div>
+                            </div>
+                            <span className="inline-flex min-h-9 w-full min-w-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-center text-xs font-semibold text-slate-100 shadow-sm sm:w-auto sm:text-sm">
+                                {t('fuelReportsTodayCount')}{' '}
+                                <span className="ml-1.5 tabular-nums text-cyan-200">{todayRecordsCount}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch] dark-scrollbar">
+                        <table className="w-full min-w-[1080px] text-left text-xs sm:text-sm">
+                            <thead>
+                                <tr className="bg-slate-900/45 text-[10px] uppercase tracking-[0.06em] text-slate-400 sm:text-[11px]">
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColStartTime')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColCardNumber')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColCardName')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColGroup')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColPost')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColSection')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColStartDut')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColEndDut')}</th>
+                                    <th className="px-2 py-1.5 font-semibold sm:px-3 sm:py-2">{t('fuelOpsColIssued')}</th>
                                 </tr>
-                            ) : (
-                                operationsRows.map((row, index) => (
-                                    <tr key={row.id} className={`text-xs text-slate-200 transition-colors hover:bg-slate-800/35 sm:text-sm ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/10'}`}>
-                                        <td className="whitespace-nowrap px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{formatDateTime(row.time)}</td>
-                                        <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.cardNumber || row.cardId || '-'}</td>
-                                        <td className="px-2 py-1.5 font-medium sm:px-3 sm:py-2">{row.cardName || row.vehicle || '-'}</td>
-                                        <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.groupName || '-'}</td>
-                                        <td className="px-2 py-1.5 sm:px-3 sm:py-2">{row.station || '-'}</td>
-                                        <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.fuelSectionName || '-'}</td>
-                                        <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">
-                                            {row.levelStartDut != null ? formatLiters(row.levelStartDut, numLocale) : '-'}
-                                        </td>
-                                        <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">
-                                            {row.levelEndDut != null ? formatLiters(row.levelEndDut, numLocale) : '-'}
-                                        </td>
-                                        <td className="px-2 py-1.5 sm:px-3 sm:py-2">
-                                            <span className="inline-flex items-center rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-blue-300 sm:px-2 sm:text-xs">
-                                                {formatLiters(row.issuedValue ?? row.liters, numLocale)} {t('fuelUnitL')}
-                                            </span>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/35">
+                                {operationsRows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-3 py-6 text-center text-xs text-slate-500 sm:py-7 sm:text-sm">
+                                            {t('dataNotFound')}
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="table-pagination-bar border-t border-slate-700/50 bg-slate-900/30 px-3 py-2.5 md:px-4">
-                    <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:justify-between md:text-left">
-                        <p className="w-full text-xs text-slate-400 tabular-nums sm:text-sm md:w-auto">
-                            {operationsTotalRows === 0
-                                ? '0 / 0'
-                                : `${(operationsPage - 1) * operationsRowsPerPage + 1}-${Math.min(operationsPage * operationsRowsPerPage, operationsTotalRows)} / ${operationsTotalRows}`}
-                        </p>
-                        <div className="flex w-full max-w-md flex-wrap items-center justify-center gap-1.5 sm:gap-2 md:w-auto md:max-w-none md:justify-end">
-                            <label className="text-xs text-slate-400 sm:text-sm" htmlFor="fuel-ops-rows-per-page">
-                                {t('rowsPerPage')}:
-                            </label>
-                            <select
-                                id="fuel-ops-rows-per-page"
-                                aria-label="Har sahifadagi yozuvlar soni"
-                                value={operationsRowsPerPage}
-                                onChange={(event) => {
-                                    const value = Math.max(1, Number.parseInt(event.target.value, 10) || 15);
-                                    setOperationsRowsPerPage(value);
-                                }}
-                                className="rounded-md border border-slate-700/70 bg-slate-900/70 px-1.5 py-1 text-xs text-slate-200 outline-none focus:border-blue-500/60 sm:px-2 sm:py-1.5 sm:text-sm"
-                            >
-                                <option value={15}>15</option>
-                                <option value={20}>20</option>
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                            </select>
-                            <button
-                                type="button"
-                                onClick={() => setOperationsPage((prev) => Math.max(1, prev - 1))}
-                                disabled={operationsPage <= 1}
-                                className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
-                            >
-                                {t('previous')}
-                            </button>
-                            <span className="min-w-[72px] text-center text-xs text-slate-300 sm:min-w-[80px] sm:text-sm">
-                                {operationsPage} / {operationsTotalPages}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setOperationsPage((prev) => Math.min(operationsTotalPages, prev + 1))}
-                                disabled={operationsPage >= operationsTotalPages}
-                                className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
-                            >
-                                {t('next')}
-                            </button>
+                                ) : (
+                                    operationsRows.map((row, index) => (
+                                        <tr key={row.id} className={`text-xs text-slate-200 transition-colors hover:bg-slate-800/35 sm:text-sm ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-900/10'}`}>
+                                            <td className="whitespace-nowrap px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{formatDateTime(row.time)}</td>
+                                            <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.cardNumber || row.cardId || '-'}</td>
+                                            <td className="px-2 py-1.5 font-medium sm:px-3 sm:py-2">{row.cardName || row.vehicle || '-'}</td>
+                                            <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.groupName || '-'}</td>
+                                            <td className="px-2 py-1.5 sm:px-3 sm:py-2">{row.station || '-'}</td>
+                                            <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">{row.fuelSectionName || '-'}</td>
+                                            <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">
+                                                {row.levelStartDut != null ? formatLiters(row.levelStartDut, numLocale) : '-'}
+                                            </td>
+                                            <td className="px-2 py-1.5 text-slate-300 sm:px-3 sm:py-2">
+                                                {row.levelEndDut != null ? formatLiters(row.levelEndDut, numLocale) : '-'}
+                                            </td>
+                                            <td className="px-2 py-1.5 sm:px-3 sm:py-2">
+                                                <span className="inline-flex items-center rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-blue-300 sm:px-2 sm:text-xs">
+                                                    {formatLiters(row.issuedValue ?? row.liters, numLocale)} {t('fuelUnitL')}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="table-pagination-bar border-t border-slate-700/50 bg-slate-900/30 px-3 py-2.5 md:px-4">
+                        <div className="flex flex-col items-center gap-2 text-center md:flex-row md:items-center md:justify-between md:text-left">
+                            <p className="w-full text-xs text-slate-400 tabular-nums sm:text-sm md:w-auto">
+                                {operationsTotalRows === 0
+                                    ? '0 / 0'
+                                    : `${(operationsPage - 1) * operationsRowsPerPage + 1}-${Math.min(operationsPage * operationsRowsPerPage, operationsTotalRows)} / ${operationsTotalRows}`}
+                            </p>
+                            <div className="flex w-full max-w-md flex-wrap items-center justify-center gap-1.5 sm:gap-2 md:w-auto md:max-w-none md:justify-end">
+                                <label className="text-xs text-slate-400 sm:text-sm" htmlFor="fuel-ops-rows-per-page">
+                                    {t('rowsPerPage')}:
+                                </label>
+                                <select
+                                    id="fuel-ops-rows-per-page"
+                                    aria-label="Har sahifadagi yozuvlar soni"
+                                    value={operationsRowsPerPage}
+                                    onChange={(event) => {
+                                        const value = Math.max(1, Number.parseInt(event.target.value, 10) || 15);
+                                        setOperationsRowsPerPage(value);
+                                    }}
+                                    className="rounded-md border border-slate-700/70 bg-slate-900/70 px-1.5 py-1 text-xs text-slate-200 outline-none focus:border-blue-500/60 sm:px-2 sm:py-1.5 sm:text-sm"
+                                >
+                                    <option value={15}>15</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setOperationsPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={operationsPage <= 1}
+                                    className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
+                                >
+                                    {t('previous')}
+                                </button>
+                                <span className="min-w-[72px] text-center text-xs text-slate-300 sm:min-w-[80px] sm:text-sm">
+                                    {operationsPage} / {operationsTotalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setOperationsPage((prev) => Math.min(operationsTotalPages, prev + 1))}
+                                    disabled={operationsPage >= operationsTotalPages}
+                                    className="rounded-md border border-slate-700/70 px-2 py-1 text-xs text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:py-1.5 sm:text-sm"
+                                >
+                                    {t('next')}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             )}
         </div>
     );
