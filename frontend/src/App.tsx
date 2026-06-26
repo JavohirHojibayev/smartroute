@@ -1219,7 +1219,7 @@ function App() {
   };
 
   const currentUserName = authSession?.user.fullName?.trim() || authSession?.user.username || 'User';
-  const currentUserInitial = currentUserName.charAt(0).toUpperCase();
+  const currentUserInitial = String(t(userRole as any)).charAt(0).toUpperCase();
   const activeTabPermission = getTabPermission(activeTab);
   const strictReadOnlyTabs = new Set(['fleet', 'drivers', 'shiftSchedule']);
   const shouldUseStrictReadOnly = activeTabPermission === 'read' && strictReadOnlyTabs.has(activeTab);
