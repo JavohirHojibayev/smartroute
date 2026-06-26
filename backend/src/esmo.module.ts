@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Module, Post, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Module, Post, Query, Body, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as http from 'http';
@@ -1687,8 +1687,31 @@ export class EsmoController {
         statusCode: row.status,
         device: row.terminal_name,
         deviceIp: row.terminal_ip,
+        eimzoSignedBy: row.eimzo_signed_by,
+        eimzoSignedAt: row.eimzo_signed_at?.toISOString(),
       };
     });
+  }
+
+  @Post('sign')
+  async signWaybill(
+    @Body() body: { id: number; signedBy: string; signedAt: string }
+  ) {
+    const { id, signedBy, signedAt } = body;
+    if (!id || !signedBy || !signedAt) {
+      throw new HttpException('Missing required fields', HttpStatus.BAD_REQUEST);
+    }
+
+    const check = await this.medicalRepo.findOne({ where: { id } });
+    if (!check) {
+      throw new HttpException('MedicalCheck not found', HttpStatus.NOT_FOUND);
+    }
+
+    check.eimzo_signed_by = signedBy;
+    check.eimzo_signed_at = new Date(signedAt);
+    await this.medicalRepo.save(check);
+
+    return { success: true };
   }
 }
 

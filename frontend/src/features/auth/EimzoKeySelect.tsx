@@ -66,7 +66,7 @@ export const EimzoKeySelect = ({ lang, keys, selectedIndex, disabled, onChange }
       >
         <div className="flex items-center gap-3 overflow-hidden">
           {selectedKey ? (
-            <BadgeCheck className="text-emerald-400 shrink-0" size={18} />
+            <KeyRound className="text-emerald-400 shrink-0" size={18} />
           ) : (
             <KeyRound className="text-slate-400 shrink-0" size={18} />
           )}

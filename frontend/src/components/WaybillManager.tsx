@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, AlertTriangle, Download } from 'lucide-react';
+import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, AlertTriangle, Download, ShieldCheck, Eye } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -9,6 +9,7 @@ import { useI18n } from '../i18n';
 import { LocalizedDateInput } from './LocalizedDateInput';
 import yolVaraqasiPdfUrl from "../assets/000000.pdf?url";
 import { WaybillFormModal } from './WaybillFormModal';
+import { WaybillSignModal } from './WaybillSignModal';
 
 type EsmoHealthStatus = 'passed' | 'review' | 'failed';
 
@@ -24,10 +25,13 @@ type EsmoJournalRow = {
     bloodPressure?: string | null;
     pulse?: number | null;
     temperature?: number | null;
+    eimzoSignedBy?: string | null;
+    eimzoSignedAt?: string | null;
 };
 
 type WaybillRow = {
     id: string;
+    dbId: number;
     driver: string;
     passId: string;
     healthStatus: EsmoHealthStatus;
@@ -123,6 +127,12 @@ export const WaybillManager = () => {
     const [exportingPdf, setExportingPdf] = useState(false);
     const [isWaybillFormOpen, setIsWaybillFormOpen] = useState(false);
     const [waybillFormInitialValues, setWaybillFormInitialValues] = useState<Record<string, string> | undefined>(undefined);
+    const [isSignModalOpen, setIsSignModalOpen] = useState(false);
+    const [signTargetRow, setSignTargetRow] = useState<WaybillRow | null>(null);
+    const [approvalInfo, setApprovalInfo] = useState<{ signedBy: string; signedAt: string } | null>(null);
+    const [signedWaybills, setSignedWaybills] = useState<Record<string, { signedBy: string; signedAt: string }>>({});
+
+    const [autoDownload, setAutoDownload] = useState(false);
     
     const [headerFilter, setHeaderFilter] = useState<'ALL' | 'PASSED' | 'REVIEW' | 'FAILED'>('ALL');
 
@@ -159,6 +169,7 @@ export const WaybillManager = () => {
                 
                 return {
                     id: `ESMO-${row?.esmoId ?? row?.id ?? `${passIdRaw || 'unknown'}-${eventMs}`}`,
+                    dbId: row?.id ?? 0,
                     driver: driverName,
                     passId: passIdRaw || '-',
                     healthStatus,
@@ -175,7 +186,16 @@ export const WaybillManager = () => {
                 };
             }).sort((a, b) => b.eventMs - a.eventMs);
 
+            const signatures: Record<string, { signedBy: string; signedAt: string }> = {};
+            rows.forEach(row => {
+                if (row.eimzoSignedBy && row.eimzoSignedAt) {
+                    const rowId = `ESMO-${row?.esmoId ?? row?.id ?? `${normalizeWhitespace(row?.passId) || 'unknown'}-${parseTimeMs(String(row?.time || ''))}`}`;
+                    signatures[rowId] = { signedBy: row.eimzoSignedBy, signedAt: row.eimzoSignedAt };
+                }
+            });
+
             setWaybills(waybillRows);
+            setSignedWaybills(signatures);
             setError(null);
         } catch {
             setError(t('esmoServerError'));
@@ -286,13 +306,66 @@ export const WaybillManager = () => {
         setCurrentPage(1);
     };
 
-    const handleDownloadClick = (row: WaybillRow) => {
+    const handleViewClick = (row: WaybillRow) => {
+        setApprovalInfo(signedWaybills[row.id] || null);
         setWaybillFormInitialValues({
             haydovchi: row.driver,
             tabNo: row.passId === '-' ? '' : row.passId,
             time: formatDateTime(row.sourceTime)
         });
+        setAutoDownload(false);
         setIsWaybillFormOpen(true);
+    };
+
+    const handleDownloadClick = (row: WaybillRow) => {
+        setApprovalInfo(signedWaybills[row.id] || null);
+        setWaybillFormInitialValues({
+            haydovchi: row.driver,
+            tabNo: row.passId === '-' ? '' : row.passId,
+            time: formatDateTime(row.sourceTime)
+        });
+        setAutoDownload(true);
+        setIsWaybillFormOpen(true);
+    };
+
+    const handleApproveClick = (row: WaybillRow) => {
+        setSignTargetRow(row);
+        setIsSignModalOpen(true);
+    };
+
+    const handleSigned = async (signerFullName: string, signedAt: string) => {
+        setIsSignModalOpen(false);
+        if (!signTargetRow) return;
+
+        try {
+            await fetch(`${API_BASE}/integrations/esmo/sign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: signTargetRow.dbId,
+                    signedBy: signerFullName,
+                    signedAt: signedAt
+                })
+            });
+        } catch (err) {
+            console.error('Failed to save signature to backend:', err);
+        }
+
+        const approval = { signedBy: signerFullName, signedAt };
+        setSignedWaybills(prev => ({
+            ...prev,
+            [signTargetRow.id]: approval
+        }));
+
+        setApprovalInfo(approval);
+        setWaybillFormInitialValues({
+            haydovchi: signTargetRow.driver,
+            tabNo: signTargetRow.passId === '-' ? '' : signTargetRow.passId,
+            time: formatDateTime(signTargetRow.sourceTime)
+        });
+        setAutoDownload(false);
+        setIsWaybillFormOpen(true);
+        setSignTargetRow(null);
     };
 
     const statCards = [
@@ -511,8 +584,10 @@ export const WaybillManager = () => {
                         <thead>
                             <tr className="bg-slate-900/50 text-slate-300 text-xs uppercase tracking-wide">
                                 <th className="px-4 md:px-6 py-4 !font-normal">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
                                 <th className="px-4 md:px-6 py-4 !font-normal border-l border-slate-700/50">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
                             </tr>
                         </thead>
@@ -558,12 +633,36 @@ export const WaybillManager = () => {
                                     <td className="px-4 md:px-6 py-4 text-center">
                                         <button
                                             type="button"
-                                            onClick={() => handleDownloadClick(rowA)}
-                                            className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowA.healthStatus)}`}
-                                            title={t('downloadWaybill')}
+                                            onClick={() => handleApproveClick(rowA)}
+                                            className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
+                                                signedWaybills[rowA.id] 
+                                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' 
+                                                : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-500'
+                                            }`}
+                                            title="E-IMZO bilan tasdiqlash"
                                         >
-                                            <Download size={20} />
+                                            <ShieldCheck size={20} />
                                         </button>
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        <div className="flex justify-center items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewClick(rowA)}
+                                                className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-slate-500 hover:text-slate-300"
+                                                title="Ko'rish"
+                                            >
+                                                <Eye size={20} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadClick(rowA)}
+                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowA.healthStatus)}`}
+                                                title={t('downloadWaybill')}
+                                            >
+                                                <Download size={20} />
+                                            </button>
+                                        </div>
                                     </td>
                                     <td className="px-4 md:px-6 py-4 border-l border-slate-700/30">
                                         {rowB ? (
@@ -609,12 +708,40 @@ export const WaybillManager = () => {
                                         {rowB ? (
                                             <button
                                                 type="button"
-                                                onClick={() => handleDownloadClick(rowB)}
-                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowB.healthStatus)}`}
-                                                title={t('downloadWaybill')}
+                                                onClick={() => handleApproveClick(rowB)}
+                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
+                                                    signedWaybills[rowB.id] 
+                                                    ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' 
+                                                    : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-500'
+                                                }`}
+                                                title="E-IMZO bilan tasdiqlash"
                                             >
-                                                <Download size={20} />
+                                                <ShieldCheck size={20} />
                                             </button>
+                                        ) : (
+                                            <span className="text-slate-500">-</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        {rowB ? (
+                                            <div className="flex justify-center items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleViewClick(rowB)}
+                                                    className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-slate-500 hover:text-slate-300"
+                                                    title="Ko'rish"
+                                                >
+                                                    <Eye size={20} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDownloadClick(rowB)}
+                                                    className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowB.healthStatus)}`}
+                                                    title={t('downloadWaybill')}
+                                                >
+                                                    <Download size={20} />
+                                                </button>
+                                            </div>
                                         ) : (
                                             <span className="text-slate-500">-</span>
                                         )}
@@ -678,11 +805,24 @@ export const WaybillManager = () => {
                 </div>
             </div>
 
-            <WaybillFormModal
-                open={isWaybillFormOpen}
-                onClose={() => setIsWaybillFormOpen(false)}
-                templatePdfUrl={yolVaraqasiPdfUrl}
-                initialValues={waybillFormInitialValues}
+            {isWaybillFormOpen && waybillFormInitialValues && (
+                <WaybillFormModal
+                    open={isWaybillFormOpen}
+                    onClose={() => setIsWaybillFormOpen(false)}
+                    templatePdfUrl={yolVaraqasiPdfUrl}
+                    initialValues={waybillFormInitialValues}
+                    signedBy={approvalInfo?.signedBy}
+                    signedAt={approvalInfo?.signedAt}
+                    isApproved={!!approvalInfo}
+                    autoDownload={autoDownload}
+                />
+            )}
+
+            <WaybillSignModal
+                open={isSignModalOpen}
+                onClose={() => setIsSignModalOpen(false)}
+                onSigned={handleSigned}
+                driverName={signTargetRow?.driver || ''}
             />
         </div>
     );

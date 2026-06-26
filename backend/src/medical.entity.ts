@@ -1,4 +1,4 @@
-﻿import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Driver } from './driver.entity';
 import { User } from './user.entity';
 
@@ -60,4 +60,10 @@ export class MedicalCheck {
 
   @Column({ type: 'datetime', nullable: true })
   exam_time: Date | null;
+
+  @Column({ length: 255, nullable: true })
+  eimzo_signed_by: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  eimzo_signed_at: Date | null;
 }
