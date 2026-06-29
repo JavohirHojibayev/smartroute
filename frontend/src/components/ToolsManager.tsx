@@ -238,7 +238,19 @@ export const ToolsManager = () => {
                 const noKey = String(esmo.passId || '').trim().padStart(6, '0');
 
                 // Match by employee_no first, then fallback to name
-                const tool = (noKey && noKey !== '000000' ? toolByNo.get(noKey) : null) || toolByName.get(nameKey);
+                let tool = (noKey && noKey !== '000000' ? toolByNo.get(noKey) : null) || toolByName.get(nameKey);
+                
+                // Agar asbob qaytarilgan bo'lsa va qaytarilgan vaqti hozirgi ESMO tekshiruvidan oldin bo'lsa,
+                // demak bu asbob avvalgi smenaga tegishli. Uni yangi ESMO bilan birlashtirmaymiz.
+                if (tool && tool.status === 'DONE' && tool.returned_at && esmo.time) {
+                    const returnTime = new Date(tool.returned_at).getTime();
+                    const esmoTime = new Date(esmo.time).getTime();
+                    // 10 daqiqa (600000ms) farq bilan tekshiramiz, chunki ba'zida vaqtlar biroz farq qilishi mumkin
+                    if (returnTime < esmoTime - 600000) {
+                        tool = null;
+                    }
+                }
+
                 counter++;
 
                 mergedRows.push({
@@ -320,7 +332,7 @@ export const ToolsManager = () => {
     useEffect(() => {
         const timer = window.setInterval(() => {
             void loadRows(false);
-        }, 10000);
+        }, 3000);
         return () => window.clearInterval(timer);
     }, [loadRows]);
 
@@ -435,11 +447,35 @@ export const ToolsManager = () => {
         }
 
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return result;
-        return result.filter((r) => {
-            const haystack = `${r.full_name} ${r.employee_no}`.toLowerCase();
-            return haystack.includes(query);
+        let finalResult = result;
+        if (query) {
+            finalResult = result.filter((r) => {
+                const haystack = `${r.full_name} ${r.employee_no}`.toLowerCase();
+                return haystack.includes(query);
+            });
+        }
+        
+        // Custom sorting: NOT_ISSUED (Berilmagan) should be at the top, then ISSUED, then DONE.
+        // Within the same status, sort by ESMO time descending (newest first).
+        finalResult.sort((a, b) => {
+            const getPriority = (status: string) => {
+                if (status !== 'ISSUED' && status !== 'DONE' && status !== 'FAIL') return 1; // BERILMAGAN
+                if (status === 'ISSUED') return 2;
+                if (status === 'DONE') return 3;
+                return 4;
+            };
+            
+            const pA = getPriority(a.status);
+            const pB = getPriority(b.status);
+            
+            if (pA !== pB) return pA - pB;
+            
+            const timeA = a.esmo_time && a.esmo_time !== '-' ? new Date(a.esmo_time).getTime() : 0;
+            const timeB = b.esmo_time && b.esmo_time !== '-' ? new Date(b.esmo_time).getTime() : 0;
+            return timeB - timeA;
         });
+
+        return finalResult;
     }, [mergedRowsState, searchQuery, headerFilter]);
 
     const totalRows = filteredRows.length;
@@ -722,12 +758,6 @@ export const ToolsManager = () => {
                                                     Barchasi
                                                 </button>
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
-                                                    onClick={() => { setHeaderFilter('ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
-                                                >
-                                                    Qaytarilmagan
-                                                </button>
-                                                <button
                                                     className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('NOT_ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
@@ -738,6 +768,12 @@ export const ToolsManager = () => {
                                                     onClick={() => { setHeaderFilter('RETURNED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
                                                     Qaytarilgan
+                                                </button>
+                                                <button
+                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    onClick={() => { setHeaderFilter('ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
+                                                >
+                                                    Qaytarilmagan
                                                 </button>
                                             </div>
                                         </>

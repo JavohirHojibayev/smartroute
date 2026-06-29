@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,9 +10,12 @@ async function bootstrap() {
   const rawPort = (process.env.PORT ?? '3000').trim();
   const port = Number.parseInt(rawPort, 10) || 3000;
   
-  // Enable CORS since frontend is on Vite (port 5173 usually) and backend will be on port 3000
+  app.use(helmet());
+
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:4173,https://smartroute.uz').split(',').map(o => o.trim());
+  // Enable CORS with restricted origins
   app.enableCors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   });
   app.use(express.json({ limit: '25mb' }));

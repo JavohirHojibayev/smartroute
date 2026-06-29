@@ -36,8 +36,15 @@ export class ToolsController {
         '(t.issued_at <= :endDate OR t.returned_at <= :endDate OR t.status = :status)',
         { endDate: new Date(endDate), status: 'ISSUED' }
       );
+    } else {
+      // Boshlang'ich holatda faqat bugungi o'zgarishlar va hali qaytarilmagan (ISSUED) larni qaytaramiz
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      query.andWhere(
+        '(t.issued_at >= :today OR t.returned_at >= :today OR t.status = :status)',
+        { today, status: 'ISSUED' }
+      );
     }
-    // When no date filters: return ALL records (no filter applied)
     
     const allLogs = await query.getMany();
     const latestPerEmployee = new Map<string, ToolIssue>();
