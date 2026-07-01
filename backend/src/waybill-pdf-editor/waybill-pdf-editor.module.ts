@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthModule } from '../auth.module';
+import { AuthModule } from '../modules/auth.module';
 import { WaybillDraft } from './entities/waybill-draft.entity';
 import { WaybillDraftValue } from './entities/waybill-draft-value.entity';
 import { WaybillTemplateCalibration } from './entities/waybill-template-calibration.entity';

@@ -1,4 +1,4 @@
-import type { TurnstileDeviceMapEntry } from '../turnstile-daily-access-kpis.util';
+import type { TurnstileDeviceMapEntry } from '../utils/turnstile-daily-access-kpis.util';
 import { isMineShahtaFromStoredDevices } from './hikvision-access-event-filter';
 
 /**

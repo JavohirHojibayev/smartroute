@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Headers, Put } from '@nestjs/common';
-import { AuthService } from '../auth.module';
+import { AuthService } from '../modules/auth.module';
 import { WaybillPdfEditorService } from './waybill-pdf-editor.service';
 
 @Controller('waybill-editor')

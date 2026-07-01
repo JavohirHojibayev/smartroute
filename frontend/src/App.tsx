@@ -1337,8 +1337,12 @@ function App() {
             {hideHeaderTitle ? <div className="hidden md:block" /> : <h2 className="hidden md:block text-2xl font-semibold">{t(activeTab as any)}</h2>}
           </div>
 
-          {/* Platforma test mode indicator removed as requested */}
-          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center pr-2 md:-ml-8" role="status" aria-live="polite" />
+          {/* Platforma test mode indicator restored */}
+          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center pr-2 md:-ml-8" role="status" aria-live="polite">
+            <div className="test-mode-inline-track">
+              <span>{t('platformTestMode')}</span>
+            </div>
+          </div>
 
           <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0">
             <button

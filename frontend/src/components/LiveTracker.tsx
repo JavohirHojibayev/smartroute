@@ -1324,7 +1324,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <div className="mb-2 flex items-start justify-between gap-2">
                                 <h3 className="text-lg font-semibold text-slate-100">Ulanish holati</h3>
-                                <span className="text-xs font-bold text-emerald-400">Onlayn ma'lumotlar</span>
                             </div>
                             <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 <div className="relative h-full min-w-0 overflow-visible">
@@ -1374,7 +1373,6 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <div className="mb-2 flex items-start justify-between gap-2">
                                 <h3 className="text-lg font-semibold text-slate-100">Harakat holati</h3>
-                                <span className="text-xs font-bold text-emerald-400">Onlayn ma'lumotlar</span>
                             </div>
                             <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 <div className="relative h-full min-w-0 overflow-visible">

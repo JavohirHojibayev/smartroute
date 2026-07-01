@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
-import { getEffectiveTurnstileDeviceIpMap } from '../turnstile-daily-access-kpis.util';
+import { getEffectiveTurnstileDeviceIpMap } from '../utils/turnstile-daily-access-kpis.util';
 import { fetchLatestAcsEvents, type AcsEventRow } from './hikvision-acsevent-fetcher';
 
 /**

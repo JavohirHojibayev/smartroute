@@ -24,6 +24,10 @@ type AccessSummary = {
     totalToday: number;
     flaggedToday: number;
     exitsToday: number;
+    zavodEntrancesToday?: number;
+    zavodExitsToday?: number;
+    mineEntrancesToday?: number;
+    mineExitsToday?: number;
     systemStatus: 'online' | 'offline' | string;
     turnstiles?: AccessSummaryTurnstile[];
 };
@@ -111,6 +115,10 @@ export const AccessControlManager = () => {
         totalToday: 0,
         flaggedToday: 0,
         exitsToday: 0,
+        zavodEntrancesToday: 0,
+        zavodExitsToday: 0,
+        mineEntrancesToday: 0,
+        mineExitsToday: 0,
         systemStatus: 'online',
         turnstiles: [],
     });
@@ -128,7 +136,7 @@ export const AccessControlManager = () => {
     const [tabVisible, setTabVisible] = useState(
         () => typeof document !== 'undefined' && document.visibilityState === 'visible',
     );
-    const [filterType, setFilterType] = useState<'all' | 'entrance' | 'exit'>('all');
+    const [filterType, setFilterType] = useState<'all' | 'entrance' | 'exit' | 'zavod-entrance' | 'zavod-exit' | 'mine-entrance' | 'mine-exit'>('all');
     const isFetchingRef = useRef(false);
     const latestLogIdRef = useRef(0);
     const normalizeLogRows = (rows: AccessLogRow[]) =>
@@ -211,6 +219,10 @@ export const AccessControlManager = () => {
                 totalToday: Number(summaryData?.totalToday ?? 0),
                 flaggedToday: Number(summaryData?.flaggedToday ?? 0),
                 exitsToday: Number(summaryData?.exitsToday ?? 0),
+                zavodEntrancesToday: Number(summaryData?.zavodEntrancesToday ?? 0),
+                zavodExitsToday: Number(summaryData?.zavodExitsToday ?? 0),
+                mineEntrancesToday: Number(summaryData?.mineEntrancesToday ?? 0),
+                mineExitsToday: Number(summaryData?.mineExitsToday ?? 0),
                 systemStatus: String(summaryData?.systemStatus ?? 'offline'),
                 turnstiles: Array.isArray(summaryData?.turnstiles) ? summaryData.turnstiles : [],
             });
@@ -586,37 +598,69 @@ export const AccessControlManager = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_max-content] gap-4 md:gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_max-content] gap-4 md:gap-5">
                 <div 
                     onClick={() => {
-                        setFilterType(prev => prev === 'entrance' ? 'all' : 'entrance');
+                        setFilterType(prev => prev === 'zavod-entrance' ? 'all' : 'zavod-entrance');
                         setCurrentPage(1);
                     }}
-                    className={`glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'entrance' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                    className={`glass-panel p-4 md:p-5 w-full rounded-2xl flex items-center gap-3 md:gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'zavod-entrance' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
                 >
                     <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
-                    <div className="relative z-10 p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0">
-                        <LogIn size={24} />
+                    <div className="relative z-10 p-2 md:p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
+                        <LogIn size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayEntrances')}</p>
-                        <p className="text-2xl sm:text-3xl font-bold tabular-nums">{summary.totalToday}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodEntrances')}</p>
+                        <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.zavodEntrancesToday ?? 0}</p>
                     </div>
                 </div>
                 <div 
                     onClick={() => {
-                        setFilterType(prev => prev === 'exit' ? 'all' : 'exit');
+                        setFilterType(prev => prev === 'zavod-exit' ? 'all' : 'zavod-exit');
                         setCurrentPage(1);
                     }}
-                    className={`glass-panel p-5 w-full rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'exit' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                    className={`glass-panel p-4 md:p-5 w-full rounded-2xl flex items-center gap-3 md:gap-4 border-l-4 border-l-emerald-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'zavod-exit' ? 'ring-2 ring-emerald-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
                 >
-                    <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
-                    <div className="relative z-10 p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0">
-                        <ArrowLeftToLine size={24} />
+                    <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
+                    <div className="relative z-10 p-2 md:p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
+                        <ArrowLeftToLine size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayExits')}</p>
-                        <p className="text-2xl sm:text-3xl font-bold tabular-nums">{summary.exitsToday}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodExits')}</p>
+                        <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.zavodExitsToday ?? 0}</p>
+                    </div>
+                </div>
+                <div 
+                    onClick={() => {
+                        setFilterType(prev => prev === 'mine-entrance' ? 'all' : 'mine-entrance');
+                        setCurrentPage(1);
+                    }}
+                    className={`glass-panel p-4 md:p-5 w-full rounded-2xl flex items-center gap-3 md:gap-4 border-l-4 border-l-blue-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'mine-entrance' ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                >
+                    <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
+                    <div className="relative z-10 p-2 md:p-2.5 bg-blue-500/10 text-blue-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
+                        <LogIn size={20} className="md:w-6 md:h-6" />
+                    </div>
+                    <div className="relative z-10 min-w-0">
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineEntrances')}</p>
+                        <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.mineEntrancesToday ?? 0}</p>
+                    </div>
+                </div>
+                <div 
+                    onClick={() => {
+                        setFilterType(prev => prev === 'mine-exit' ? 'all' : 'mine-exit');
+                        setCurrentPage(1);
+                    }}
+                    className={`glass-panel p-4 md:p-5 w-full rounded-2xl flex items-center gap-3 md:gap-4 border-l-4 border-l-emerald-500 relative overflow-hidden group isolate min-w-0 cursor-pointer transition-all ${filterType === 'mine-exit' ? 'ring-2 ring-emerald-500 scale-[1.02]' : 'hover:scale-[1.01]'}`}
+                >
+                    <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
+                    <div className="relative z-10 p-2 md:p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
+                        <ArrowLeftToLine size={20} className="md:w-6 md:h-6" />
+                    </div>
+                    <div className="relative z-10 min-w-0">
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineExits')}</p>
+                        <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.mineExitsToday ?? 0}</p>
                     </div>
                 </div>
                 <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-full md:w-max max-w-full min-w-0 shrink-0">
