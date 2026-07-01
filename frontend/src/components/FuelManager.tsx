@@ -1721,11 +1721,11 @@ export const FuelManager = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashColumnsOnline')}</span>
-                                <span className="font-semibold text-emerald-400">{devicesOnline}</span>
+                                <span className="font-semibold text-white">{devicesOnline}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashColumnsOffline')}</span>
-                                <span className={`font-semibold ${devicesOffline > 0 ? 'text-red-400' : 'text-slate-500'}`}>{devicesOffline}</span>
+                                <span className="font-semibold text-white">{devicesOffline}</span>
                             </div>
                         </div>
                     </div>
@@ -1744,21 +1744,21 @@ export const FuelManager = () => {
                                     <span className="h-2 w-2 rounded-full bg-red-500" />
                                     {t('fuelDashCriticalShort')}
                                 </span>
-                                <span className="font-semibold text-red-400">{secCritical}</span>
+                                <span className="font-semibold text-white">{secCritical}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="flex items-center gap-1.5 text-slate-400">
                                     <span className="h-2 w-2 rounded-full bg-amber-400" />
                                     {t('fuelDashLowShort')}
                                 </span>
-                                <span className="font-semibold text-amber-400">{secLow}</span>
+                                <span className="font-semibold text-white">{secLow}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="flex items-center gap-1.5 text-slate-400">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400" />
                                     {t('fuelDashNormalShort')}
                                 </span>
-                                <span className="font-semibold text-emerald-400">{secNormal}</span>
+                                <span className="font-semibold text-white">{secNormal}</span>
                             </div>
                         </div>
                     </div>
@@ -1778,11 +1778,11 @@ export const FuelManager = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashCardsSynced')}</span>
-                                <span className="font-semibold text-emerald-400">{cardsSynced}</span>
+                                <span className="font-semibold text-white">{cardsSynced}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashCardsUnsynced')}</span>
-                                <span className="font-semibold text-slate-500">{cardsUnsynced}</span>
+                                <span className="font-semibold text-white">{cardsUnsynced}</span>
                             </div>
                         </div>
                     </div>

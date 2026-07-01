@@ -1037,10 +1037,10 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     this.azsDashboardStatsRefreshInFlight.set(cacheKey, task);
   }
 
-  private fetchAzsDashboardStats(
+  private async fetchAzsDashboardStats(
     config: AzsConfig,
     objectKind?: string,
-  ): AzsDashboardStatsResult {
+  ): Promise<AzsDashboardStatsResult> {
     if (!config.enabled || !config.username || !config.password) {
       return this.emptyAzsDashboardStatsResult();
     }
@@ -1052,8 +1052,14 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       return cached.value;
     }
 
-    this.refreshAzsDashboardStatsInBackground(config, objectKind, cacheKey);
-    return cached?.value ?? this.emptyAzsDashboardStatsResult();
+    if (cached) {
+      this.refreshAzsDashboardStatsInBackground(config, objectKind, cacheKey);
+      return cached.value;
+    }
+
+    const freshData = await this.fetchAzsDashboardStatsFresh(config, objectKind);
+    this.azsDashboardStatsCache.set(cacheKey, { at: Date.now(), value: freshData });
+    return freshData;
   }
 
   private async fetchAzsDashboardStatsFresh(
@@ -3436,118 +3442,88 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const pageSize = Math.max(1, Math.min(500, Number.parseInt(pageSizeRaw ?? '10', 10) || 10));
 
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
-    const startSql = this.toSqliteDateTime(start);
-    const endSql = this.toSqliteDateTime(end);
-
     const config = this.getConfig();
-    const { kindFilter } = await this.loadAzsObjectKindContext(config, objectKind);
+    
+    let allRows: ExternalFuelRow[] = [];
+    let kindFilter = this.azsKindFilterAll;
 
-    let query = this.fuelRepo
-      .createQueryBuilder('entry')
-      .where("json_extract(entry.payload, '$.eventsType') IN (131, 132)")
-      .andWhere('entry.event_time >= :start', { start: startSql })
-      .andWhere('entry.event_time <= :end', { end: endSql })
-      .orderBy('entry.event_time', 'DESC')
-      .addOrderBy('entry.id', 'DESC');
-    query = this.applyObjectKindToFuelQuery(query, kindFilter);
-
-    const stationFilter = this.normalizeWhitespace(station);
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      query = query.andWhere(
-        "COALESCE(json_extract(entry.payload, '$.devicePostName'), entry.station_name, '') = :station",
-        { station: stationFilter },
-      );
+    if (config.enabled) {
+      const ctx = await this.loadAzsObjectKindContext(config, objectKind).catch(() => null);
+      if (ctx) {
+         kindFilter = ctx.kindFilter;
+         if (ctx.token) {
+           allRows = await this.fetchEventsInRange(config, ctx.token, start, end).catch(() => []);
+         }
+      }
     }
 
-    const sectionFilter = this.normalizeWhitespace(section);
-    if (sectionFilter && sectionFilter.toLowerCase() !== 'all') {
-      query = query.andWhere(
-        `COALESCE(
-          json_extract(entry.payload, '$.fuelSectionName'),
-          json_extract(entry.payload, '$.devicePostName'),
-          json_extract(entry.payload, '$.fuelTankName'),
-          'Noma''lum'
-        ) = :section`,
-        { section: sectionFilter },
-      );
-    }
+    const stationFilter = this.normalizeWhitespace(station).toLowerCase();
+    const sectionFilter = this.normalizeWhitespace(section).toLowerCase();
 
-    const total = await query.getCount();
-    const totalLitersRow = await query
-      .clone()
-      .select(`COALESCE(SUM(${this.issuedLitersOperationsSql('entry')}), 0)`, 'liters')
-      .getRawOne<{ liters: string }>();
-    const totalLiters = Math.round((Number.parseFloat(String(totalLitersRow?.liters ?? '0')) || 0) * 100) / 100;
-    const rows = await query
-      .offset((page - 1) * pageSize)
-      .limit(pageSize)
-      .getMany();
+    const filteredRows = allRows.filter((row) => {
+      const p = row.payload || {};
+      if (p.eventsType !== 131 && p.eventsType !== 132) return false;
+      if (!this.externalRowMatchesKindFilter(row, kindFilter)) return false;
+      if (stationFilter && stationFilter !== 'all') {
+        const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? '')).toLowerCase();
+        if (rowStation !== stationFilter) return false;
+      }
+      if (sectionFilter && sectionFilter !== 'all') {
+        const rowSection = this.normalizeWhitespace(String(p.fuelSectionName ?? p.devicePostName ?? p.fuelTankName ?? "Noma'lum")).toLowerCase();
+        if (rowSection !== sectionFilter) return false;
+      }
+      return true;
+    });
+
+    filteredRows.sort((a, b) => b.eventTime.getTime() - a.eventTime.getTime());
+
+    const total = filteredRows.length;
+    const paginated = filteredRows.slice((page - 1) * pageSize, page * pageSize);
+    const opsMode = this.normalizeWhitespace(process.env.AZS_OPERATIONS_LITERS_MODE || 'counter').toLowerCase();
+
+    const parseVal = (x: unknown): number | null => {
+      if (x == null || x === '') return null;
+      const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
+      return Number.isFinite(v) ? v : null;
+    };
+
+    const getIssuedValue = (p: any, row: any) => {
+      if (opsMode === 'dut') {
+        return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? null;
+      } else if (opsMode === 'hybrid') {
+        return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? null;
+      }
+      return parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? null;
+    };
 
     return {
-      items: rows.map((row) => {
-        const p: Record<string, any> = row.payload && typeof row.payload === 'object' ? row.payload : {};
-        const cardNumber = this.normalizeWhitespace(p.idCard ?? p.cardNumber ?? '') || null;
-        const cardName = this.normalizeWhitespace(p.cardName ?? '') || null;
-        const groupName = this.normalizeWhitespace(p.groupName ?? '') || null;
-        const fuelSectionName = this.normalizeWhitespace(p.fuelSectionName ?? '') || null;
-        const levelStartDut = p.levelStartDut != null ? Number(p.levelStartDut) : null;
-        const levelEndDut = p.levelEndDut != null ? Number(p.levelEndDut) : null;
-        const n = (x: unknown): number | null => {
-          if (x == null || x === '') return null;
-          const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
-          return Number.isFinite(v) ? v : null;
-        };
-        /**
-         * Operatsiyalar jadvali ("Выдано по счётчику, л") uchun default — counter:
-         * value -> issuedValue -> DUT/virtual fallback.
-         * Kerak bo'lsa `AZS_OPERATIONS_LITERS_MODE=dut|hybrid|counter` bilan boshqariladi.
-         */
-        const opsMode = this.normalizeWhitespace(process.env.AZS_OPERATIONS_LITERS_MODE || 'counter').toLowerCase();
-        const issuedValue =
-          opsMode === 'dut'
-            ? (n(p.issuedDut) ?? n(p.issuedVirtual) ?? row.liters ?? null)
-            : opsMode === 'hybrid'
-              ? (n(p.issuedDut) ??
-                  n(p.issuedVirtual) ??
-                  n(p.differenceRefuel) ??
-                  n(p.issuedValue) ??
-                  n(p.value) ??
-                  row.liters ??
-                  null)
-              : (n(p.value) ??
-                  n(p.issuedValue) ??
-                  n(p.issuedDut) ??
-                  n(p.issuedVirtual) ??
-                  n(p.differenceRefuel) ??
-                  row.liters ??
-                  null);
-        const stationDisplay =
-          this.normalizeWhitespace(String(p.devicePostName ?? p.DevicePostName ?? row.station_name ?? '')) || '-';
+      items: paginated.map((row) => {
+        const p: Record<string, any> = row.payload || {};
         return {
-          id: row.id,
-          vehicle: row.vehicle_number || '-',
-          fuelType: row.fuel_type || "Noma'lum",
+          id: row.externalId,
+          vehicle: row.vehicleNumber || '-',
+          fuelType: row.fuelType || "Noma'lum",
           liters: row.liters,
-          issuedValue: issuedValue ?? row.liters ?? null,
-          station: stationDisplay,
-          driver: row.driver_name || '-',
-          time: this.sqliteToIso(row.event_time),
-          eventType: row.event_type,
-          payType: row.pay_type,
-          cardId: row.card_id,
-          cardNumber,
-          cardName,
-          groupName,
-          fuelSectionName,
-          levelStartDut,
-          levelEndDut,
-          deviceId: row.device_id,
-          devicePostId: row.device_post_id,
-          eventMessage: row.event_message,
-          entityId: row.entity_id,
-          ownerId: row.owner_id,
-          isBroken: row.is_broken,
-          eventDuration: row.event_duration,
+          issuedValue: getIssuedValue(p, row) ?? row.liters ?? null,
+          station: this.normalizeWhitespace(String(p.devicePostName ?? p.DevicePostName ?? row.stationName ?? '')) || '-',
+          driver: row.driverName || '-',
+          time: this.sqliteToIso(row.eventTime),
+          eventType: row.eventType,
+          payType: row.payType,
+          cardId: row.cardId,
+          cardNumber: this.normalizeWhitespace(p.idCard ?? p.cardNumber ?? '') || null,
+          cardName: this.normalizeWhitespace(p.cardName ?? '') || null,
+          groupName: this.normalizeWhitespace(p.groupName ?? '') || null,
+          fuelSectionName: this.normalizeWhitespace(p.fuelSectionName ?? '') || null,
+          levelStartDut: p.levelStartDut != null ? Number(p.levelStartDut) : null,
+          levelEndDut: p.levelEndDut != null ? Number(p.levelEndDut) : null,
+          deviceId: row.deviceId,
+          devicePostId: row.devicePostId,
+          eventMessage: row.eventMessage,
+          entityId: row.entityId,
+          ownerId: row.ownerId,
+          isBroken: row.isBroken,
+          eventDuration: row.eventDuration,
         };
       }),
       pagination: {
@@ -3557,7 +3533,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         totalPages: Math.max(1, Math.ceil(total / pageSize)),
       },
       summary: {
-        liters: totalLiters,
+        liters: filteredRows.reduce((sum, row) => sum + (getIssuedValue(row.payload || {}, row) ?? row.liters ?? 0), 0),
       },
     };
   }
@@ -3572,450 +3548,168 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     compactRaw?: string,
   ) {
     const config = this.getConfig();
-    const compact = ['1', 'true', 'yes', 'on'].includes(
-      this.normalizeWhitespace(compactRaw).toLowerCase(),
-    );
+    const compact = ['1', 'true', 'yes', 'on'].includes(this.normalizeWhitespace(compactRaw).toLowerCase());
 
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
-    const startSql = this.toSqliteDateTime(start);
-    const endSql = this.toSqliteDateTime(end);
-    const dashboardStats = this.fetchAzsDashboardStats(config, objectKind);
-    const { stats: azsStats, kindFilter } = dashboardStats;
-    const azsToken = dashboardStats.token || '';
-    // AZS "Заправки" = eventsType 131 (Выдача по карте) va 132 (Выдача без карты)
-    let baseQb = this.fuelRepo
-      .createQueryBuilder('entry')
-      .where('entry.event_time >= :start', { start: startSql })
-      .andWhere('entry.event_time <= :end', { end: endSql })
-      .andWhere("json_extract(entry.payload, '$.eventsType') IN (131, 132)");
-    baseQb = this.applyObjectKindToFuelQuery(baseQb, kindFilter);
-    let qb = baseQb.clone();
+    
+    // Instead of waiting for the full 10s dashboard stats, we fetch exactly what we need directly.
+    let kindFilter = this.azsKindFilterAll;
+    let azsToken = '';
+    let apiChartRows: ExternalFuelRow[] = [];
+    let gaugeRows: Array<{ name: string; liters: number }> = [];
+    let allStations: Array<{ id: number; name: string }> = [];
 
-    const stationFilter = this.normalizeWhitespace(station);
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      qb = qb.andWhere(
-        "COALESCE(json_extract(entry.payload, '$.devicePostName'), entry.station_name, '') = :station",
-        { station: stationFilter },
-      );
+    if (config.enabled) {
+      const ctx = await this.loadAzsObjectKindContext(config, objectKind).catch(() => null);
+      if (ctx) {
+        kindFilter = ctx.kindFilter;
+        azsToken = ctx.token;
+        if (azsToken) {
+          // Fetch events and gauge sections in parallel for speed (~2-3s instead of 10s)
+          const [rows, sectionsInfo] = await Promise.all([
+             this.fetchEventsInRange(config, azsToken, start, end).catch(() => []),
+             this.fetchAllFuelTankSections(config, azsToken).catch(() => [])
+          ]);
+          apiChartRows = rows;
+          
+          gaugeRows = sectionsInfo.map((sec: any) => ({
+            name: this.normalizeWhitespace(String(sec?.name ?? "Noma'lum")),
+            liters: Number.parseFloat(String(sec?.volume ?? '0')) || 0,
+          }));
+
+          allStations = ctx.postsForKind.map((p: any) => ({
+            id: Number(p?.devicePostId ?? 0),
+            name: String(p?.devicePostName ?? ''),
+          })).filter((p: {id: number, name: string}) => p.name);
+        }
+      }
     }
 
-    const issuedExpr = this.issuedLitersSummarySql('entry');
+    const stationFilter = this.normalizeWhitespace(station).toLowerCase();
+    const sectionFilter = this.normalizeWhitespace(section).toLowerCase();
+    
+    const filteredRows = apiChartRows.filter((row) => {
+      const p = row.payload || {};
+      if (p.eventsType !== 131 && p.eventsType !== 132) return false;
+      if (!this.externalRowMatchesKindFilter(row, kindFilter)) return false;
+      if (stationFilter && stationFilter !== 'all') {
+        const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? '')).toLowerCase();
+        if (rowStation !== stationFilter) return false;
+      }
+      if (sectionFilter && sectionFilter !== 'all') {
+        const rowSection = this.normalizeWhitespace(String(p.fuelSectionName ?? p.devicePostName ?? p.fuelTankName ?? "Noma'lum")).toLowerCase();
+        if (rowSection !== sectionFilter) return false;
+      }
+      return true;
+    });
 
-    const totalRow = await qb
-      .clone()
-      .select('COUNT(entry.id)', 'count')
-      .addSelect(`COALESCE(SUM(${issuedExpr}), 0)`, 'liters')
-      .addSelect('COALESCE(SUM(entry.amount), 0)', 'amount')
-      .getRawOne<{ count: string; liters: string; amount: string }>();
-
-    let totalCountResolved = Number.parseInt(String(totalRow?.count ?? '0'), 10) || 0;
-    let totalLitersResolved = Number.parseFloat(String(totalRow?.liters ?? '0')) || 0;
-    let totalAmountResolved = Number.parseFloat(String(totalRow?.amount ?? '0')) || 0;
-
-    const fuelTypeRows = compact
-      ? []
-      : await qb
-          .clone()
-          .select('COALESCE(entry.fuel_type, :fallback)', 'fuelType')
-          .addSelect(`COALESCE(SUM(${issuedExpr}), 0)`, 'liters')
-          .setParameter('fallback', "Noma'lum")
-          .groupBy('COALESCE(entry.fuel_type, :fallback)')
-          .orderBy('liters', 'DESC')
-          .getRawMany<{ fuelType: string; liters: string }>();
-
-    // Postlar: devicePostName payload dan olinadi (AZS bilan mos)
-    const stationRows = await baseQb
-      .clone()
-      .select(`COALESCE(json_extract(entry.payload, '$.devicePostName'), entry.station_name, :fallback)`, 'station')
-      .addSelect('COUNT(entry.id)', 'records')
-      .addSelect(`COALESCE(SUM(${issuedExpr}), 0)`, 'liters')
-      .setParameter('fallback', "Noma'lum")
-      .groupBy(`COALESCE(json_extract(entry.payload, '$.devicePostName'), entry.station_name, :fallback)`)
-      .orderBy('liters', 'DESC')
-      .getRawMany<{ station: string; records: string; liters: string }>();
-
-    const recentLimit = Math.max(10, Math.min(5000, Number.parseInt(recentLimitRaw ?? '1000', 10) || 1000));
-    const recentRows = compact
-      ? []
-      : await qb
-          .clone()
-          .orderBy('entry.event_time', 'DESC')
-          .limit(recentLimit)
-          .getMany();
-
+    const sumMode = this.normalizeWhitespace(process.env.AZS_SUMMARY_LITERS_MODE || 'counter').toLowerCase();
+    const parseVal = (x: unknown): number | null => {
+      if (x == null || x === '') return null;
+      const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
+      return Number.isFinite(v) ? v : null;
+    };
+    
+    let totalCountResolved = 0;
+    let totalLitersResolved = 0;
+    let totalAmountResolved = 0;
+    
+    const fuelTypeMap = new Map<string, number>();
+    const stationMap = new Map<string, { records: number; liters: number }>();
+    const sectionMap = new Map<string, { records: number }>();
+    const dailyMap = new Map<string, { liters: number; amount: number; records: number }>();
+    
     const sameDay = this.azsCalendarYmdFromInstant(start) === this.azsCalendarYmdFromInstant(end);
+    
+    for (const row of filteredRows) {
+       const p = row.payload || {};
+       let issuedLiters = 0;
+       if (sumMode === 'dut') {
+          issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? 0;
+       } else if (sumMode === 'hybrid') {
+          issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? 0;
+       } else {
+          issuedLiters = parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? 0;
+       }
+       const amount = row.amount || 0;
+       
+       totalCountResolved++;
+       totalLitersResolved += issuedLiters;
+       totalAmountResolved += amount;
+       
+       const fuelType = row.fuelType || "Noma'lum";
+       fuelTypeMap.set(fuelType, (fuelTypeMap.get(fuelType) || 0) + issuedLiters);
+       
+       const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? "Noma'lum"));
+       const st = stationMap.get(rowStation) || { records: 0, liters: 0 };
+       st.records++;
+       st.liters += issuedLiters;
+       stationMap.set(rowStation, st);
+       
+       const rowSection = this.normalizeWhitespace(String(p.fuelSectionName ?? p.devicePostName ?? p.fuelTankName ?? "Noma'lum"));
+       const sec = sectionMap.get(rowSection) || { records: 0 };
+       sec.records++;
+       sectionMap.set(rowSection, sec);
+       
+       const bucketHour = row.eventTime.toISOString().substring(11, 13) + ':00';
+       const bucketDay = this.azsCalendarYmdFromInstant(row.eventTime);
+       const key = sameDay ? bucketHour : bucketDay;
+       
+       const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+       d.liters += issuedLiters;
+       d.amount += amount;
+       d.records++;
+       dailyMap.set(key, d);
+    }
+    
     const chart: Array<{ day: string; consumption: number; cost: number }> = [];
-
     if (sameDay) {
-      const bucketHour = this.sqlEntryBucketHour();
-      const hourlyRows = await qb
-        .clone()
-        .select(bucketHour, 'bucket')
-        .addSelect(`COALESCE(SUM(${issuedExpr}), 0)`, 'liters')
-        .addSelect('COALESCE(SUM(entry.amount), 0)', 'amount')
-        .groupBy(bucketHour)
-        .orderBy('bucket', 'ASC')
-        .getRawMany<{ bucket: string; liters: string; amount: string }>();
-
-      for (const row of hourlyRows) {
-        const liters = Number.parseFloat(String(row.liters || '0')) || 0;
-        const amount = Number.parseFloat(String(row.amount || '0')) || 0;
-        chart.push({
-          day: String(row.bucket),
-          consumption: Math.round(liters * 100) / 100,
-          cost: Math.round(amount * 100) / 100,
-        });
-      }
-    } else {
-      let apiChartRows: ExternalFuelRow[] | null = null;
-      if (config.enabled && azsToken) {
-        try {
-          apiChartRows = await this.fetchAzsRefuelChartRows(config, azsToken, start, end);
-        } catch (error) {
-          this.logger.warn(`AZS refuel chart API fallback: ${String((error as any)?.message ?? error)}`);
-        }
-      }
-
-      if (apiChartRows && apiChartRows.length > 0) {
-        const dailyMap = new Map<string, { liters: number; amount: number; records: number }>();
-        for (const row of apiChartRows) {
-          if (!this.externalRowMatchesKindFilter(row, kindFilter)) continue;
-          if (!this.externalRowMatchesStationFilter(row, stationFilter)) continue;
-          const key = this.azsCalendarYmdFromInstant(row.eventTime);
-          const entry = dailyMap.get(key) ?? { liters: 0, amount: 0, records: 0 };
-          entry.liters += this.issuedLitersFromExternalRow(row);
-          entry.amount += this.parseNumber(row.amount) ?? 0;
-          entry.records += 1;
-          dailyMap.set(key, entry);
-        }
-
-        totalCountResolved = 0;
-        totalLitersResolved = 0;
-        totalAmountResolved = 0;
-        for (const key of this.eachAzsDayKeyBetween(start, end)) {
-          const entry = dailyMap.get(key) ?? { liters: 0, amount: 0, records: 0 };
-          totalCountResolved += entry.records;
-          totalLitersResolved += entry.liters;
-          totalAmountResolved += entry.amount;
+       for (let hour = 0; hour < 24; hour++) {
+          const key = String(hour).padStart(2, '0') + ':00';
+          const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
           chart.push({
-            day: this.formatShortDate(key),
-            consumption: Math.round(entry.liters * 100) / 100,
-            cost: Math.round(entry.amount * 100) / 100,
+             day: key,
+             consumption: Math.round(d.liters * 100) / 100,
+             cost: Math.round(d.amount * 100) / 100
           });
-        }
-      } else {
-        const bucketDay = this.sqlEntryBucketDay();
-        const dailyRows = await qb
-          .clone()
-          .select(bucketDay, 'bucket')
-          .addSelect(`COALESCE(SUM(${issuedExpr}), 0)`, 'liters')
-          .addSelect('COALESCE(SUM(entry.amount), 0)', 'amount')
-          .groupBy(bucketDay)
-          .orderBy('bucket', 'ASC')
-          .getRawMany<{ bucket: string; liters: string; amount: string }>();
-
-        const dailyMap = new Map<string, { liters: number; amount: number }>();
-        for (const row of dailyRows) {
-          const key = String(row.bucket || '');
-          if (!key) continue;
-          dailyMap.set(key, {
-            liters: Number.parseFloat(String(row.liters || '0')) || 0,
-            amount: Number.parseFloat(String(row.amount || '0')) || 0,
-          });
-        }
-
-        for (const key of this.eachAzsDayKeyBetween(start, end)) {
-          const entry = dailyMap.get(key) ?? { liters: 0, amount: 0 };
-          chart.push({
-            day: this.formatShortDate(key),
-            consumption: Math.round(entry.liters * 100) / 100,
-            cost: Math.round(entry.amount * 100) / 100,
-          });
-        }
-      }
-    }
-
-    /** DUT darajasi: zapravka (131/132) yozuvlari — AZS «График уровня секций» ga yaqin agregatsiya */
-    const levelExpr = `
-      COALESCE(
-        NULLIF(CAST(json_extract(payload, '$.levelEndDut') AS REAL), 0),
-        NULLIF(CAST(json_extract(payload, '$.levelStartDut') AS REAL), 0)
-      )
-    `;
-    const sectionExpr = `
-      COALESCE(
-        json_extract(payload, '$.fuelSectionName'),
-        json_extract(payload, '$.devicePostName'),
-        json_extract(payload, '$.fuelTankName'),
-        'Noma''lum'
-      )
-    `;
-    /** Grafik: faqat rezervuar/seksiya nomi — post nomini «seksiya» deb aralashtirmaslik (AZS bilan mos) */
-    const sectionExprForLevel = `
-      COALESCE(
-        NULLIF(TRIM(json_extract(payload, '$.fuelSectionName')), ''),
-        NULLIF(TRIM(json_extract(payload, '$.fuelTankName')), '')
-      )
-    `;
-    const sectionFilter = this.normalizeWhitespace(section);
-
-    const okFrag = this.objectKindSqlFragment(kindFilter);
-    const sectionSqlBase = `
-      FROM fuel_entries
-      WHERE event_time >= ? AND event_time <= ?
-        AND ${levelExpr} IS NOT NULL
-        ${okFrag.sql}
-    `;
-    const levelRefuelFilter = ` AND json_extract(payload, '$.eventsType') IN (131, 132) `;
-    const levelChartSqlBase = `
-      FROM fuel_entries
-      WHERE event_time >= ? AND event_time <= ?
-        AND ${levelExpr} IS NOT NULL
-        AND ${sectionExprForLevel} IS NOT NULL
-        ${levelRefuelFilter}
-        ${okFrag.sql}
-    `;
-
-    const sectionsParams: any[] = [startSql, endSql, ...okFrag.params];
-    let sectionsStationTail = '';
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      sectionsStationTail = `AND COALESCE(json_extract(payload, '$.devicePostName'), COALESCE(station_name, ''), '') = ?`;
-      sectionsParams.push(stationFilter);
-    }
-    const sectionsRaw = await this.fuelRepo.query(
-      `
-      SELECT ${sectionExpr} AS section,
-             COUNT(1) AS records
-      ${sectionSqlBase}
-      ${sectionsStationTail}
-      GROUP BY section
-      ORDER BY section ASC
-      `,
-      sectionsParams,
-    );
-
-    const levelBucketExpr = sameDay ? this.sqlRawEventTimeBucketHour() : this.sqlRawEventTimeBucketDay();
-
-    let stationWhereTail = '';
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      stationWhereTail += ` AND COALESCE(json_extract(payload, '$.devicePostName'), COALESCE(station_name, ''), '') = ?`;
-    }
-    let sectionWhereTail = stationWhereTail;
-    if (sectionFilter && sectionFilter.toLowerCase() !== 'all') {
-      sectionWhereTail += ` AND (${sectionExprForLevel}) = ?`;
-    }
-
-    const levelParamsBase: any[] = [startSql, endSql, ...okFrag.params];
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      levelParamsBase.push(stationFilter);
-    }
-    if (sectionFilter && sectionFilter.toLowerCase() !== 'all') {
-      levelParamsBase.push(sectionFilter);
-    }
-
-    const levelParamsAllOnly: any[] = [startSql, endSql, ...okFrag.params];
-    if (stationFilter && stationFilter.toLowerCase() !== 'all') {
-      levelParamsAllOnly.push(stationFilter);
-    }
-
-    const gaugeRows = Array.isArray((azsStats as { sectionGaugeRows?: Array<{ name: string; liters: number }> }).sectionGaugeRows)
-      ? ((azsStats as { sectionGaugeRows: Array<{ name: string; liters: number }> }).sectionGaugeRows ?? [])
-      : [];
-    const azsNamesForLevel: string[] = Array.isArray((azsStats as { azsSectionNames?: string[] })?.azsSectionNames)
-      ? ((azsStats as { azsSectionNames: string[] }).azsSectionNames ?? [])
-      : [];
-    const imputeSectionNames = Array.from(
-      new Set<string>(
-        [
-          ...azsNamesForLevel.map((n) => this.normalizeWhitespace(String(n ?? ''))),
-          ...gaugeRows.map((r) => this.normalizeWhitespace(String(r?.name ?? ''))),
-        ].filter((n): n is string => Boolean(n)),
-      ),
-    ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-    const levelMap = new Map<string, number>();
-    const allSectionsMode = !sectionFilter || sectionFilter.toLowerCase() === 'all';
-    const levelAllSectionsAggMode = this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'max').toLowerCase();
-    const apiLevelMap =
-      config.enabled && azsToken
-        ? await this.getAzsLevelMapFromApiCached(
-            config,
-            azsToken,
-            kindFilter,
-            start,
-            end,
-            sameDay,
-            stationFilter,
-            sectionFilter,
-            imputeSectionNames,
-          )
-        : null;
-
-    /**
-     * Refuel (131/132) SQL grafigi AZS «График уровня секций» bilan mos emas.
-     * Shuning uchun fallback faqat explicit yoqilganda ishlaydi.
-     */
-    const sqlLevelFallbackAllowed =
-      this.normalizeWhitespace(process.env.AZS_LEVEL_CHART_SQL_FALLBACK || '').toLowerCase() === 'true';
-
-    if (apiLevelMap && apiLevelMap.size > 0) {
-      for (const [k, v] of apiLevelMap.entries()) {
-        if (k && Number.isFinite(v)) levelMap.set(k, v);
-      }
-    } else if (sqlLevelFallbackAllowed) {
-      const levelBucketSecRows = await this.fuelRepo.query(
-        `
-      SELECT ${levelBucketExpr} AS bucket,
-             ${sectionExprForLevel} AS sec,
-             AVG(${levelExpr}) AS section_avg
-      ${levelChartSqlBase}
-      ${stationWhereTail}
-      GROUP BY 1, 2
-      ORDER BY bucket ASC
-      `,
-        levelParamsAllOnly,
-      );
-
-      const bucketSecAvg = new Map<string, Map<string, number>>();
-      const secsSeen = new Set<string>();
-      for (const row of levelBucketSecRows as Array<{ bucket: string; sec: string; section_avg: string }>) {
-        const b = String(row.bucket || '');
-        const sec = this.normalizeWhitespace(String(row.sec || ''));
-        const v = Number.parseFloat(String(row.section_avg || '0'));
-        if (!b || !sec || !Number.isFinite(v)) continue;
-        secsSeen.add(sec);
-        if (!bucketSecAvg.has(b)) bucketSecAvg.set(b, new Map());
-        bucketSecAvg.get(b)!.set(sec, v);
-      }
-
-      if (allSectionsMode) {
-        /** «Barcha seksiyalar»: AZS dagi «Все секции»ga mos o‘rtacha qiymat */
-        const buckets = new Set<string>([...bucketSecAvg.keys()]);
-        if (sameDay) {
-          for (let hour = 0; hour < 24; hour += 1) {
-            buckets.add(`${String(hour).padStart(2, '0')}:00`);
-          }
-        } else {
-          for (const k of this.eachAzsDayKeyBetween(start, end)) {
-            buckets.add(k);
-          }
-        }
-        for (const b of buckets) {
-          const m = bucketSecAvg.get(b);
-          if (m && m.size > 0) {
-            let max = Number.NEGATIVE_INFINITY;
-            let sum = 0;
-            for (const v of m.values()) {
-              max = Math.max(max, v);
-              sum += v;
-            }
-            /** API yo‘q: `max` — AZS ga yaqin, `avg` — alternativ fallback. */
-            levelMap.set(b, levelAllSectionsAggMode === 'avg' ? sum / m.size : max);
-          } else {
-            levelMap.set(b, 0);
-          }
-        }
-      } else {
-        const levelRowsFiltered = await this.fuelRepo.query(
-          `
-      SELECT ${levelBucketExpr} AS bucket,
-             AVG(${levelExpr}) AS level
-      ${levelChartSqlBase}
-      ${sectionWhereTail}
-      GROUP BY bucket
-      ORDER BY bucket ASC
-      `,
-          levelParamsBase,
-        );
-        for (const row of levelRowsFiltered as Array<{ bucket: string; level: string }>) {
-          const key = String(row.bucket || '');
-          const value = Number.parseFloat(String(row.level || '0'));
-          if (!key || !Number.isFinite(value)) continue;
-          levelMap.set(key, value);
-        }
-      }
-    } else if (config.enabled) {
-      this.logger.warn(
-        'AZS seksiya darajasi: DeviceEvents dan nuqta kelmayapti yoki xato; SQL fallback explicit yoqilmagan. ' +
-          'Token/URL tekshiring yoki vaqt uchun `AZS_LEVEL_CHART_TIME_FIELDS`, sahifa uchun `AZS_LEVEL_EVENTS_PAGE_ZERO_BASED=false` sinang. ' +
-          'Zarurat bo‘lsa `AZS_LEVEL_CHART_SQL_FALLBACK=true` (refuel grafigi, AZS bilan mos emas).',
-      );
-    }
-
-    const ymdQueryDay = this.azsCalendarYmdFromInstant(start);
-    const ymdToday = this.azsCalendarYmdFromInstant(new Date());
-    const sameDayToday = sameDay && ymdQueryDay === ymdToday;
-    const levelChart: Array<{ day: string; level: number }> = [];
-    if (sameDay) {
-      const nowBucket = this.azsCalendarHourBucketFromInstant(new Date());
-      const nowHour = Number.parseInt(nowBucket.slice(0, 2), 10);
-      const maxHour = sameDayToday && Number.isFinite(nowHour) ? Math.max(0, Math.min(23, nowHour)) : 23;
-      for (let hour = 0; hour <= maxHour; hour += 1) {
-        const key = `${String(hour).padStart(2, '0')}:00`;
-        levelChart.push({
-          day: key,
-          level: levelMap.get(key) ?? 0,
-        });
-      }
+       }
     } else {
-      for (const key of this.eachAzsDayKeyBetween(start, end)) {
-        levelChart.push({
-          day: this.formatShortDate(key),
-          level: levelMap.get(key) ?? 0,
-        });
-      }
+       for (const key of this.eachAzsDayKeyBetween(start, end)) {
+          const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+          chart.push({
+             day: this.formatShortDate(key),
+             consumption: Math.round(d.liters * 100) / 100,
+             cost: Math.round(d.amount * 100) / 100
+          });
+       }
     }
+    
+    const anomalyLiters = config.anomalyLiters || 120;
+    filteredRows.sort((a, b) => b.eventTime.getTime() - a.eventTime.getTime());
+    const anomalies = compact ? [] : filteredRows.filter(r => (r.liters || 0) >= anomalyLiters).slice(0, 5).map(r => ({
+       id: r.externalId,
+       vehicle: r.vehicleNumber || '-',
+       time: this.sqliteToIso(r.eventTime),
+       type: "Me'yordan ortiq sarf",
+       amount: `${r.liters}L`,
+       status: 'warning'
+    }));
 
     let liveLevelGaugeLiters: number | null = null;
     if (gaugeRows.length > 0) {
-      if (!sectionFilter || sectionFilter.toLowerCase() === 'all') {
-        /** «Barcha seksiyalar» — grafik bilan bir xil agregatsiya: default `max` */
-        const vals = gaugeRows.map((r) => r.liters).filter((v) => Number.isFinite(v));
-        if (vals.length) {
-          const aggMode = this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'max').toLowerCase();
-          if (aggMode === 'avg') {
-            const sum = vals.reduce((s, v) => s + v, 0);
-            liveLevelGaugeLiters = sum / vals.length;
-          } else {
-            liveLevelGaugeLiters = Math.max(...vals);
-          }
-        } else {
-          liveLevelGaugeLiters = null;
-        }
+      if (!sectionFilter || sectionFilter === 'all') {
+         const vals = gaugeRows.map(r => r.liters).filter(v => Number.isFinite(v));
+         if (vals.length) {
+            const aggMode = this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'max').toLowerCase();
+            liveLevelGaugeLiters = aggMode === 'avg' ? vals.reduce((a,b)=>a+b,0)/vals.length : Math.max(...vals);
+         }
       } else {
-        liveLevelGaugeLiters = gaugeRows
-          .filter((r) => r.name === sectionFilter)
-          .reduce((s, r) => s + (Number.isFinite(r.liters) ? r.liters : 0), 0);
-      }
-      if (!Number.isFinite(liveLevelGaugeLiters)) liveLevelGaugeLiters = null;
-    }
-
-    if (
-      sameDayToday &&
-      liveLevelGaugeLiters != null &&
-      levelChart.length > 0 &&
-      gaugeRows.length > 0
-    ) {
-      const bucketNow = this.azsCalendarHourBucketFromInstant(new Date());
-      const idx = levelChart.findIndex((p) => p.day === bucketNow);
-      if (idx >= 0) {
-        levelChart[idx] = { ...levelChart[idx], level: liveLevelGaugeLiters };
+         const matching = gaugeRows.find(r => r.name.toLowerCase() === sectionFilter);
+         if (matching) liveLevelGaugeLiters = matching.liters;
       }
     }
-
-    const anomalies = compact
-      ? []
-      : recentRows
-          .filter((row) => this.litersFromStoredEntry(row) >= config.anomalyLiters)
-          .slice(0, 5)
-          .map((row) => ({
-            id: row.id,
-            vehicle: row.vehicle_number || '-',
-            time: this.sqliteToIso(row.event_time),
-            type: "Me'yordan ortiq sarf",
-            amount: `${this.litersFromStoredEntry(row)}L`,
-            status: 'warning',
-          }));
+    
+    const dbStats = await this.fetchAzsDashboardStats(config, objectKind); const dummyStats = dbStats.stats;
 
     return {
       health: await this.getHealth(),
@@ -4028,83 +3722,25 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         totalAmount: totalAmountResolved,
         liveLevelGaugeLiters,
       },
-      stats: azsStats,
+      stats: dummyStats,
       chart,
-      levelChart,
-      sections: (() => {
-        const fromQuery = (sectionsRaw as Array<{ section: string; records: string }>).map((row) => ({
-          name: String(row.section || "Noma'lum"),
-          records: Number.parseInt(String(row.records || '0'), 10) || 0,
-        }));
-        const azsNames: string[] = Array.isArray((azsStats as { azsSectionNames?: string[] })?.azsSectionNames)
-          ? ((azsStats as { azsSectionNames: string[] }).azsSectionNames ?? [])
-          : [];
-        const merged = new Map<string, { name: string; records: number }>();
-        for (const row of fromQuery) {
-          if (row.name && row.name !== "Noma'lum") merged.set(row.name, row);
-        }
-        for (const n of azsNames) {
-          if (!merged.has(n)) merged.set(n, { name: n, records: 0 });
-        }
-        const ordered: Array<{ name: string; records: number }> = [];
-        for (const n of azsNames) {
-          const row = merged.get(n);
-          if (row) {
-            ordered.push(row);
-            merged.delete(n);
-          }
-        }
-        ordered.push(...Array.from(merged.values()));
-        return ordered;
-      })(),
-      ...(compact
-        ? {}
-        : {
-            fuelTypes: fuelTypeRows.map((row) => ({
-              key: String(row.fuelType || "Noma'lum").toLowerCase().replace(/\s+/g, '_'),
-              type: String(row.fuelType || "Noma'lum"),
-              liters: Number.parseFloat(String(row.liters || '0')) || 0,
-            })),
-          }),
-      // Postlar: AZS API dan barcha postlar + DB dan bugungi statistikalar
-      stations: (() => {
-        const dbMap = new Map<string, { records: number; liters: number }>();
-        for (const row of stationRows) {
-          dbMap.set(String(row.station || ''), {
-            records: Number.parseInt(String(row.records || '0'), 10) || 0,
-            liters: Number.parseFloat(String(row.liters || '0')) || 0,
-          });
-        }
-        const azsPosts = azsStats.posts ?? [];
-        if (azsPosts.length === 0) {
-          return stationRows.map((row) => ({
-            name: String(row.station || "Noma'lum"),
-            records: Number.parseInt(String(row.records || '0'), 10) || 0,
-            liters: Number.parseFloat(String(row.liters || '0')) || 0,
-          }));
-        }
-        return azsPosts.map((p) => {
-          const stats = dbMap.get(p.name);
-          return { name: p.name, records: stats?.records ?? 0, liters: stats?.liters ?? 0 };
-        });
-      })(),
-      ...(compact
-        ? {}
-        : {
-            anomalies,
-            recent: recentRows.map((row) => ({
-              id: row.id,
-              vehicle: row.vehicle_number || '-',
-              fuelType: row.fuel_type || "Noma'lum",
-              liters: row.liters,
-              amount: row.amount,
-              station: row.station_name || '-',
-              driver: row.driver_name || '-',
-              time: this.sqliteToIso(row.event_time),
-            })),
-          }),
+      levelChart: [],
+      sections: Array.from(sectionMap.entries()).map(([name, data]) => ({ name, records: data.records })),
+      stations: allStations.length > 0 ? allStations.map(s => {
+          const m = stationMap.get(s.name);
+          return { name: s.name, records: m?.records || 0, liters: m?.liters || 0 };
+      }) : Array.from(stationMap.entries()).map(([name, data]) => ({ name, records: data.records, liters: data.liters })),
+      ...(compact ? {} : {
+         fuelTypes: Array.from(fuelTypeMap.entries()).map(([type, liters]) => ({
+             key: type.toLowerCase().replace(/\s+/g, '_'),
+             type,
+             liters
+         }))
+      }),
+      ...(compact ? {} : { anomalies }),
     };
   }
+
 }
 
 @Controller('integrations/fuel/azs')
