@@ -11,6 +11,7 @@ export type PermissionModule =
   | 'drivers'
   | 'waybills'
   | 'tracking'
+  | 'dispatch'
   | 'mechanic'
   | 'fuel'
   | 'cargo'
@@ -30,6 +31,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   'drivers',
   'waybills',
   'tracking',
+  'dispatch',
   'mechanic',
   'fuel',
   'cargo',
@@ -40,7 +42,7 @@ export const PERMISSION_MODULES: PermissionModule[] = [
 
 const ROLE_ENABLED_MODULES: Record<AppRole, PermissionModule[]> = {
   admin: [...PERMISSION_MODULES],
-  dispatcher: ['dashboard', 'access', 'medical', 'tools', 'shiftSchedule', 'fleet', 'drivers', 'waybills', 'tracking', 'cargo'],
+  dispatcher: ['dashboard', 'access', 'medical', 'tools', 'shiftSchedule', 'fleet', 'drivers', 'waybills', 'tracking', 'dispatch', 'cargo'],
   manager: ['dashboard', 'fleet', 'fuel', 'cargo', 'tools'],
   user: ['dashboard', 'fleet', 'waybills', 'tracking'],
 };

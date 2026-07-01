@@ -55,6 +55,9 @@ const SmartStartWorkflow = lazy(() =>
 const FleetManager = lazy(() =>
   import('./components/FleetManager').then((module) => ({ default: module.FleetManager })),
 );
+const DispatcherDashboard = lazy(() =>
+  import('./components/DispatcherDashboard').then((module) => ({ default: module.DispatcherDashboard })),
+);
 const DriverManager = lazy(() =>
   import('./components/DriverManager').then((module) => ({ default: module.DriverManager })),
 );
@@ -568,6 +571,7 @@ function App() {
   const hideHeaderTitle =
     activeTab === 'dashboard' ||
     activeTab === 'waybills' ||
+    activeTab === 'dispatch' ||
     activeTab === 'shiftSchedule' ||
     activeTab === 'fleet' ||
     activeTab === 'drivers' ||
@@ -595,6 +599,7 @@ function App() {
     { id: 'waybills', icon: <FileText />, label: t('waybills') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'tracking', icon: <Navigation />, label: t('liveTracking') },
+    { id: 'dispatch', icon: <Map />, label: t('dispatch') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
@@ -1099,6 +1104,16 @@ function App() {
             className="h-full"
           >
             <LiveTracker lang={lang} />
+          </motion.div>
+        );
+      case 'dispatch':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <DispatcherDashboard />
           </motion.div>
         );
       case 'fuel':

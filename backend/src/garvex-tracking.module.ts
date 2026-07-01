@@ -1293,27 +1293,24 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
 
   private getPointState(row: Pick<GarvexTrackingPoint, 'lat' | 'lng' | 'last_message_at' | 'status' | 'speed'>): 'moving' | 'parking' | 'offline' | 'noData' {
     if (row.lat == null || row.lng == null || !row.last_message_at) return 'noData';
-    const status = this.normalizeWhitespace(row.status).toLowerCase();
-    if (status === '0' || status === 'offline') return 'offline';
 
     const seenAt = row.last_message_at.getTime();
     if (!Number.isFinite(seenAt) || Date.now() - seenAt > GARVEX_LIVE_AFTER_MS) return 'offline';
     return (row.speed ?? 0) > 2 ? 'moving' : 'parking';
   }
 
-  private getDashboardConnectionState(row: Pick<GarvexTrackingPoint, 'status'>): 'online' | 'offline' | 'noData' {
-    const status = this.normalizeWhitespace(row.status);
-    if (status === '1' || status === '2') return 'online';
-    if (status === '0') return 'offline';
-    return 'noData';
+  private getDashboardConnectionState(row: Pick<GarvexTrackingPoint, 'last_message_at'>): 'online' | 'offline' | 'noData' {
+    if (!row.last_message_at) return 'noData';
+    const seenAt = row.last_message_at.getTime();
+    if (!Number.isFinite(seenAt) || Date.now() - seenAt > GARVEX_LIVE_AFTER_MS) return 'offline';
+    return 'online';
   }
 
-  private getDashboardMovementState(row: Pick<GarvexTrackingPoint, 'status'>): 'moving' | 'parking' | 'offline' | 'noData' {
-    const status = this.normalizeWhitespace(row.status);
-    if (status === '1') return 'moving';
-    if (status === '2') return 'parking';
-    if (status === '0') return 'offline';
-    return 'noData';
+  private getDashboardMovementState(row: Pick<GarvexTrackingPoint, 'last_message_at' | 'speed'>): 'moving' | 'parking' | 'offline' | 'noData' {
+    if (!row.last_message_at) return 'noData';
+    const seenAt = row.last_message_at.getTime();
+    if (!Number.isFinite(seenAt) || Date.now() - seenAt > GARVEX_LIVE_AFTER_MS) return 'offline';
+    return (row.speed ?? 0) > 2 ? 'moving' : 'parking';
   }
 
   async getDashboard(dateFrom?: string, dateTo?: string, preset?: string) {
