@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, LogIn, ArrowLeftToLine, Search, Table2, FileText } from 'lucide-react';
+import { Shield, LogIn, LogOut, Search, Table2, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -624,7 +624,7 @@ export const AccessControlManager = () => {
                 >
                     <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
                     <div className="relative z-10 p-2 md:p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
-                        <ArrowLeftToLine size={20} className="md:w-6 md:h-6" />
+                        <LogIn size={20} className="md:w-6 md:h-6 scale-x-[-1]" />
                     </div>
                     <div className="relative z-10 min-w-0">
                         <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodExits')}</p>
@@ -656,7 +656,7 @@ export const AccessControlManager = () => {
                 >
                     <div className="absolute -left-6 -top-6 w-36 h-36 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500 z-0"></div>
                     <div className="relative z-10 p-2 md:p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl shadow-xl shrink-0 hidden sm:block">
-                        <ArrowLeftToLine size={20} className="md:w-6 md:h-6" />
+                        <LogIn size={20} className="md:w-6 md:h-6 scale-x-[-1]" />
                     </div>
                     <div className="relative z-10 min-w-0">
                         <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineExits')}</p>
@@ -799,7 +799,7 @@ export const AccessControlManager = () => {
                                                     {isEntrance ? (
                                                         <span className="turnstile-action-text turnstile-action-text--entrance font-semibold inline-flex items-center gap-1.5"><LogIn size={15} /> {movementLabel}</span>
                                                     ) : (
-                                                        <span className="turnstile-action-text turnstile-action-text--exit font-semibold inline-flex items-center gap-1.5"><ArrowLeftToLine size={15} /> {movementLabel}</span>
+                                                        <span className="turnstile-action-text turnstile-action-text--exit font-semibold inline-flex items-center gap-1.5"><LogIn size={15} className="scale-x-[-1]" /> {movementLabel}</span>
                                                     )}
                                                 </div>
                                             </td>
