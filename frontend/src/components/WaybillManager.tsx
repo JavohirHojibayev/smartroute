@@ -503,8 +503,8 @@ export const WaybillManager = () => {
                         <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
                         <div className="relative z-10 flex items-start justify-between gap-4">
                             <div>
-                                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{card.title}</div>
                                 <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{card.value}</div>
+                                <div className="text-xs uppercase tracking-wider text-slate-400 mt-2">{card.title}</div>
                             </div>
                             <div className={`p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-[26px] [&>svg]:h-[26px]`}>
                                 {card.icon}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, LogIn, LogOut, Search, Table2, FileText } from 'lucide-react';
+import { Shield, LogIn, Search, Table2, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { downloadXls } from '../utils/exportXls';
@@ -611,8 +611,8 @@ export const AccessControlManager = () => {
                         <LogIn size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodEntrances')}</p>
                         <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.zavodEntrancesToday ?? 0}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodEntrances')}</p>
                     </div>
                 </div>
                 <div 
@@ -627,8 +627,8 @@ export const AccessControlManager = () => {
                         <LogIn size={20} className="md:w-6 md:h-6 scale-x-[-1]" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodExits')}</p>
                         <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.zavodExitsToday ?? 0}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayZavodExits')}</p>
                     </div>
                 </div>
                 <div 
@@ -643,8 +643,8 @@ export const AccessControlManager = () => {
                         <LogIn size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineEntrances')}</p>
                         <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.mineEntrancesToday ?? 0}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineEntrances')}</p>
                     </div>
                 </div>
                 <div 
@@ -659,8 +659,8 @@ export const AccessControlManager = () => {
                         <LogIn size={20} className="md:w-6 md:h-6 scale-x-[-1]" />
                     </div>
                     <div className="relative z-10 min-w-0">
-                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineExits')}</p>
                         <p className="text-xl sm:text-2xl md:text-3xl font-bold tabular-nums">{summary.mineExitsToday ?? 0}</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineExits')}</p>
                     </div>
                 </div>
                 <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-full md:w-max max-w-full min-w-0 shrink-0">

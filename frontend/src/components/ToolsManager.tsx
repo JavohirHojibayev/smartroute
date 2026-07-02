@@ -680,8 +680,8 @@ export const ToolsManager = () => {
                         <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
                         <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-4">
                             <div className="min-w-0">
-                                <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mb-1 sm:mb-2 truncate">{card.title}</div>
                                 <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent truncate">{card.value}</div>
+                                <div className="text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 mt-1 sm:mt-2 truncate">{card.title}</div>
                             </div>
                             <div className={`p-2.5 sm:p-4 rounded-xl bg-gradient-to-br ${card.color} text-white shadow-xl [&>svg]:w-5 [&>svg]:h-5 sm:[&>svg]:w-[26px] sm:[&>svg]:h-[26px] shrink-0`}>
                                 {card.icon}

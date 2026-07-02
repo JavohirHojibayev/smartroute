@@ -435,28 +435,28 @@ export const CargoManager = ({ authToken, accessLevel }: CargoManagerProps) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="glass-panel rounded-2xl p-4 border border-slate-700/50">
-          <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{t('cargoTotalRecords')}</div>
           <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
             {summary.totalRecords.toLocaleString()}
           </div>
+          <div className="text-xs uppercase tracking-wider text-slate-400 mt-2">{t('cargoTotalRecords')}</div>
         </div>
         <div className="glass-panel rounded-2xl p-4 border border-slate-700/50">
-          <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{t('cargoGross')}</div>
           <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
             {summary.totalGross.toLocaleString()} <span className="text-base">kg</span>
           </div>
+          <div className="text-xs uppercase tracking-wider text-slate-400 mt-2">{t('cargoGross')}</div>
         </div>
         <div className="glass-panel rounded-2xl p-4 border border-slate-700/50">
-          <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Tara</div>
           <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
             {summary.totalTare.toLocaleString()} <span className="text-base">kg</span>
           </div>
+          <div className="text-xs uppercase tracking-wider text-slate-400 mt-2">Tara</div>
         </div>
         <div className="glass-panel rounded-2xl p-4 border border-slate-700/50">
-          <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">{t('cargoNet')}</div>
           <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
             {summary.totalNet.toLocaleString()} <span className="text-base">kg</span>
           </div>
+          <div className="text-xs uppercase tracking-wider text-slate-400 mt-2">{t('cargoNet')}</div>
         </div>
       </div>
 

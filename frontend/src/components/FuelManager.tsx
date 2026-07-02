@@ -1721,11 +1721,11 @@ export const FuelManager = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashColumnsOnline')}</span>
-                                <span className="font-semibold text-white">{devicesOnline}</span>
+                                <span className="font-semibold text-slate-100">{devicesOnline}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashColumnsOffline')}</span>
-                                <span className="font-semibold text-white">{devicesOffline}</span>
+                                <span className="font-semibold text-slate-100">{devicesOffline}</span>
                             </div>
                         </div>
                     </div>
@@ -1744,21 +1744,21 @@ export const FuelManager = () => {
                                     <span className="h-2 w-2 rounded-full bg-red-500" />
                                     {t('fuelDashCriticalShort')}
                                 </span>
-                                <span className="font-semibold text-white">{secCritical}</span>
+                                <span className="font-semibold text-slate-100">{secCritical}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="flex items-center gap-1.5 text-slate-400">
                                     <span className="h-2 w-2 rounded-full bg-amber-400" />
                                     {t('fuelDashLowShort')}
                                 </span>
-                                <span className="font-semibold text-white">{secLow}</span>
+                                <span className="font-semibold text-slate-100">{secLow}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="flex items-center gap-1.5 text-slate-400">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400" />
                                     {t('fuelDashNormalShort')}
                                 </span>
-                                <span className="font-semibold text-white">{secNormal}</span>
+                                <span className="font-semibold text-slate-100">{secNormal}</span>
                             </div>
                         </div>
                     </div>
@@ -1778,11 +1778,11 @@ export const FuelManager = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashCardsSynced')}</span>
-                                <span className="font-semibold text-white">{cardsSynced}</span>
+                                <span className="font-semibold text-slate-100">{cardsSynced}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-slate-400">{t('fuelDashCardsUnsynced')}</span>
-                                <span className="font-semibold text-white">{cardsUnsynced}</span>
+                                <span className="font-semibold text-slate-100">{cardsUnsynced}</span>
                             </div>
                         </div>
                     </div>
@@ -1904,7 +1904,7 @@ export const FuelManager = () => {
                     <div className="mt-5 h-[200px] w-full rounded-xl border border-slate-700/50 bg-slate-900/40 p-1.5 sm:h-[240px] sm:p-2 md:h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 4, bottom: 4 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <CartesianGrid stroke="rgba(148,163,184,0.2)" />
                                 <XAxis
                                     dataKey="day"
                                     stroke="#94a3b8"
@@ -1919,7 +1919,7 @@ export const FuelManager = () => {
                                     tick={{ fontSize: 11 }}
                                     width={40}
                                     unit={t('fuelYAxisLiter')}
-                                    domain={[0, chartYAxisMax]}
+                                    domain={['auto', chartYAxisMax]}
                                     ticks={chartYAxisTicks}
                                     allowDecimals={false}
                                 />
@@ -1970,7 +1970,7 @@ export const FuelManager = () => {
                                 })()}
                                 <Area
                                     isAnimationActive={false}
-                                    type="monotone"
+                                    type="monotoneX"
                                     dataKey="consumption"
                                     name={t('fuelChartSeriesIssued')}
                                     stroke="#2563eb"

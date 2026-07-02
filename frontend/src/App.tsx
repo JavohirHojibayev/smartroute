@@ -15,7 +15,6 @@ import {
   Box,
   Shield,
   AlertTriangle,
-  ArrowUpRight,
   Zap,
   Sun,
   Moon,
@@ -923,10 +922,10 @@ function App() {
                   <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${stat.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
                   <div className="flex justify-between items-start relative z-10 gap-2">
                     <div className="min-w-0">
-                      <p className="text-slate-400 text-[10px] sm:text-xs font-medium mb-1 uppercase tracking-wider truncate">{stat.title}</p>
                       <h3 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 truncate">
                         {stat.value}
                       </h3>
+                      <p className="text-slate-400 text-[10px] sm:text-xs font-medium mt-1 uppercase tracking-wider truncate">{stat.title}</p>
                     </div>
                     <div
                       data-stat={stat.id}
@@ -1233,7 +1232,7 @@ function App() {
     }
   };
 
-  const currentUserName = authSession?.user.fullName?.trim() || authSession?.user.username || 'User';
+
   const currentUserInitial = String(t(userRole as any)).charAt(0).toUpperCase();
   const activeTabPermission = getTabPermission(activeTab);
   const strictReadOnlyTabs = new Set(['fleet', 'drivers', 'shiftSchedule']);
