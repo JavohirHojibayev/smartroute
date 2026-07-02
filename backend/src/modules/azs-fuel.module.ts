@@ -3651,7 +3651,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
        sec.records++;
        sectionMap.set(rowSection, sec);
        
-       const bucketHour = row.eventTime.toISOString().substring(11, 13) + ':00';
+       const localTime = new Date(row.eventTime.getTime() + 5 * 3600 * 1000);
+       const bucketHour = localTime.toISOString().substring(11, 13) + ':00';
        const bucketDay = this.azsCalendarYmdFromInstant(row.eventTime);
        const key = sameDay ? bucketHour : bucketDay;
        
