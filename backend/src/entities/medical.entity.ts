@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Driver } from './driver.entity';
 import { User } from './user.entity';
 
@@ -55,6 +55,7 @@ export class MedicalCheck {
   })
   status: CheckStatus;
 
+  @Index('IDX_MED_CHECK_TIME')
   @CreateDateColumn()
   check_time: Date;
 

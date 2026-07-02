@@ -1230,8 +1230,8 @@ export class EsmoController {
       .leftJoinAndSelect('med.driver', 'driver')
       .where('med.terminal_name IN (:...names)', { names: SMARTROUTE_ESMO_TERMINALS.map((t) => t.name) })
       .andWhere('med.esmo_id IS NOT NULL')
-      .andWhere('COALESCE(med.exam_time, med.check_time) >= :start', { start: bounds.start.toISOString() })
-      .andWhere('COALESCE(med.exam_time, med.check_time) < :end', { end: bounds.end.toISOString() })
+      .andWhere('med.check_time >= :start', { start: bounds.start.toISOString() })
+      .andWhere('med.check_time < :end', { end: bounds.end.toISOString() })
       .andWhere('med.source_payload LIKE :pattern', { pattern: suspiciousPattern })
       .orderBy('med.esmo_id', 'DESC')
       .limit(150)
@@ -1488,7 +1488,7 @@ export class EsmoController {
     const rows = await this.medicalRepo
       .createQueryBuilder('med')
       .select('med.terminal_name', 'terminal_name')
-      .addSelect('MAX(COALESCE(med.exam_time, med.check_time))', 'last_seen')
+      .addSelect('MAX(med.check_time)', 'last_seen')
       .where('med.terminal_name IN (:...names)', { names: SMARTROUTE_ESMO_TERMINALS.map((t) => t.name) })
       .groupBy('med.terminal_name')
       .getRawMany();
@@ -1557,9 +1557,9 @@ export class EsmoController {
       .createQueryBuilder('med')
       .leftJoinAndSelect('med.driver', 'driver')
       .where('med.terminal_name IN (:...names)', { names: SMARTROUTE_ESMO_TERMINALS.map((t) => t.name) })
-      .andWhere('COALESCE(med.exam_time, med.check_time) >= :start', { start: effectiveStart.toISOString() })
-      .andWhere('COALESCE(med.exam_time, med.check_time) < :end', { end: effectiveEnd.toISOString() })
-      .orderBy('COALESCE(med.exam_time, med.check_time)', 'DESC')
+      .andWhere('med.check_time >= :start', { start: effectiveStart.toISOString() })
+      .andWhere('med.check_time < :end', { end: effectiveEnd.toISOString() })
+      .orderBy('med.check_time', 'DESC')
       .addOrderBy('med.esmo_id', 'DESC')
       .addOrderBy('med.id', 'DESC')
       .getMany();
@@ -1639,8 +1639,8 @@ export class EsmoController {
 
     if (range.start && range.end) {
       query = query
-        .andWhere('COALESCE(med.exam_time, med.check_time) >= :start', { start: range.start.toISOString() })
-        .andWhere('COALESCE(med.exam_time, med.check_time) < :end', { end: range.end.toISOString() });
+        .andWhere('med.check_time >= :start', { start: range.start.toISOString() })
+        .andWhere('med.check_time < :end', { end: range.end.toISOString() });
     }
 
     if (search) {
@@ -1651,7 +1651,7 @@ export class EsmoController {
     }
 
     const rows = await query
-      .orderBy('COALESCE(med.exam_time, med.check_time)', 'DESC')
+      .orderBy('med.check_time', 'DESC')
       .addOrderBy('med.esmo_id', 'DESC')
       .addOrderBy('med.id', 'DESC')
       .limit(limit)
