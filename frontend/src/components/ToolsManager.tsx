@@ -239,7 +239,7 @@ export const ToolsManager = () => {
 
                 // Match by employee_no first, then fallback to name
                 let tool = (noKey && noKey !== '000000' ? toolByNo.get(noKey) : null) || toolByName.get(nameKey);
-                
+
                 // Agar asbob qaytarilgan bo'lsa va qaytarilgan vaqti hozirgi ESMO tekshiruvidan oldin bo'lsa,
                 // demak bu asbob avvalgi smenaga tegishli. Uni yangi ESMO bilan birlashtirmaymiz.
                 if (tool && tool.status === 'DONE' && tool.returned_at && esmo.time) {
@@ -454,24 +454,46 @@ export const ToolsManager = () => {
                 return haystack.includes(query);
             });
         }
-        
-        // Custom sorting: NOT_ISSUED (Berilmagan) should be at the top, then ISSUED, then DONE.
-        // Within the same status, sort by ESMO time descending (newest first).
+
+        const parseTimeSafe = (val: string | null | undefined, defaultVal: number): number => {
+            if (!val || val === '-') return defaultVal;
+            const match = val.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+            if (match) {
+                const [, d, m, y, h, min] = match;
+                return new Date(`${y}-${m}-${d}T${h || '00'}:${min || '00'}:00`).getTime();
+            }
+            const t = new Date(val).getTime();
+            return Number.isNaN(t) ? defaultVal : t;
+        };
+
         finalResult.sort((a, b) => {
+            if (headerFilter === 'ISSUED' || headerFilter === 'WIDGET_ISSUED') {
+                const esmoA = parseTimeSafe(a.esmo_time, Number.POSITIVE_INFINITY);
+                const esmoB = parseTimeSafe(b.esmo_time, Number.POSITIVE_INFINITY);
+                
+                const truncEsmoA = esmoA === Number.POSITIVE_INFINITY ? esmoA : Math.floor(esmoA / 60000) * 60000;
+                const truncEsmoB = esmoB === Number.POSITIVE_INFINITY ? esmoB : Math.floor(esmoB / 60000) * 60000;
+
+                if (truncEsmoA === truncEsmoB) {
+                    const issuedA = parseTimeSafe(a.issued_at, Number.POSITIVE_INFINITY);
+                    const issuedB = parseTimeSafe(b.issued_at, Number.POSITIVE_INFINITY);
+                    return issuedA - issuedB;
+                }
+                return esmoA - esmoB;
+            }
+
             const getPriority = (status: string) => {
-                if (status !== 'ISSUED' && status !== 'DONE' && status !== 'FAIL') return 1; // BERILMAGAN
-                if (status === 'ISSUED') return 2;
-                if (status === 'DONE') return 3;
-                return 4;
+                if (status === 'DONE') return 2;
+                if (status === 'FAIL') return 3;
+                return 1; // Active (BERILMAGAN, ISSUED, etc.)
             };
-            
+
             const pA = getPriority(a.status);
             const pB = getPriority(b.status);
-            
             if (pA !== pB) return pA - pB;
-            
-            const timeA = a.esmo_time && a.esmo_time !== '-' ? new Date(a.esmo_time).getTime() : 0;
-            const timeB = b.esmo_time && b.esmo_time !== '-' ? new Date(b.esmo_time).getTime() : 0;
+
+            const timeA = parseTimeSafe(a.esmo_time, 0);
+            const timeB = parseTimeSafe(b.esmo_time, 0);
             return timeB - timeA;
         });
 
@@ -617,10 +639,10 @@ export const ToolsManager = () => {
         };
 
         const total = mergedRowsState.filter(r => isToday(r.esmo_time)).length;
-        const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.issued_at)).length;
-        const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.returned_at)).length;
+        const issued = mergedRowsState.filter(r => r.status === 'ISSUED' && isToday(r.esmo_time)).length;
+        const returned = mergedRowsState.filter(r => r.status === 'DONE' && isToday(r.esmo_time)).length;
         const notIssued = mergedRowsState.filter(r => r.status !== 'ISSUED' && r.status !== 'DONE' && isToday(r.esmo_time)).length;
-        
+
         return { total, issued, returned, notIssued };
     }, [mergedRowsState]);
 
@@ -671,11 +693,10 @@ export const ToolsManager = () => {
                     <div
                         key={card.id}
                         onClick={() => handleWidgetClick(card.filterId)}
-                        className={`glass-panel rounded-2xl p-3 sm:p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${
-                            headerFilter === card.filterId
-                                ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
-                                : 'border-slate-700/50 hover:border-slate-600/60'
-                        }`}
+                        className={`glass-panel rounded-2xl p-3 sm:p-4 border relative overflow-hidden group cursor-pointer transition-all duration-300 ${headerFilter === card.filterId
+                            ? 'border-blue-500/70 ring-2 ring-blue-500/30 scale-[1.02]'
+                            : 'border-slate-700/50 hover:border-slate-600/60'
+                            }`}
                     >
                         <div className={`absolute -right-6 -top-6 w-36 h-36 bg-gradient-to-br ${card.color} rounded-full opacity-20 blur-3xl group-hover:opacity-35 transition-opacity duration-500`}></div>
                         <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-4">
@@ -735,15 +756,14 @@ export const ToolsManager = () => {
                                     <button
                                         type="button"
                                         onClick={() => setTopFilterDropdownOpen(!topFilterDropdownOpen)}
-                                        className={`tools-filter-btn flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${
-                                            headerFilter !== 'ALL' || topFilterDropdownOpen 
-                                            ? 'active border-yellow-500/50 bg-yellow-500/10 text-yellow-400' 
+                                        className={`tools-filter-btn flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${headerFilter !== 'ALL' || topFilterDropdownOpen
+                                            ? 'active border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
                                             : 'inactive border-slate-700/60 bg-slate-900/50 text-yellow-500 hover:text-yellow-400'
-                                        }`}
+                                            }`}
                                     >
                                         <Filter size={18} />
                                     </button>
-                                    
+
                                     {topFilterDropdownOpen && (
                                         <>
                                             <div
