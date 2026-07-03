@@ -660,17 +660,17 @@ export const DriverManager = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-3xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
+            className="fleet-cert-modal relative w-full max-w-3xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
           >
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-xl font-bold text-slate-100">{t('driverEditTitle')}</h3>
+                <h3 className="fleet-cert-modal-title text-xl font-bold text-slate-100">{t('driverEditTitle')}</h3>
                 <p className="text-xs text-slate-400 mt-1">{t('fleetHeadersPlate')}: {editForm.plate}</p>
               </div>
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-300"
+                className="fleet-cert-modal-close p-2 rounded-lg hover:bg-slate-800 text-slate-300"
               >
                 <X size={18} />
               </button>
@@ -678,38 +678,38 @@ export const DriverManager = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirst')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirst')}</label>
                 <input
                   value={editForm.firstDriverName}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, firstDriverName: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="F.I.Sh"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirstPassportId')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirstPassportId')}</label>
                 <input
                   value={editForm.firstDocument}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, firstDocument: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: AB1234567"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecond')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecond')}</label>
                 <input
                   value={editForm.secondDriverName}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, secondDriverName: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="F.I.Sh"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecondPassportId')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecondPassportId')}</label>
                 <input
                   value={editForm.secondDocument}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, secondDocument: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: AB1234567"
                 />
               </div>
@@ -719,7 +719,7 @@ export const DriverManager = () => {
               <button
                 type="button"
                 onClick={closeEditModal}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="fleet-cert-modal-cancel px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 {t('cancelLabel')}
               </button>
@@ -747,9 +747,9 @@ export const DriverManager = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
+            className="fleet-cert-modal relative w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
           >
-            <h3 className="text-lg font-bold text-slate-100">Qatorni o'chirish</h3>
+            <h3 className="fleet-cert-modal-title text-lg font-bold text-slate-100">Qatorni o'chirish</h3>
             <p className="mt-2 text-sm text-slate-300">
               <span className="font-semibold text-slate-100">{deleteTargetRow.plate}</span> uchun haydovchilarni
               rostdan ham o'chirmoqchimisiz?
@@ -761,7 +761,7 @@ export const DriverManager = () => {
               <button
                 type="button"
                 onClick={closeDeleteModal}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="fleet-cert-modal-cancel px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 {t('cancelLabel')}
               </button>
@@ -789,59 +789,59 @@ export const DriverManager = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-2xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
+            className="fleet-cert-modal relative w-full max-w-2xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
           >
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-bold text-slate-100">{t('driverAddTitle')}</h3>
-              <button type="button" onClick={closeAddModal} className="p-2 rounded-lg hover:bg-slate-800 text-slate-300">
+              <h3 className="fleet-cert-modal-title text-xl font-bold text-slate-100">{t('driverAddTitle')}</h3>
+              <button type="button" onClick={closeAddModal} className="fleet-cert-modal-close p-2 rounded-lg hover:bg-slate-800 text-slate-300">
                 <X size={18} />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('fleetHeadersPlate')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('fleetHeadersPlate')}</label>
                 <input
                   value={addForm.plate}
                   onChange={(e) => setAddForm((prev) => ({ ...prev, plate: e.target.value }))}
                   placeholder="Masalan: 70 123 ABC"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirst')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirst')}</label>
                 <input
                   value={addForm.firstDriverName}
                   onChange={(e) => setAddForm((prev) => ({ ...prev, firstDriverName: e.target.value }))}
                   placeholder={t('driverFirstPlaceholder')}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirstPassportId')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverFirstPassportId')}</label>
                 <input
                   value={addForm.firstDocument}
                   onChange={(e) => setAddForm((prev) => ({ ...prev, firstDocument: e.target.value }))}
                   placeholder="Masalan: AB1234567"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecond')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecond')}</label>
                 <input
                   value={addForm.secondDriverName}
                   onChange={(e) => setAddForm((prev) => ({ ...prev, secondDriverName: e.target.value }))}
                   placeholder={t('driverSecondPlaceholder')}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecondPassportId')}</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">{t('driverSecondPassportId')}</label>
                 <input
                   value={addForm.secondDocument}
                   onChange={(e) => setAddForm((prev) => ({ ...prev, secondDocument: e.target.value }))}
                   placeholder="Masalan: AB1234567"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -850,7 +850,7 @@ export const DriverManager = () => {
               <button
                 type="button"
                 onClick={closeAddModal}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="fleet-cert-modal-cancel px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 {t('cancelLabel')}
               </button>

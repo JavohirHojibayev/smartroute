@@ -506,21 +506,21 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
                   className="fixed inset-0 z-40"
                   onClick={() => setTopFilterDropdownOpen(false)}
                 />
-                <div className="absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
+                <div className="tools-filter-dropdown absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
                   <button
-                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'all' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'all' ? 'active text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
                     onClick={() => { setStatusFilter('all'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                   >
                     Barcha holatlar
                   </button>
                   <button
-                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'pending' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'pending' ? 'active text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
                     onClick={() => { setStatusFilter('pending'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                   >
                     KO'RIKDA
                   </button>
                   <button
-                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'failed' ? 'text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
+                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${statusFilter === 'failed' ? 'active text-yellow-400 bg-slate-900/50 font-medium' : ''}`}
                     onClick={() => { setStatusFilter('failed'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                   >
                     NOSOZ
@@ -737,26 +737,26 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-2xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
+            className="fleet-cert-modal relative w-full max-w-2xl rounded-2xl border border-slate-700/60 bg-slate-900 p-6"
           >
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-bold text-slate-100">
+              <h3 className="fleet-cert-modal-title text-xl font-bold text-slate-100">
                 {editingRow ? 'Texnik ko\'rikni tahrirlash' : 'Yangi texnik ko\'rik'}
               </h3>
-              <button type="button" onClick={closeModal} className="p-2 rounded-lg hover:bg-slate-800 text-slate-300">
+              <button type="button" onClick={closeModal} className="fleet-cert-modal-close p-2 rounded-lg hover:bg-slate-800 text-slate-300">
                 <X size={18} />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label>
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Davlat raqami</span>
+                <span className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Davlat raqami</span>
                 <input
                   list="mechanic-plate-options"
                   value={formState.plate}
                   onChange={(event) => handlePlateInputChange(event.target.value)}
                   onBlur={handlePlateInputBlur}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500 uppercase"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500 uppercase"
                   placeholder="Masalan: 70 946 LBA"
                 />
                 <datalist id="mechanic-plate-options">
@@ -769,22 +769,22 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
               </label>
 
               <label>
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Model</span>
+                <span className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Model</span>
                 <input
                   value={formState.model}
                   onChange={(event) => setFormState((prev) => ({ ...prev, model: event.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
                   placeholder="Masalan: SHACMAN SX3258"
                 />
               </label>
 
               <label>
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Holat</span>
+                <span className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Holat</span>
                 <select
                   value={formState.status}
                   onChange={(event) => setFormState((prev) => ({ ...prev, status: event.target.value as InspectionStatus }))}
                   aria-label="Tekshiruv holati"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
                 >
                   <option value="pending">KO'RIKDA</option>
                   <option value="failed">NOSOZ</option>
@@ -792,21 +792,21 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
               </label>
 
               <label>
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tekshiruv sanasi</span>
+                <span className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tekshiruv sanasi</span>
                 <input
                   type="date"
                   value={formState.inspectionTime}
                   onChange={(event) => setFormState((prev) => ({ ...prev, inspectionTime: event.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500"
                 />
               </label>
 
               <label className="md:col-span-2">
-                <span className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Izoh</span>
+                <span className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Izoh</span>
                 <textarea
                   value={formState.notes}
                   onChange={(event) => setFormState((prev) => ({ ...prev, notes: event.target.value }))}
-                  className="w-full h-24 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500 resize-none"
+                  className="fleet-cert-modal-input w-full h-24 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-amber-500 resize-none"
                   placeholder="Topilgan texnik holat yoki ta'mirlash bo'yicha izoh..."
                 />
               </label>
@@ -822,7 +822,7 @@ export const MechanicManager = ({ authToken, accessLevel }: MechanicManagerProps
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="fleet-cert-modal-cancel px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 Bekor qilish
               </button>

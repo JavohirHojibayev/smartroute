@@ -29,6 +29,7 @@ import {
 } from '../features/auth/eimzo/eimzo.service';
 import type { EimzoKey } from '../features/auth/eimzo/eimzo.types';
 import {
+  type AppRole,
   type PermissionLevel,
   type PermissionMap,
   type PermissionModule,
@@ -38,7 +39,7 @@ import {
   normalizePermissionSelection,
 } from '../permissions';
 
-type RoleKey = 'admin' | 'dispatcher' | 'user' | 'manager';
+type RoleKey = 'admin' | 'dispatcher' | 'user';
 type StatusKey = 'active' | 'inactive';
 
 type ApiUser = {
@@ -113,7 +114,6 @@ const createInitialForm = (): UserFormState => ({
 const createRolePermissionState = (): Record<RoleKey, PermissionMap> => ({
   admin: buildRoleDefaultPermissions('admin'),
   dispatcher: buildRoleDefaultPermissions('dispatcher'),
-  manager: buildRoleDefaultPermissions('manager'),
   user: buildRoleDefaultPermissions('user'),
 });
 
@@ -197,7 +197,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
   const [eimzoBindError, setEimzoBindError] = useState<string | null>(null);
   const [eimzoBindSuccess, setEimzoBindSuccess] = useState<string | null>(null);
 
-  const roleItems = useMemo(() => ['admin', 'dispatcher', 'manager', 'user'] as const, []);
+  const roleItems = useMemo(() => ['admin', 'dispatcher', 'user'] as const, []);
   const canManage = accessLevel === 'full';
   const selectedEimzoKey = useMemo(() => eimzoKeys[selectedEimzoIndex] ?? null, [eimzoKeys, selectedEimzoIndex]);
 
@@ -286,7 +286,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
 
       for (const item of items) {
         const roleRaw = String(item?.role ?? '').trim().toLowerCase();
-        if (roleRaw === 'admin' || roleRaw === 'dispatcher' || roleRaw === 'manager' || roleRaw === 'user') {
+        if (roleRaw === 'admin' || roleRaw === 'dispatcher' || roleRaw === 'user') {
           nextState[roleRaw] = normalizePermissionMap(item?.permissions, roleRaw);
         }
       }
@@ -603,8 +603,8 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
       }
 
       const roleRaw = String(payload?.role ?? selectedRole).trim().toLowerCase();
-      const permissions = normalizePermissionMap(payload?.permissions ?? selectedRolePermissions, selectedRole);
-      if (roleRaw === 'admin' || roleRaw === 'dispatcher' || roleRaw === 'manager' || roleRaw === 'user') {
+      const permissions = normalizePermissionMap(payload?.permissions ?? selectedRolePermissions, selectedRole as AppRole);
+      if (roleRaw === 'admin' || roleRaw === 'dispatcher' || roleRaw === 'user') {
         setRolePermissions((prev) => ({
           ...prev,
           [roleRaw]: permissions,
@@ -628,7 +628,6 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
   const roleBadgeClass = (role: RoleKey): string => {
     if (role === 'admin') return 'bg-purple-500/10 text-purple-400';
     if (role === 'dispatcher') return 'bg-blue-500/10 text-blue-400';
-    if (role === 'manager') return 'bg-cyan-500/10 text-cyan-400';
     return 'bg-slate-500/10 text-slate-400';
   };
 
@@ -821,7 +820,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                       <Lock size={20} />
                     </div>
                     <div>
-                      <p className={`font-bold capitalize ${selectedRole === role ? 'text-blue-400' : 'text-white'}`}>
+                      <p className={`font-bold capitalize ${selectedRole === role ? 'text-blue-400' : 'text-slate-100'}`}>
                         {t(role as any)}
                       </p>
                       <p className="text-xs text-slate-500">Tizim bo'limlariga kirish ruxsati</p>
@@ -896,7 +895,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                                 onChange={(e) => updateRoleAccess(mod.id, e.target.checked ? 'full' : 'none')}
                                 disabled={!canManage}
                               />
-                              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"></div>
+                              <div className="role-permission-track w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"></div>
                             </label>
                           </div>
                         </div>

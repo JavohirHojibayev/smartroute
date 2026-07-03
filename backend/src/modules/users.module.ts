@@ -29,7 +29,7 @@ import {
 
 const SUPERADMIN_USERNAME = (process.env.SUPERADMIN_USERNAME ?? 'superadmin').trim().toLowerCase() || 'superadmin';
 const ALLOWED_ROLES = new Set<string>(Object.values(UserRole));
-const ROLE_ORDER: UserRole[] = [UserRole.ADMIN, UserRole.DISPATCHER, UserRole.MANAGER, UserRole.USER];
+const ROLE_ORDER: UserRole[] = [UserRole.ADMIN, UserRole.DISPATCHER, UserRole.USER];
 
 type EimzoBinding = {
   pinfl: string | null;

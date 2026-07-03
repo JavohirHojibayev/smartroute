@@ -1260,3 +1260,225 @@
 .theme-light .glass-panel[class*="xl:min-h-"] {
   background: #ffffff !important;
 }
+
+/* LOGIN PAGE DAY THEME OVERRIDES */
+.theme-light.login-page {
+  background: linear-gradient(135deg, #e6f0f9 0%, #d8eaf6 100%) !important;
+}
+.theme-light.login-page .login-blobs {
+  display: none !important;
+}
+.theme-light.login-page .login-glass-panel {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08) !important;
+}
+.theme-light.login-page .brand-title {
+  color: #4f46e5 !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #4f46e5 !important;
+}
+.theme-light.login-page .login-toolbar-toggle {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+.theme-light.login-page .login-toolbar-toggle:hover {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+}
+.theme-light.login-page .login-toolbar-toggle svg {
+  color: #64748b !important;
+}
+.theme-light.login-page .auth-switcher-container {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+.theme-light.login-page .auth-switcher-btn {
+  color: #64748b !important;
+}
+.theme-light.login-page .auth-switcher-btn svg {
+  color: inherit !important;
+}
+.theme-light.login-page .auth-switcher-btn:hover {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+.theme-light.login-page .auth-switcher-btn.active-password,
+.theme-light.login-page .auth-switcher-btn.active-eimzo {
+  background: #ffffff !important;
+  color: #4f46e5 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 0 0 1px #e2e8f0 !important;
+}
+.theme-light.login-page .login-input-label {
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+}
+.theme-light.login-page .login-input-container {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.theme-light.login-page .login-input-container:focus-within {
+  border-color: #93c5fd !important;
+}
+.theme-light.login-page .login-input-container input,
+.theme-light.login-page .login-input-container select {
+  color: #1e293b !important;
+  -webkit-text-fill-color: #1e293b !important;
+}
+.theme-light.login-page .login-input-container input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+.theme-light.login-page .login-submit-btn {
+  background: #5a4fcf !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+.theme-light.login-page .login-auth-input:-webkit-autofill {
+  -webkit-text-fill-color: #1e293b !important;
+}
+
+.theme-light.login-page .login-eimzo-info {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+.theme-light.login-page .login-eimzo-info span.font-bold {
+  color: #64748b !important;
+}
+.theme-light.login-page .login-eimzo-info span.text-slate-300 {
+  color: #1e293b !important;
+}
+.theme-light.login-page .login-eimzo-info p.text-slate-500 {
+  color: #94a3b8 !important;
+  border-top-color: #e2e8f0 !important;
+}
+.theme-light.login-page .login-eimzo-refresh-btn {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+.theme-light.login-page .login-eimzo-refresh-btn:hover {
+  border-color: #93c5fd !important;
+  color: #3b82f6 !important;
+}
+
+/* TOOLS MANAGER FILTER DAY THEME OVERRIDES */
+.theme-light .tools-filter-btn.inactive {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #eab308 !important;
+}
+.theme-light .tools-filter-btn.inactive:hover {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+}
+.theme-light .tools-filter-btn.active {
+  background: #fef08a !important;
+  border-color: #fde047 !important;
+  color: #ca8a04 !important;
+}
+.theme-light .tools-filter-dropdown {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  color: #475569 !important;
+}
+.theme-light .tools-filter-item:hover {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+.theme-light .tools-filter-item.active {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+/* WAYBILL MANAGER ESMO TOOLTIP DAY THEME OVERRIDES */
+.theme-light .waybill-esmo-tooltip {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+.theme-light .waybill-esmo-tooltip .text-slate-400 {
+  color: #64748b !important;
+}
+.theme-light .waybill-esmo-tooltip-inner {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+.theme-light .waybill-esmo-tooltip-inner .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* FLEET MANAGER CERTIFICATE MODAL DAY THEME OVERRIDES */
+.theme-light .fleet-cert-modal {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-light .fleet-cert-modal-title {
+  color: #1e293b !important;
+}
+
+.theme-light .fleet-cert-modal-label {
+  color: #64748b !important;
+}
+
+.theme-light .fleet-cert-modal-input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.theme-light .fleet-cert-modal-input:focus {
+  border-color: #3b82f6 !important;
+}
+
+.theme-light .fleet-cert-modal-close {
+  color: #64748b !important;
+}
+
+.theme-light .fleet-cert-modal-close:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.theme-light .fleet-cert-modal-cancel {
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+.theme-light .fleet-cert-modal-cancel:hover {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+
+/* MECHANIC FILTER DROPDOWN DAY MODE OVERRIDES */
+.theme-light .tools-filter-dropdown {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.theme-light .tools-filter-item {
+  color: #334155 !important;
+}
+.theme-light .tools-filter-item:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+.theme-light .tools-filter-item.active {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+/* ROLE PERMISSION CHECKBOX TRACK */
+.theme-light .role-permission-track {
+  background: #cbd5e1 !important;
+}
+.theme-light input:checked + .role-permission-track {
+  background: #3b82f6 !important; /* checked bg remains blue */
+}

@@ -42,8 +42,8 @@ export const LoginPage = ({
   }, [eimzoError, mode]);
 
   return (
-    <div className={`app-shell min-h-screen text-slate-100 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div className={`app-shell min-h-screen text-slate-100 ${theme === 'light' ? 'theme-light' : 'theme-dark'} login-page`}>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden login-blobs">
         <motion.div
           className="absolute top-0 left-0 h-[36rem] w-[36rem] rounded-full bg-blue-500/35 blur-[145px]"
           animate={{
@@ -86,7 +86,7 @@ export const LoginPage = ({
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full items-center justify-center px-3 py-4 sm:px-5 sm:py-8">
-        <section className="glass-panel w-full max-w-[27.5rem] rounded-3xl border border-slate-700/40 p-5 sm:p-7 md:p-8">
+        <section className="glass-panel login-glass-panel w-full max-w-[27.5rem] rounded-3xl border border-slate-700/40 p-5 sm:p-7 md:p-8">
           <div className="mb-7 flex items-center justify-between gap-3 sm:mb-8">
             <div className="flex items-center gap-3">
               <img

@@ -59,7 +59,6 @@ const ROLE_ENABLED_MODULES: Record<UserRole, PermissionModule[]> = {
     'cargo',
     'mobile',
   ],
-  [UserRole.MANAGER]: ['dashboard', 'fleet', 'fuel', 'cargo'],
   [UserRole.USER]: ['dashboard', 'fleet', 'waybills', 'tracking'],
 };
 

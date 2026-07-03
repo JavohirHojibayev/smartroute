@@ -934,11 +934,11 @@ export const FleetManager = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 dark-scrollbar"
+            className="fleet-cert-modal relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700/60 bg-slate-900 p-6 dark-scrollbar"
           >
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-xl font-bold text-slate-100">
+                <h3 className="fleet-cert-modal-title text-xl font-bold text-slate-100">
                   {certificateModalMode === 'edit'
                     ? "Guvohnoma ma'lumotini tahrirlash"
                     : "Guvohnoma ma'lumotini qo'lda kiritish"}
@@ -947,7 +947,7 @@ export const FleetManager = () => {
               <button
                 type="button"
                 onClick={closeCertificateModal}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-300"
+                className="fleet-cert-modal-close p-2 rounded-lg hover:bg-slate-800 text-slate-300"
               >
                 <X size={18} />
               </button>
@@ -955,74 +955,74 @@ export const FleetManager = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Davlat raqami</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Davlat raqami</label>
                 <input
                   value={certificateForm.plate}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, plate: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: 70 946 LBA"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Rusum / model</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Rusum / model</label>
                 <input
                   value={certificateForm.model}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, model: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: SHACMAN SX3258DR384"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Rang</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Rang</label>
                 <input
                   value={certificateForm.color}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, color: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: Sariq-jeltiy"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Egasi</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Egasi</label>
                 <input
                   value={certificateForm.owner}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, owner: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Korxona yoki F.I.Sh"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Manzil</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Manzil</label>
                 <textarea
                   value={certificateForm.address}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, address: e.target.value }))}
-                  className="w-full h-20 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500 resize-none"
+                  className="fleet-cert-modal-input w-full h-20 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500 resize-none"
                   placeholder="Ro'yxatdan o'tgan manzil"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Berilgan sana</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Berilgan sana</label>
                 <input
                   value={certificateForm.issueDate}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, issueDate: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="DD/MM/YYYY"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Beruvchi bo'lim</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Beruvchi bo'lim</label>
                 <input
                   value={certificateForm.issuingAuthority}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, issuingAuthority: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="Masalan: 1-TRO va IOB"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Guvohnoma raqami</label>
+                <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Guvohnoma raqami</label>
                 <input
                   value={certificateForm.certificateNumber}
                   onChange={(e) => setCertificateForm((prev) => ({ ...prev, certificateNumber: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                   placeholder="JSH SHIR / STIR"
                 />
               </div>
@@ -1032,101 +1032,101 @@ export const FleetManager = () => {
             <div className="mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Ishlab chiqarilgan yili</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Ishlab chiqarilgan yili</label>
                   <input
                     value={certificateForm.manufactureYear}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, manufactureYear: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 2020"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Turi</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Turi</label>
                   <input
                     value={certificateForm.vehicleType}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, vehicleType: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: Yuk o'zi ag'daruvchi"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Kuzov / shassi raqami</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Kuzov / shassi raqami</label>
                   <input
                     value={certificateForm.chassisNumber}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, chassisNumber: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Raqam"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">To'la vazni (kg)</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">To'la vazni (kg)</label>
                   <input
                     value={certificateForm.totalWeightKg}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, totalWeightKg: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 25000"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Yuksiz vazni (kg)</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Yuksiz vazni (kg)</label>
                   <input
                     value={certificateForm.curbWeightKg}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, curbWeightKg: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 13500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Dvigatel raqami</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Dvigatel raqami</label>
                   <input
                     value={certificateForm.engineNumber}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, engineNumber: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Dvigatel raqami"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Dvigatel quvvati</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Dvigatel quvvati</label>
                   <input
                     value={certificateForm.enginePower}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, enginePower: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 340"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Yoqilg'i turi</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Yoqilg'i turi</label>
                   <input
                     value={certificateForm.fuelType}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, fuelType: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: Dizel"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">O'tiradigan joylar soni</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">O'tiradigan joylar soni</label>
                   <input
                     value={certificateForm.seatCount}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, seatCount: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 2"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tik turadigan joylar soni</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Tik turadigan joylar soni</label>
                   <input
                     value={certificateForm.standingCapacity}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, standingCapacity: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: 0"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Alohida belgilar</label>
+                  <label className="fleet-cert-modal-label block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Alohida belgilar</label>
                   <input
                     value={certificateForm.specialNotes}
                     onChange={(e) => setCertificateForm((prev) => ({ ...prev, specialNotes: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="fleet-cert-modal-input w-full px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500"
                     placeholder="Masalan: auksion bayonnomasi"
                   />
                 </div>
@@ -1138,7 +1138,7 @@ export const FleetManager = () => {
                 type="button"
                 onClick={closeCertificateModal}
                 disabled={isSavingCertificate}
-                className="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="fleet-cert-modal-cancel px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-800"
               >
                 {t('cancelLabel')}
               </button>

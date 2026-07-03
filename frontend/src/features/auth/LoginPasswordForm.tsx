@@ -23,9 +23,9 @@ export const LoginPasswordForm = ({ lang, isSubmitting, onSubmit }: LoginPasswor
 
   return (
     <form onSubmit={handleSubmit} className="mt-1 space-y-5 sm:space-y-6">
-      <label className="block">
+      <label className="block login-input-label">
         <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">{t.loginLabel}</span>
-        <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
+        <div className="login-input-container flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
           <UserRound size={18} className="text-slate-400" />
           <input
             value={username}
@@ -38,9 +38,9 @@ export const LoginPasswordForm = ({ lang, isSubmitting, onSubmit }: LoginPasswor
         </div>
       </label>
 
-      <label className="block">
+      <label className="block login-input-label">
         <span className="mb-2 block text-xs uppercase tracking-[0.16em] text-slate-500">{t.passwordLabel}</span>
-        <div className="flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
+        <div className="login-input-container flex items-center gap-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 sm:px-4 sm:py-3.5 focus-within:border-blue-500/60">
           <KeyRound size={18} className="text-slate-400" />
           <input
             value={password}

@@ -735,10 +735,10 @@ export const ToolsManager = () => {
                                     <button
                                         type="button"
                                         onClick={() => setTopFilterDropdownOpen(!topFilterDropdownOpen)}
-                                        className={`flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${
+                                        className={`tools-filter-btn flex h-[42px] w-[42px] items-center justify-center rounded-lg border transition-colors ${
                                             headerFilter !== 'ALL' || topFilterDropdownOpen 
-                                            ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400' 
-                                            : 'border-slate-700/60 bg-slate-900/50 text-yellow-500 hover:text-yellow-400'
+                                            ? 'active border-yellow-500/50 bg-yellow-500/10 text-yellow-400' 
+                                            : 'inactive border-slate-700/60 bg-slate-900/50 text-yellow-500 hover:text-yellow-400'
                                         }`}
                                     >
                                         <Filter size={18} />
@@ -750,27 +750,27 @@ export const ToolsManager = () => {
                                                 className="fixed inset-0 z-40"
                                                 onClick={() => setTopFilterDropdownOpen(false)}
                                             />
-                                            <div className="absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
+                                            <div className="tools-filter-dropdown absolute top-full right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50 text-sm font-normal text-slate-300">
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ALL' ? 'active text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('ALL'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
                                                     Barchasi
                                                 </button>
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'NOT_ISSUED' ? 'active text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('NOT_ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
                                                     Berilmagan
                                                 </button>
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'RETURNED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'RETURNED' ? 'active text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('RETURNED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
                                                     Qaytarilgan
                                                 </button>
                                                 <button
-                                                    className={`w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'text-blue-400 bg-slate-900/50 font-medium' : ''}`}
+                                                    className={`tools-filter-item w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors ${headerFilter === 'ISSUED' ? 'active text-blue-400 bg-slate-900/50 font-medium' : ''}`}
                                                     onClick={() => { setHeaderFilter('ISSUED'); setTopFilterDropdownOpen(false); setCurrentPage(1); }}
                                                 >
                                                     Qaytarilmagan

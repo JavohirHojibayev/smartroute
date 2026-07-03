@@ -100,7 +100,7 @@ export const EimzoLoginForm = ({
           const serial = identity.certificateSerial || selectedKey.serialNumber || selectedKey.serial || t.eimzoUnknown;
           const validity = `${formatEimzoDate(selectedKey.validFrom, t.eimzoUnknown)} - ${formatEimzoDate(selectedKey.validTo, t.eimzoUnknown)}`;
           return (
-            <div className="rounded-xl border border-slate-700/70 bg-slate-950/25 p-3 text-xs shadow-lg shadow-slate-950/20">
+            <div className="login-eimzo-info rounded-xl border border-slate-700/70 bg-slate-950/25 p-3 text-xs shadow-lg shadow-slate-950/20">
               <div className="grid gap-2">
                 <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2">
                   <span className="font-bold text-slate-200">{t.eimzoSerial}</span>
@@ -137,7 +137,7 @@ export const EimzoLoginForm = ({
           type="button"
           onClick={() => void loadKeys()}
           disabled={isSubmitting || loadingKeys}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="login-eimzo-refresh-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-700/60 bg-slate-900/40 text-slate-300 transition-colors hover:border-blue-500/50 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={t.eimzoRefreshKeys}
         >
           <RefreshCw size={18} className={loadingKeys ? 'animate-spin' : ''} />

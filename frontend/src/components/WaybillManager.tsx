@@ -599,11 +599,11 @@ export const WaybillManager = () => {
                                             <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
                                                 {rowA.driver}
                                             </div>
-                                            <div className={`absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
+                                            <div className={`waybill-esmo-tooltip absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
                                                 <div>
                                                     <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
                                                     {rowA.bp || rowA.pulse != null || rowA.temperature != null ? (
-                                                        <div className="space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
+                                                        <div className="waybill-esmo-tooltip-inner space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
                                                             {rowA.bp && (
                                                                 <div className="flex justify-between gap-4">
                                                                     <span className="text-slate-400">{t('bloodPressure')}:</span>
@@ -670,11 +670,11 @@ export const WaybillManager = () => {
                                                 <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
                                                     {rowB.driver}
                                                 </div>
-                                                <div className={`absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
+                                                <div className={`waybill-esmo-tooltip absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
                                                     <div>
                                                         <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
                                                         {rowB.bp || rowB.pulse != null || rowB.temperature != null ? (
-                                                            <div className="space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
+                                                            <div className="waybill-esmo-tooltip-inner space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
                                                                 {rowB.bp && (
                                                                     <div className="flex justify-between gap-4">
                                                                         <span className="text-slate-400">{t('bloodPressure')}:</span>

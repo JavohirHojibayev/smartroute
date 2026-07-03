@@ -1,4 +1,4 @@
-export type AppRole = 'admin' | 'dispatcher' | 'manager' | 'user';
+export type AppRole = 'admin' | 'dispatcher' | 'user';
 export type PermissionLevel = 'none' | 'read' | 'full';
 export type PermissionSelection = PermissionLevel[];
 
@@ -43,7 +43,6 @@ export const PERMISSION_MODULES: PermissionModule[] = [
 const ROLE_ENABLED_MODULES: Record<AppRole, PermissionModule[]> = {
   admin: [...PERMISSION_MODULES],
   dispatcher: ['dashboard', 'access', 'medical', 'tools', 'shiftSchedule', 'fleet', 'drivers', 'waybills', 'tracking', 'dispatch', 'cargo'],
-  manager: ['dashboard', 'fleet', 'fuel', 'cargo', 'tools'],
   user: ['dashboard', 'fleet', 'waybills', 'tracking'],
 };
 const PERMISSION_LEVELS: PermissionLevel[] = ['none', 'read', 'full'];

@@ -3,7 +3,6 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 export enum UserRole {
   ADMIN = 'admin',
   DISPATCHER = 'dispatcher',
-  MANAGER = 'manager',
   USER = 'user',
 }
 
