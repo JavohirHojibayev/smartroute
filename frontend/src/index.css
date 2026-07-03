@@ -1482,3 +1482,93 @@
 .theme-light input:checked + .role-permission-track {
   background: #3b82f6 !important; /* checked bg remains blue */
 }
+
+/* Day Mode EIMZO Modal (UserManager) */
+:root[data-theme='light'] .eimzo-modal-container {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-title {
+  color: #1e293b !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-subtitle {
+  color: #64748b !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-close-btn {
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-close-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-select-wrapper {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-select-legend {
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-select {
+  color: #0f172a !important;
+  color-scheme: light !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-refresh-btn {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-refresh-btn:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-details-box {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-details-label {
+  color: #334155 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-details-value {
+  color: #475569 !important;
+}
+
+:root[data-theme='light'] .eimzo-modal-details-path {
+  color: #64748b !important;
+  border-top-color: #f8fafc !important;
+}
+
+/* Day Mode overrides for UserManager table & roles */
+:root[data-theme='light'] .user-manager-name {
+  color: #0f172a !important; /* slate-900 */
+}
+
+:root[data-theme='light'] .user-status-text {
+  color: #475569 !important; /* slate-600 */
+}
+
+:root[data-theme='light'] .role-name-text.text-slate-100 {
+  color: #334155 !important; /* slate-700 */
+}
+
+:root[data-theme='light'] .permission-name-text.text-slate-200 {
+  color: #1e293b !important; /* slate-800 */
+}

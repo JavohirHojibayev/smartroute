@@ -733,7 +733,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                               {displayName.charAt(0).toUpperCase()}
                             </button>
                             <div>
-                              <p className="text-sm font-bold text-white">{displayName}</p>
+                              <p className="text-sm font-bold text-white user-manager-name">{displayName}</p>
                               <p className="text-xs text-slate-500">{user.email || user.username}</p>
                             </div>
                           </div>
@@ -750,7 +750,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                             ) : (
                               <XCircle size={16} className="text-red-500" />
                             )}
-                            <span className="text-sm text-slate-300 capitalize">{user.status}</span>
+                            <span className="text-sm text-slate-300 capitalize user-status-text">{user.status}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-400">
@@ -820,7 +820,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                       <Lock size={20} />
                     </div>
                     <div>
-                      <p className={`font-bold capitalize ${selectedRole === role ? 'text-blue-400' : 'text-slate-100'}`}>
+                      <p className={`font-bold capitalize role-name-text ${selectedRole === role ? 'text-blue-400' : 'text-slate-100'}`}>
                         {t(role as any)}
                       </p>
                       <p className="text-xs text-slate-500">Tizim bo'limlariga kirish ruxsati</p>
@@ -884,7 +884,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                         <div key={mod.id} className={`flex flex-row items-center justify-between p-4 rounded-2xl transition-all border border-transparent hover:border-slate-700/50 border-l-2 ${rowAccentClass} ${!isOn ? 'hover:bg-slate-800/30' : 'bg-slate-800/30 hover:bg-slate-800/50'}`}>
                           <div className="flex items-center gap-3 md:gap-4 min-w-0">
                             <div className={`w-2 h-2 rounded-full transition-colors ${isOn ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]' : 'bg-slate-600'}`} />
-                            <span className={`text-sm font-medium transition-colors break-words ${isOn ? 'text-slate-200' : 'text-slate-400'}`}>{t(mod.labelKey as any)}</span>
+                            <span className={`text-sm font-medium transition-colors break-words permission-name-text ${isOn ? 'text-slate-200' : 'text-slate-400'}`}>{t(mod.labelKey as any)}</span>
                           </div>
                           <div className="flex items-center">
                             <label className="relative inline-flex items-center cursor-pointer">
@@ -1115,18 +1115,18 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                 event.preventDefault();
                 void bindSelectedEimzoKey();
               }}
-              className="glass-panel w-full max-w-xl rounded-[26px] border border-slate-700/60 p-6 shadow-2xl shadow-slate-950/50"
+              className="glass-panel w-full max-w-xl rounded-[26px] border border-slate-700/60 p-6 shadow-2xl shadow-slate-950/50 eimzo-modal-container"
             >
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <h4 className="text-lg font-bold">{t('eimzoBindTitle')}</h4>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <h4 className="text-lg font-bold eimzo-modal-title">{t('eimzoBindTitle')}</h4>
+                  <p className="mt-1 text-sm text-slate-500 eimzo-modal-subtitle">
                     {eimzoModalUser.fullName || eimzoModalUser.username}
                   </p>
                 </div>
                 <button
                   onClick={closeEimzoBindModal}
-                  className="rounded-lg border border-slate-700 p-2 text-slate-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-slate-700 p-2 text-slate-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 eimzo-modal-close-btn"
                   type="button"
                   disabled={isBindingEimzo}
                   aria-label="Yopish"
@@ -1149,13 +1149,13 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
               ) : (
                 <>
               <div className="grid grid-cols-[minmax(0,1fr)_3.75rem] items-end gap-3">
-                <fieldset className="min-w-0 rounded-xl border border-slate-600/80 bg-slate-950/20 px-3 pb-2 pt-1 transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-                  <legend className="px-2 text-sm font-medium text-slate-300">{t('eimzoSelectLabel')}</legend>
+                <fieldset className="min-w-0 rounded-xl border border-slate-600/80 bg-slate-950/20 px-3 pb-2 pt-1 transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 eimzo-modal-select-wrapper">
+                  <legend className="px-2 text-sm font-medium text-slate-300 eimzo-modal-select-legend">{t('eimzoSelectLabel')}</legend>
                   <select
                     value={selectedEimzoIndex}
                     disabled={isLoadingEimzoKeys || isBindingEimzo || eimzoKeys.length === 0}
                     onChange={(event) => setSelectedEimzoIndex(Number.parseInt(event.target.value, 10))}
-                    className="w-full min-w-0 bg-transparent py-1 text-sm font-semibold text-slate-100 outline-none [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full min-w-0 bg-transparent py-1 text-sm font-semibold text-slate-100 outline-none [color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60 eimzo-modal-select"
                     aria-label={t('eimzoSelectLabel')}
                     data-color-scheme="dark"
                   >
@@ -1185,7 +1185,7 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                   type="button"
                   onClick={() => void loadEimzoKeysForBinding()}
                   disabled={isLoadingEimzoKeys || isBindingEimzo}
-                  className="inline-flex h-[58px] w-[60px] items-center justify-center rounded-xl border border-slate-600/80 bg-slate-950/20 text-slate-200 transition-colors hover:border-blue-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-[58px] w-[60px] items-center justify-center rounded-xl border border-slate-600/80 bg-slate-950/20 text-slate-200 transition-colors hover:border-blue-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-60 eimzo-modal-refresh-btn"
                   aria-label={t('eimzoRefreshKeys')}
                   title={t('refresh')}
                 >
@@ -1200,15 +1200,15 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                   const serial = identity.certificateSerial || selectedEimzoKey.serialNumber || selectedEimzoKey.serial || t('eimzoUnknown');
                   const validity = `${formatEimzoDate(selectedEimzoKey.validFrom, t('eimzoUnknown'))} - ${formatEimzoDate(selectedEimzoKey.validTo, t('eimzoUnknown'))}`;
                   return (
-                    <div className="mt-3 rounded-xl border border-slate-600/70 bg-slate-950/25 p-4 text-sm shadow-lg shadow-slate-950/20">
+                    <div className="mt-3 rounded-xl border border-slate-600/70 bg-slate-950/25 p-4 text-sm shadow-lg shadow-slate-950/20 eimzo-modal-details-box">
                       <div className="grid gap-2">
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">{t('eimzoSerialNumber')}</span>
-                          <span className="truncate text-slate-300" title={serial}>{serial}</span>
+                          <span className="font-bold text-slate-200 eimzo-modal-details-label">{t('eimzoSerialNumber')}</span>
+                          <span className="truncate text-slate-300 eimzo-modal-details-value" title={serial}>{serial}</span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">{t('eimzoPinfl')}</span>
-                          <span className="flex min-w-0 items-center gap-2 text-slate-300">
+                          <span className="font-bold text-slate-200 eimzo-modal-details-label">{t('eimzoPinfl')}</span>
+                          <span className="flex min-w-0 items-center gap-2 text-slate-300 eimzo-modal-details-value">
                             <span className="truncate" title={identity.pinfl ?? t('eimzoUnknown')}>{identity.pinfl ?? t('eimzoUnknown')}</span>
                             <span className="shrink-0 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold uppercase text-emerald-300">
                               {getEimzoOwnerType(selectedEimzoKey, t('eimzoLegal'), t('eimzoIndividual'))}
@@ -1216,14 +1216,14 @@ export const UserManager = ({ authToken, currentUserId, accessLevel, onPermissio
                           </span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">{t('eimzoFullName')}</span>
-                          <span className="truncate text-slate-300" title={ownerName}>{ownerName}</span>
+                          <span className="font-bold text-slate-200 eimzo-modal-details-label">{t('eimzoFullName')}</span>
+                          <span className="truncate text-slate-300 eimzo-modal-details-value" title={ownerName}>{ownerName}</span>
                         </div>
                         <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
-                          <span className="font-bold text-slate-200">{t('eimzoValidityPeriod')}</span>
-                          <span className="text-slate-300">{validity}</span>
+                          <span className="font-bold text-slate-200 eimzo-modal-details-label">{t('eimzoValidityPeriod')}</span>
+                          <span className="text-slate-300 eimzo-modal-details-value">{validity}</span>
                         </div>
-                        <p className="mt-2 truncate border-t border-slate-700/70 pt-2 text-xs text-slate-500" title={formatEimzoKeyLocation(selectedEimzoKey)}>
+                        <p className="mt-2 truncate border-t border-slate-700/70 pt-2 text-xs text-slate-500 eimzo-modal-details-path" title={formatEimzoKeyLocation(selectedEimzoKey)}>
                           {formatEimzoKeyLocation(selectedEimzoKey)}
                         </p>
                       </div>
