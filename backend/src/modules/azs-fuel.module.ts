@@ -3565,9 +3565,23 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         kindFilter = ctx.kindFilter;
         azsToken = ctx.token;
         if (azsToken) {
-          // Fetch events and gauge sections in parallel for speed (~2-3s instead of 10s)
+          // Fetch events in 7-day chunks to avoid 2000 events API limit
+          const fetchAllEventsChunked = async () => {
+             const allRows: ExternalFuelRow[] = [];
+             let currentStart = new Date(start);
+             while (currentStart < end) {
+                const chunkEnd = new Date(Math.min(currentStart.getTime() + 7 * 24 * 3600 * 1000, end.getTime()));
+                const chunkRows = await this.fetchEventsInRange(config, azsToken, currentStart, chunkEnd).catch(() => []);
+                allRows.push(...chunkRows);
+                currentStart = new Date(chunkEnd.getTime() + 1000);
+             }
+             const unique = new Map<string, ExternalFuelRow>();
+             for (const r of allRows) unique.set(r.externalId, r);
+             return Array.from(unique.values());
+          };
+
           const [rows, sectionsInfo] = await Promise.all([
-             this.fetchEventsInRange(config, azsToken, start, end).catch(() => []),
+             fetchAllEventsChunked().catch(() => []),
              this.fetchAllFuelTankSections(config, azsToken).catch(() => [])
           ]);
           apiChartRows = rows;
