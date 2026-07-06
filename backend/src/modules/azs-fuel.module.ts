@@ -1189,6 +1189,16 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       const v = this.parseNumber(x);
       return v && v > 0 ? v : null;
     };
+    if (mode === 'virtual') {
+      return (
+        num(payload?.issuedVirtual) ??
+        num(payload?.issuedDut) ??
+        num(payload?.differenceRefuel) ??
+        num(payload?.value) ??
+        this.parseNumber(row?.liters) ??
+        0
+      );
+    }
     if (mode === 'counter') {
       return (
         num(payload?.value) ??
@@ -3490,6 +3500,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const getIssuedValue = (p: any, row: any) => {
       if (opsMode === 'dut') {
         return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? null;
+      } else if (opsMode === 'virtual') {
+        return parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? null;
       } else if (opsMode === 'hybrid') {
         return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? null;
       }
@@ -3640,6 +3652,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
        let issuedLiters = 0;
        if (sumMode === 'dut') {
           issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? 0;
+       } else if (sumMode === 'virtual') {
+          issuedLiters = parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? 0;
        } else if (sumMode === 'hybrid') {
           issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? 0;
        } else {

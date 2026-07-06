@@ -1,4 +1,4 @@
-﻿import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Driver } from './driver.entity';
 import { Vehicle } from './vehicle.entity';
 import { MedicalCheck } from './medical.entity';
@@ -53,6 +53,24 @@ export class Trip {
 
   @Column({ type: 'text', nullable: true })
   route_description: string;
+
+  @Column({ type: 'varchar', nullable: true, length: 100 })
+  external_1c_id: string;
+
+  @Column({ type: 'varchar', nullable: true, length: 50 })
+  plate: string;
+
+  @Column({ type: 'varchar', nullable: true, length: 255 })
+  cargo: string;
+
+  @Column({ type: 'varchar', nullable: true, length: 50 })
+  weight: string;
+
+  @Column({ type: 'text', nullable: true })
+  esmo_qr_data: string;
+
+  @Column({ type: 'text', nullable: true })
+  e_imzo_qr_data: string;
 
   @CreateDateColumn()
   created_at: Date;

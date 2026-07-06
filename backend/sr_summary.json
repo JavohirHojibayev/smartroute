@@ -1,0 +1,200 @@
+{
+  "health": {
+    "source": "AZS-Online",
+    "status": "online",
+    "enabled": true,
+    "totalRecords": 35548,
+    "lastSyncAt": "2026-07-06T18:46:37.030Z",
+    "lastSyncAttemptAt": "2026-07-06T18:46:36.892Z",
+    "lastSyncStartedAt": "2026-07-06T18:46:36.892Z",
+    "lastSyncDurationMs": 139,
+    "lastSyncError": null,
+    "failureStreak": 0,
+    "nextSyncAt": "2026-07-06T18:47:03.567Z",
+    "syncInProgress": false,
+    "schedulerActive": true,
+    "requestRetries": 2,
+    "lastSyncStats": {
+      "mode": "incremental",
+      "fetched": 7,
+      "inserted": 0,
+      "updated": 0
+    }
+  },
+  "window": {
+    "dateFrom": "2026-07-05T21:00:00.000Z",
+    "dateTo": "2026-07-06T20:59:59.999Z",
+    "records": 69,
+    "totalLiters": 9074.869999999999,
+    "totalLitersRounded": 9075,
+    "totalAmount": 0,
+    "liveLevelGaugeLiters": 0
+  },
+  "stats": {
+    "devices": {
+      "total": 5,
+      "online": 5,
+      "offline": 0
+    },
+    "sectionLevels": {
+      "critical": 1,
+      "low": 1,
+      "normal": 7,
+      "total": 9,
+      "totalLevelLiters": 107362
+    },
+    "cards": {
+      "total": 173,
+      "synced": 173,
+      "unsynced": 0
+    },
+    "refuels": {
+      "today": 69,
+      "week": 511,
+      "month": 2215
+    },
+    "posts": [
+      {
+        "id": 496,
+        "name": "ДКЗ_Дизель"
+      },
+      {
+        "id": 497,
+        "name": "ДКЗ_AI"
+      },
+      {
+        "id": 966,
+        "name": "ДКЗ_Дизель_2"
+      },
+      {
+        "id": 976,
+        "name": "ДКЗ_ТКМ_Дизель_1"
+      },
+      {
+        "id": 977,
+        "name": "ДКЗ_ТКМ_Дизель_2"
+      },
+      {
+        "id": 1389,
+        "name": "ТКМ Гидравлика И-50"
+      }
+    ],
+    "objectKinds": [
+      {
+        "key": "all",
+        "label": "Barcha ob'ektlar"
+      }
+    ],
+    "azsSectionNames": [
+      "ДКЗ Дизель",
+      "ТКМ Дизель_1",
+      "ТКМ Дизель_2",
+      "ДКЗ_АИ",
+      "ТКМ Гидравлика",
+      "ДКЗ-4",
+      "ДКЗ-3",
+      "ДКЗ-2",
+      "ДКЗ_1"
+    ],
+    "sectionGaugeRows": [
+      {
+        "name": "ДКЗ Дизель",
+        "liters": 100
+      },
+      {
+        "name": "ТКМ Дизель_1",
+        "liters": 8151.56
+      },
+      {
+        "name": "ТКМ Дизель_2",
+        "liters": 1048.4
+      },
+      {
+        "name": "ДКЗ_АИ",
+        "liters": 2517.9
+      },
+      {
+        "name": "ТКМ Гидравлика",
+        "liters": 28146
+      },
+      {
+        "name": "ДКЗ-4",
+        "liters": 1216.12
+      },
+      {
+        "name": "ДКЗ-3",
+        "liters": 31991.8
+      },
+      {
+        "name": "ДКЗ-2",
+        "liters": 30773.97
+      },
+      {
+        "name": "ДКЗ_1",
+        "liters": 3415.84
+      }
+    ]
+  },
+  "chart": [
+    {
+      "day": "06.07",
+      "consumption": 9074.87,
+      "cost": 0
+    }
+  ],
+  "levelChart": [],
+  "sections": [
+    {
+      "name": "ДКЗ-2",
+      "records": 6
+    },
+    {
+      "name": "ТКМ Дизель_1",
+      "records": 12
+    },
+    {
+      "name": "ДКЗ_1",
+      "records": 42
+    },
+    {
+      "name": "ДКЗ_АИ",
+      "records": 2
+    },
+    {
+      "name": "ТКМ Гидравлика",
+      "records": 7
+    }
+  ],
+  "stations": [
+    {
+      "name": "ДКЗ_Дизель",
+      "records": 33,
+      "liters": 4394.99
+    },
+    {
+      "name": "ДКЗ_AI",
+      "records": 2,
+      "liters": 69.48
+    },
+    {
+      "name": "ДКЗ_Дизель_2",
+      "records": 15,
+      "liters": 3320
+    },
+    {
+      "name": "ДКЗ_ТКМ_Дизель_1",
+      "records": 12,
+      "liters": 790.4
+    },
+    {
+      "name": "ДКЗ_ТКМ_Дизель_2",
+      "records": 0,
+      "liters": 0
+    },
+    {
+      "name": "ТКМ Гидравлика И-50",
+      "records": 7,
+      "liters": 500
+    }
+  ]
+}

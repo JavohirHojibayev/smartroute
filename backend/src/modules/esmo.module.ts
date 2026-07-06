@@ -8,6 +8,7 @@ import { URL } from 'url';
 import { load } from 'cheerio';
 
 import { Driver } from '../entities/driver.entity';
+import { Trip } from '../entities/trip.entity';
 import { CheckStatus, MedicalCheck } from '../entities/medical.entity';
 import {
   SMARTROUTE_ESMO_TERMINALS,
@@ -935,6 +936,8 @@ export class EsmoController {
     private readonly medicalRepo: Repository<MedicalCheck>,
     @InjectRepository(Driver)
     private readonly driverRepo: Repository<Driver>,
+    @InjectRepository(Trip)
+    private readonly tripRepo: Repository<Trip>,
   ) {}
 
   private normalizeWhitespace(value: unknown): string {
@@ -1657,7 +1660,29 @@ export class EsmoController {
       .limit(limit)
       .getMany();
 
-    return rows.map((row) => {
+    const driverIds = rows.map((r) => r.driver?.id).filter(Boolean) as number[];
+    const tripsQuery = this.tripRepo
+      .createQueryBuilder('trip')
+      .leftJoinAndSelect('trip.driver', 'driver')
+      .orderBy('trip.created_at', 'DESC');
+
+    if (range.start && range.end) {
+      tripsQuery
+        .andWhere('trip.created_at >= :start', { start: range.start.toISOString() })
+        .andWhere('trip.created_at < :end', { end: range.end.toISOString() });
+    }
+
+    const allRecentTrips = await tripsQuery.getMany();
+    const latestTrips = new Map<number, Trip>();
+    const driverIdsWithMedicalCheck = new Set(driverIds);
+
+    for (const trip of allRecentTrips) {
+      if (trip.driver && !latestTrips.has(trip.driver.id)) {
+        latestTrips.set(trip.driver.id, trip);
+      }
+    }
+
+    const resultRows = rows.map((row) => {
       const time = row.exam_time || row.check_time;
       const result = this.normalizeResult(row.esmo_result || row.status);
       const status = result === 'passed'
@@ -1668,10 +1693,11 @@ export class EsmoController {
             ? 'annulled'
             : 'failed';
 
+      const trip = row.driver ? latestTrips.get(row.driver.id) : null;
+
       return {
         id: row.id,
         esmoId: row.esmo_id,
-        // Show the exact name from ESMO journal/detail first to avoid local driver-name drift.
         name: this.normalizeWhitespace((row.source_payload as any)?.employeeName) || this.normalizeWhitespace(row.driver?.full_name) || "Noma'lum xodim",
         passId: this.normalizeWhitespace((row.source_payload as any)?.employeePassId) || this.normalizeWhitespace(row.driver?.license_number) || '',
         time,
@@ -1689,8 +1715,54 @@ export class EsmoController {
         deviceIp: row.terminal_ip,
         eimzoSignedBy: row.eimzo_signed_by,
         eimzoSignedAt: row.eimzo_signed_at?.toISOString(),
+        plate: trip?.plate || '-',
+        cargo: trip?.cargo || '-',
+        weight: trip?.weight || '-',
+        route: trip?.route_description || '-',
+        external1cId: trip?.external_1c_id,
+        esmoQrData: trip?.esmo_qr_data,
+        eImzoQrData: trip?.e_imzo_qr_data,
       };
     });
+
+    // Add standalone trips (no ESMO check today)
+    for (const trip of allRecentTrips) {
+      if (trip.driver && !driverIdsWithMedicalCheck.has(trip.driver.id)) {
+        driverIdsWithMedicalCheck.add(trip.driver.id); // to avoid duplicates if multiple trips
+        resultRows.push({
+          id: -trip.id,
+          esmoId: -trip.id,
+          name: this.normalizeWhitespace(trip.driver.full_name) || "Noma'lum xodim",
+          passId: this.normalizeWhitespace(trip.driver.license_number) || '',
+          time: trip.created_at,
+          pulse: null,
+          bp: null,
+          temperature: null,
+          alcohol: null,
+          alcoholDetected: null,
+          status: 'review', // appears as orange/pending in UI
+          statusCode: CheckStatus.PENDING,
+          device: '1C',
+          deviceIp: '-',
+          eimzoSignedBy: null,
+          eimzoSignedAt: undefined,
+          plate: trip.plate || '-',
+          cargo: trip.cargo || '-',
+          weight: trip.weight || '-',
+          route: trip.route_description || '-',
+          external1cId: trip.external_1c_id,
+          esmoQrData: trip.esmo_qr_data,
+          eImzoQrData: trip.e_imzo_qr_data,
+        });
+      }
+    }
+
+    // Apply search filter to the merged list as well if needed, though rows were filtered already
+    if (search) {
+       return resultRows.filter(r => r.name.toLowerCase().includes(search) || r.passId.toLowerCase().includes(search));
+    }
+
+    return resultRows;
   }
 
   @Post('sign')
@@ -1716,7 +1788,8 @@ export class EsmoController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MedicalCheck, Driver])],
+  imports: [TypeOrmModule.forFeature([MedicalCheck, Driver, Trip])],
   controllers: [EsmoController],
 })
 export class EsmoModule {}
+

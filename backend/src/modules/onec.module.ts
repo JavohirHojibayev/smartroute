@@ -9,6 +9,7 @@ import {
   Module,
   Post,
   Query,
+  Body,
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -667,9 +668,76 @@ export class OneCWeightsController {
   }
 }
 
+import { Trip, TripStatus } from '../entities/trip.entity';
+import { Driver } from '../entities/driver.entity';
+
+@Controller('integrations/1c/trips')
+export class OneCTripsController {
+  constructor(
+    @InjectRepository(Trip)
+    private readonly tripRepo: Repository<Trip>,
+    @InjectRepository(Driver)
+    private readonly driverRepo: Repository<Driver>,
+  ) {}
+
+  @Post('sync')
+  async receiveFrom1C(@Headers('authorization') authorization?: string, @Query('api_key') apiKey?: string, @Body() payload?: any) {
+    if (apiKey !== (process.env.ONEC_API_KEY || 'secret-1c-key')) {
+      throw new ForbiddenException('Invalid API Key');
+    }
+
+    if (!payload || !payload.id) {
+      throw new BadRequestException('Invalid payload from 1C');
+    }
+
+    let trip = await this.tripRepo.findOne({ where: { external_1c_id: payload.id }, relations: ['driver'] });
+    if (!trip) {
+      trip = this.tripRepo.create({
+        external_1c_id: payload.id,
+        status: TripStatus.PENDING,
+      });
+    }
+
+    trip.route_description = payload.route || trip.route_description;
+    trip.plate = payload.plate || trip.plate;
+    trip.cargo = payload.cargo || trip.cargo;
+    trip.weight = payload.weight || trip.weight;
+
+    // A. Xodimning ismidan izlab topish (Driver lookup by full name)
+    const driverName = String(payload.driver || '').trim();
+    if (driverName) {
+      let driver = await this.driverRepo
+        .createQueryBuilder('driver')
+        .where('LOWER(driver.full_name) = :fullName', { fullName: driverName.toLowerCase() })
+        .getOne();
+        
+      if (!driver) {
+        // Create a basic driver record if it doesn't exist
+        driver = this.driverRepo.create({
+          full_name: driverName,
+          license_number: `1C-${Date.now()}`, // Temporary fallback pass ID
+          is_active: true,
+        });
+        driver = await this.driverRepo.save(driver);
+      }
+      trip.driver = driver;
+    }
+
+    if (!trip.esmo_qr_data) {
+       trip.esmo_qr_data = 'https://esmo.uz/verify?id=' + payload.id;
+    }
+    if (!trip.e_imzo_qr_data) {
+       trip.e_imzo_qr_data = 'https://e-imzo.uz/verify?doc=' + payload.id;
+    }
+
+    await this.tripRepo.save(trip);
+    return { success: true, tripId: trip.id };
+  }
+}
+
 @Module({
-  imports: [TypeOrmModule.forFeature([OneCWeightEntry]), AuthModule],
-  controllers: [OneCWeightsController],
+  imports: [TypeOrmModule.forFeature([OneCWeightEntry, Trip, Driver]), AuthModule],
+  controllers: [OneCWeightsController, OneCTripsController],
   providers: [OneCWeightsService],
 })
 export class OneCModule {}

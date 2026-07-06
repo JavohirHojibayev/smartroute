@@ -20,14 +20,14 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const driverName = initialValues?.haydovchi || '';
-    const tabNo = initialValues?.tabNo || '';
+    const driverName = initialValues?.name || initialValues?.haydovchi || '';
+    const tabNo = initialValues?.passId || initialValues?.tabNo || '';
     const time = initialValues?.time || '';
-    
+
     const searchParam = tabNo ? encodeURIComponent(tabNo) : encodeURIComponent(driverName);
-    const qrUrlMedical = typeof window !== 'undefined' ? `${window.location.origin}/?tab=medical&search=${searchParam}` : '';
-    const qrUrlWaybill = typeof window !== 'undefined' ? `${window.location.origin}/?tab=waybill&search=${searchParam}` : '';
-    
+    const qrUrlMedical = initialValues?.esmoQrData || (typeof window !== 'undefined' ? `${window.location.origin}/?tab=medical&search=${searchParam}` : '');
+    const qrUrlWaybill = initialValues?.eImzoQrData || (typeof window !== 'undefined' ? `${window.location.origin}/?tab=waybills&search=${searchParam}` : '');
+
     const formatSignedDate = (isoStr?: string) => {
         if (!isoStr) return '';
         const d = new Date(isoStr);
@@ -45,7 +45,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
         }
 
         let isCancelled = false;
-        
+
         const generatePdf = async () => {
             setIsGenerating(true);
             try {
@@ -54,7 +54,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     const canvas = document.createElement("canvas");
                     const ctx = canvas.getContext("2d");
                     const img = new Image();
-                    
+
                     return await new Promise<string>((resolve, reject) => {
                         img.onload = () => {
                             canvas.width = img.width;
@@ -71,16 +71,21 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     });
                 };
 
+                // Capture current refs to satisfy TypeScript inside the async callback
+                const medicalSvg = svgRefMedical.current;
+                const waybillSvg = svgRefWaybill.current;
+                if (!medicalSvg || !waybillSvg) return;
+
                 // Generate QR code PNGs
-                const pngDataUrlMedical = await getPngDataUrl(svgRefMedical.current);
-                const pngDataUrlWaybill = await getPngDataUrl(svgRefWaybill.current);
+                const pngDataUrlMedical = await getPngDataUrl(medicalSvg);
+                const pngDataUrlWaybill = await getPngDataUrl(waybillSvg);
 
                 if (isCancelled) return;
 
                 // Fetch template PDF
                 const existingPdfBytes = await fetch(templatePdfUrl).then(res => res.arrayBuffer());
                 const pdfDoc = await PDFDocument.load(existingPdfBytes);
-                
+
                 // Remove all pages except the first one
                 while (pdfDoc.getPageCount() > 1) {
                     pdfDoc.removePage(1);
@@ -98,43 +103,61 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     color: rgb(1, 1, 1),
                 });
 
-                // Redraw the horizontal line cleanly
-                firstPage.drawLine({
-                    start: { x: 45, y: 696 },
-                    end: { x: width - 45, y: 696 },
-                    thickness: 1.5,
-                    color: rgb(0, 0, 0),
-                });
-
                 // Embed Times Roman font
                 const fontTimesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
 
-                // Draw ESMO Time on the top right
+                // Initialize timeStr for later use
                 const timeStr = time ? time : "Noma'lum";
-                const topTimeWidth = fontTimesBold.widthOfTextAtSize(timeStr, 12);
-                firstPage.drawText(timeStr, {
-                    x: width - 50 - topTimeWidth,
-                    y: 680,
-                    size: 12,
-                    font: fontTimesBold,
-                    color: rgb(0, 0, 0),
-                });
 
                 // Draw "Yo'l varaqasi" title centered below the header
-                const title = "Yo'l varaqasi";
-                const titleWidth = fontTimesBold.widthOfTextAtSize(title, 14);
+                const title = "YO'L VARAQASI";
+                const titleFontSize = 14;
+                const titleWidth = fontTimesBold.widthOfTextAtSize(title, titleFontSize);
                 firstPage.drawText(title, {
                     x: (width - titleWidth) / 2,
-                    y: 640,
-                    size: 14,
+                    y: 665,
+                    size: titleFontSize,
                     font: fontTimesBold,
                     color: rgb(0, 0, 0),
                 });
 
-                // Draw a horizontal line to separate the QR code section
+                // Embed Times Roman normal font
+                const fontTimesNormal = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+
+                // Draw 1C Trip Data
+                const has1cData = initialValues?.plate && initialValues.plate !== '-';
+
+                let currentY = 644;
+                const marginLeft = 75; // ~2.6 cm
+                const marginRight = 35; // ~1.2 cm
+
+                if (has1cData) {
+                    const details = [
+                        { label: 'Marshrut:', value: initialValues?.route || '-' },
+                        { label: 'Avtomobil:', value: initialValues?.plate || '-' },
+                        { label: 'Yuk nomi:', value: initialValues?.cargo || '-' },
+                        { label: "Yuk og'irligi:", value: initialValues?.weight || '-' }
+                    ];
+                    for (const detail of details) {
+                        firstPage.drawText(detail.label, { x: marginLeft, y: currentY, size: 14, font: fontTimesBold, color: rgb(0, 0, 0) });
+                        firstPage.drawText(detail.value, { x: marginLeft + 100, y: currentY, size: 14, font: fontTimesNormal, color: rgb(0, 0, 0) });
+                        currentY -= 21; // 1.5 line spacing
+                    }
+                } else {
+                    firstPage.drawText("Yo'l varaqasi ma'lumotlari shakllantirilmagan", {
+                        x: marginLeft,
+                        y: currentY,
+                        size: 14,
+                        font: fontTimesNormal,
+                        color: rgb(0, 0, 0)
+                    });
+                    currentY = 525; // Keep the bottom line at the same fixed position
+                }
+
+                // Draw a horizontal line to separate the 1C details from the QR code section
                 firstPage.drawLine({
-                    start: { x: 45, y: 620 },
-                    end: { x: width - 45, y: 620 },
+                    start: { x: marginLeft, y: currentY - 5 },
+                    end: { x: width - marginRight, y: currentY - 5 },
                     thickness: 1.5,
                     color: rgb(0, 0, 0),
                 });
@@ -143,14 +166,44 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                 const qrImageMedical = await pdfDoc.embedPng(pngDataUrlMedical);
                 const qrSize = 70;
                 const qrX = (width - qrSize) / 2;
-                const qrYMedical = 530;
+                const qrYMedical = 440;
 
-                firstPage.drawImage(qrImageMedical, {
-                    x: qrX,
-                    y: qrYMedical,
-                    width: qrSize,
-                    height: qrSize,
-                });
+                // Reusable function to draw a "Not Approved" / "Rejected" placeholder (Red cross with corners)
+                const drawPlaceholder = (yPos: number) => {
+                    const cx = qrX + qrSize / 2;
+                    const cy = yPos + qrSize / 2;
+                    const cornerLen = 15;
+                    const cornerColor = rgb(0.5, 0.6, 0.65); // Muted blue-gray
+
+                    // Draw 4 corners
+                    firstPage.drawLine({ start: { x: qrX, y: yPos + qrSize }, end: { x: qrX + cornerLen, y: yPos + qrSize }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX, y: yPos + qrSize }, end: { x: qrX, y: yPos + qrSize - cornerLen }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX + qrSize, y: yPos + qrSize }, end: { x: qrX + qrSize - cornerLen, y: yPos + qrSize }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX + qrSize, y: yPos + qrSize }, end: { x: qrX + qrSize, y: yPos + qrSize - cornerLen }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX, y: yPos }, end: { x: qrX + cornerLen, y: yPos }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX, y: yPos }, end: { x: qrX, y: yPos + cornerLen }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX + qrSize, y: yPos }, end: { x: qrX + qrSize - cornerLen, y: yPos }, thickness: 2, color: cornerColor });
+                    firstPage.drawLine({ start: { x: qrX + qrSize, y: yPos }, end: { x: qrX + qrSize, y: yPos + cornerLen }, thickness: 2, color: cornerColor });
+
+                    // Draw Red X
+                    const crossSize = 12;
+                    const crossColor = rgb(0.85, 0.1, 0.1);
+                    firstPage.drawLine({ start: { x: cx - crossSize, y: cy - crossSize }, end: { x: cx + crossSize, y: cy + crossSize }, thickness: 4, color: crossColor });
+                    firstPage.drawLine({ start: { x: cx - crossSize, y: cy + crossSize }, end: { x: cx + crossSize, y: cy - crossSize }, thickness: 4, color: crossColor });
+                };
+
+                const esmoPassed = initialValues?.statusCode === 'passed';
+
+                if (!esmoPassed) {
+                    drawPlaceholder(qrYMedical);
+                } else {
+                    firstPage.drawImage(qrImageMedical, {
+                        x: qrX,
+                        y: qrYMedical,
+                        width: qrSize,
+                        height: qrSize,
+                    });
+                }
 
                 // ESMO Left text
                 const leftTextMedical = "Xodimning tibbiy ko'rik natijasi";
@@ -164,7 +217,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
 
                 // ESMO Right text (Time)
                 firstPage.drawText(timeStr, {
-                    x: qrX + qrSize + 20,
+                    x: qrX + qrSize + 45,
                     y: qrYMedical + (qrSize / 2) - 4,
                     size: 12,
                     font: fontTimesBold,
@@ -217,7 +270,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     const rightLabel = signedAt ? formatSignedDate(signedAt) : '';
                     if (rightLabel) {
                         firstPage.drawText(rightLabel, {
-                            x: qrX + qrSize + 20,
+                            x: qrX + qrSize + 45,
                             y: qrYWaybill + (qrSize / 2) - 4,
                             size: 12,
                             font: fontTimesBold,
@@ -226,30 +279,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     }
                 } else {
                     // Draw "Not Approved" placeholder instead of QR code
-                    const cx = qrX + qrSize / 2;
-                    const cy = qrYWaybill + qrSize / 2;
-                    const cornerLen = 15;
-                    const cornerColor = rgb(0.5, 0.6, 0.65); // Muted blue-gray
-
-                    // Draw 4 corners
-                    // Top-Left
-                    firstPage.drawLine({ start: { x: qrX, y: qrYWaybill + qrSize }, end: { x: qrX + cornerLen, y: qrYWaybill + qrSize }, thickness: 2, color: cornerColor });
-                    firstPage.drawLine({ start: { x: qrX, y: qrYWaybill + qrSize }, end: { x: qrX, y: qrYWaybill + qrSize - cornerLen }, thickness: 2, color: cornerColor });
-                    // Top-Right
-                    firstPage.drawLine({ start: { x: qrX + qrSize, y: qrYWaybill + qrSize }, end: { x: qrX + qrSize - cornerLen, y: qrYWaybill + qrSize }, thickness: 2, color: cornerColor });
-                    firstPage.drawLine({ start: { x: qrX + qrSize, y: qrYWaybill + qrSize }, end: { x: qrX + qrSize, y: qrYWaybill + qrSize - cornerLen }, thickness: 2, color: cornerColor });
-                    // Bottom-Left
-                    firstPage.drawLine({ start: { x: qrX, y: qrYWaybill }, end: { x: qrX + cornerLen, y: qrYWaybill }, thickness: 2, color: cornerColor });
-                    firstPage.drawLine({ start: { x: qrX, y: qrYWaybill }, end: { x: qrX, y: qrYWaybill + cornerLen }, thickness: 2, color: cornerColor });
-                    // Bottom-Right
-                    firstPage.drawLine({ start: { x: qrX + qrSize, y: qrYWaybill }, end: { x: qrX + qrSize - cornerLen, y: qrYWaybill }, thickness: 2, color: cornerColor });
-                    firstPage.drawLine({ start: { x: qrX + qrSize, y: qrYWaybill }, end: { x: qrX + qrSize, y: qrYWaybill + cornerLen }, thickness: 2, color: cornerColor });
-
-                    // Draw Red X
-                    const crossSize = 12;
-                    const crossColor = rgb(0.85, 0.1, 0.1);
-                    firstPage.drawLine({ start: { x: cx - crossSize, y: cy - crossSize }, end: { x: cx + crossSize, y: cy + crossSize }, thickness: 4, color: crossColor });
-                    firstPage.drawLine({ start: { x: cx - crossSize, y: cy + crossSize }, end: { x: cx + crossSize, y: cy - crossSize }, thickness: 4, color: crossColor });
+                    drawPlaceholder(qrYWaybill);
 
                     // Left text indicating not approved
                     const leftText = "E-imzo orqali tasdiqlanmagan";
@@ -265,8 +295,8 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                 // Save and generate preview URL
                 const pdfBytes = await pdfDoc.save();
                 if (isCancelled) return;
-                
-                const blob = new Blob([pdfBytes], { type: "application/pdf" });
+
+                const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
                 const url = URL.createObjectURL(blob);
                 setPdfPreviewUrl(url);
 
@@ -328,7 +358,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     <h3 className="text-sm font-semibold text-slate-100">
                         {driverName} — Yo'l varaqa
                     </h3>
-                    
+
                     <div className="flex items-center gap-3">
                         {isApproved && (
                             <div className="inline-flex items-center gap-1.5 h-8 rounded-lg px-3 text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -364,7 +394,7 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                             value={qrUrlMedical}
                             size={256}
                             bgColor={"#ffffff"}
-                            fgColor={"#000000"}
+                            fgColor={"#000066"}
                             level={"L"}
                             includeMargin={false}
                             ref={svgRefMedical}
@@ -373,13 +403,13 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                             value={qrUrlWaybill}
                             size={256}
                             bgColor={"#ffffff"}
-                            fgColor={"#000000"}
+                            fgColor={"#003300"}
                             level={"L"}
                             includeMargin={false}
                             ref={svgRefWaybill}
                         />
                     </div>
-                    
+
                     {isGenerating && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm z-10">
                             <Loader2 className="animate-spin text-blue-500 mb-3" size={36} />
@@ -388,9 +418,9 @@ export const WaybillFormModal = ({ open, onClose, templatePdfUrl, initialValues,
                     )}
 
                     {pdfPreviewUrl && (
-                        <iframe 
-                            src={`${pdfPreviewUrl}#toolbar=0`} 
-                            className="w-full h-full rounded-xl bg-white shadow-inner" 
+                        <iframe
+                            src={`${pdfPreviewUrl}#toolbar=0`}
+                            className="w-full h-full rounded-xl bg-white shadow-inner"
                             title="PDF Preview"
                         />
                     )}

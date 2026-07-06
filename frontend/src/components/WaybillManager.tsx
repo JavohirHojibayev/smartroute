@@ -27,6 +27,12 @@ type EsmoJournalRow = {
     temperature?: number | null;
     eimzoSignedBy?: string | null;
     eimzoSignedAt?: string | null;
+    plate?: string;
+    cargo?: string;
+    weight?: string;
+    route?: string;
+    esmoQrData?: string;
+    eImzoQrData?: string;
 };
 
 type WaybillRow = {
@@ -45,6 +51,9 @@ type WaybillRow = {
     bp: string | null;
     pulse: number | null;
     temperature: number | null;
+    route: string;
+    esmoQrData?: string;
+    eImzoQrData?: string;
 };
 
 const API_BASE = resolveApiBaseUrl();
@@ -119,8 +128,8 @@ export const WaybillManager = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+    const [dateFrom, setDateFrom] = useState(getTodayTashkent());
+    const [dateTo, setDateTo] = useState(getTodayTashkent());
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [exportingXls, setExportingXls] = useState(false);
@@ -173,9 +182,12 @@ export const WaybillManager = () => {
                     driver: driverName,
                     passId: passIdRaw || '-',
                     healthStatus,
-                    plate: '-',
-                    cargo: '-',
-                    weight: '-',
+                    plate: row?.plate || '-',
+                    cargo: row?.cargo || '-',
+                    weight: row?.weight || '-',
+                    route: row?.route || '-',
+                    esmoQrData: row?.esmoQrData,
+                    eImzoQrData: row?.eImzoQrData,
                     tripTime: '-',
                     tripState: '-',
                     sourceTime: String(row?.time || ''),
@@ -219,7 +231,7 @@ export const WaybillManager = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             void loadWaybills(true);
-        }, 5000);
+        }, 15000); // Increased interval to 15 seconds to reduce server load
         return () => clearInterval(interval);
     }, [loadWaybills]);
 
@@ -311,7 +323,17 @@ export const WaybillManager = () => {
         setWaybillFormInitialValues({
             haydovchi: row.driver,
             tabNo: row.passId === '-' ? '' : row.passId,
-            time: formatDateTime(row.sourceTime)
+            time: formatDateTime(row.sourceTime),
+            plate: row.plate,
+            cargo: row.cargo,
+            weight: row.weight,
+            route: row.route,
+            bp: row.bp || '',
+            pulse: row.pulse ? String(row.pulse) : '',
+            temperature: row.temperature ? String(row.temperature) : '',
+            statusCode: row.healthStatus,
+            esmoQrData: row.esmoQrData || '',
+            eImzoQrData: row.eImzoQrData || ''
         });
         setAutoDownload(false);
         setIsWaybillFormOpen(true);
@@ -322,7 +344,17 @@ export const WaybillManager = () => {
         setWaybillFormInitialValues({
             haydovchi: row.driver,
             tabNo: row.passId === '-' ? '' : row.passId,
-            time: formatDateTime(row.sourceTime)
+            time: formatDateTime(row.sourceTime),
+            plate: row.plate,
+            cargo: row.cargo,
+            weight: row.weight,
+            route: row.route,
+            bp: row.bp || '',
+            pulse: row.pulse ? String(row.pulse) : '',
+            temperature: row.temperature ? String(row.temperature) : '',
+            statusCode: row.healthStatus,
+            esmoQrData: row.esmoQrData || '',
+            eImzoQrData: row.eImzoQrData || ''
         });
         setAutoDownload(true);
         setIsWaybillFormOpen(true);
