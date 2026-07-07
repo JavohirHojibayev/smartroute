@@ -16,10 +16,10 @@ for %%P in (3000 5173) do (
 )
 
 echo Initializing Frontend Server (Vite)...
-start "SmartRoute Frontend" /D "%APP_ROOT%frontend" cmd /k "npm run dev"
+start "SmartRoute Frontend" cmd /k "cd /d ""%APP_ROOT%frontend"" && npm run dev"
 
 echo Initializing Backend NestJS Server (SQLite)...
-start "SmartRoute Backend" /D "%APP_ROOT%backend" cmd /k "set "HOST=localhost" && set "PORT=3000" && npm run start:dev"
+start "SmartRoute Backend" cmd /k "cd /d ""%APP_ROOT%backend"" && set ""HOST=0.0.0.0"" && set ""PORT=3000"" && npm run start:dev"
 
 echo Startup Complete!
 echo Frontend: http://localhost:5173

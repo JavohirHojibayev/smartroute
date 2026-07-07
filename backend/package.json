@@ -9,7 +9,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/src/main",
+    "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "clean:mine-turnstile-dupes": "ts-node scripts/clean-mine-turnstile-duplicate-logs.ts",
     "audit:turnstile": "ts-node scripts/audit-turnstile-events.ts"

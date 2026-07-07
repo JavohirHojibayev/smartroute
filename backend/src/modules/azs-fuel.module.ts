@@ -3634,7 +3634,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       return true;
     });
 
-    const sumMode = this.normalizeWhitespace(process.env.AZS_SUMMARY_LITERS_MODE || 'counter').toLowerCase();
+    // AZS tizimi bilan bir xil: issuedDut (DUT farqi) → issuedVirtual → row.liters
+    // AZS_SUMMARY_LITERS_MODE=dut — .env da o'rnatish tavsiya etiladi
+    const sumMode = this.normalizeWhitespace(process.env.AZS_SUMMARY_LITERS_MODE || 'dut').toLowerCase();
     const parseVal = (x: unknown): number | null => {
       if (x == null || x === '') return null;
       const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
@@ -3658,7 +3660,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       if (sumMode === 'liters') {
         issuedLiters = row.liters ?? parseVal(p.value) ?? 0;
       } else if (sumMode === 'dut') {
-        issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? 0;
+        // AZS tizimi bilan bir xil: DUT farqi (issuedDut) birinchi, keyin virtual, keyin row.liters
+        issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? 0;
       } else if (sumMode === 'virtual') {
         issuedLiters = parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? 0;
       } else if (sumMode === 'hybrid') {
@@ -3669,7 +3672,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       const amount = row.amount || 0;
 
       totalCountResolved++;
-      totalLitersResolved += issuedLiters; console.log("Adding:", issuedLiters, "row.liters:", row.liters);
+      totalLitersResolved += issuedLiters;
       totalAmountResolved += amount;
 
       const fuelType = row.fuelType || "Noma'lum";

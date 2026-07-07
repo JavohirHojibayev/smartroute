@@ -461,30 +461,36 @@ const ReservoirSectionLevelCell = ({
 };
 
 const getPresetRange = (preset: RangePreset) => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // AZS tizimi bilan bir xil: UTC+5 (Toshkent) offsetiga asoslangan "bugun" sanasi
+    // azsCalendarYmdToday() kabi hisoblash — barcha presetlar uchun bir xil asos
+    const todayAzs = azsCalendarYmdToday();
+    const [ty, tm, td] = todayAzs.split('-').map(Number);
+    // UTC+5 da "bugun" tungi 00:00 vaqti (Date obyekti sifatida, keyingi hisob-kitoblar uchun)
+    const todayBase = new Date(Date.UTC(ty, tm - 1, td));
 
     if (preset === 'today') {
-        const date = toDateInput(today);
-        return { dateFrom: date, dateTo: date };
+        return { dateFrom: todayAzs, dateTo: todayAzs };
     }
 
     if (preset === 'yesterday') {
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const date = toDateInput(yesterday);
+        const yd = new Date(todayBase);
+        yd.setUTCDate(yd.getUTCDate() - 1);
+        const date = `${yd.getUTCFullYear()}-${String(yd.getUTCMonth() + 1).padStart(2, '0')}-${String(yd.getUTCDate()).padStart(2, '0')}`;
         return { dateFrom: date, dateTo: date };
     }
 
     if (preset === 'week') {
-        const start = new Date(today);
-        start.setDate(start.getDate() - 6);
-        return { dateFrom: toDateInput(start), dateTo: toDateInput(today) };
+        const start = new Date(todayBase);
+        start.setUTCDate(start.getUTCDate() - 6);
+        const dateFrom = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}-${String(start.getUTCDate()).padStart(2, '0')}`;
+        return { dateFrom, dateTo: todayAzs };
     }
 
-    const rollingMonthStart = new Date(today);
-    rollingMonthStart.setDate(rollingMonthStart.getDate() - 29);
-    return { dateFrom: toDateInput(rollingMonthStart), dateTo: toDateInput(today) };
+    // month — oxirgi 30 kun
+    const start = new Date(todayBase);
+    start.setUTCDate(start.getUTCDate() - 29);
+    const dateFrom = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}-${String(start.getUTCDate()).padStart(2, '0')}`;
+    return { dateFrom, dateTo: todayAzs };
 };
 
 export const FuelManager = () => {
