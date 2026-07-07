@@ -7,9 +7,9 @@ import * as zlib from 'zlib';
 import { URL } from 'url';
 import { load } from 'cheerio';
 
-import { Driver } from '../entities/driver.entity';
-import { Trip } from '../entities/trip.entity';
-import { CheckStatus, MedicalCheck } from '../entities/medical.entity';
+import { Driver } from '../entities/people/driver.entity';
+import { Trip } from '../entities/fleet/trip.entity';
+import { CheckStatus, MedicalCheck } from '../entities/people/medical.entity';
 import {
   SMARTROUTE_ESMO_TERMINALS,
   getSmartRouteTerminalInlineRegex,

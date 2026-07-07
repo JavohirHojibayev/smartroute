@@ -51,3 +51,8 @@ scripts/turnstile-backups/
 
 # Docker
 docker-compose.override.yml
+
+
+# Local backups
+backups/
+**/backups/

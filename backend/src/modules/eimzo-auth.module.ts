@@ -19,8 +19,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomBytes, X509Certificate } from 'crypto';
 import { AuthModule, AuthService, toPublicUser } from './auth.module';
-import { User } from '../entities/user.entity';
-import { EimzoLoginLog } from '../entities/eimzo-login-log.entity';
+import { User } from '../entities/people/user.entity';
+import { EimzoLoginLog } from '../entities/auth/eimzo-login-log.entity';
 
 const execFileAsync = promisify(execFile);
 const CHALLENGE_TTL_MS = 2 * 60 * 1000;

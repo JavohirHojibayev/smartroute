@@ -2,7 +2,7 @@ import { Body, Controller, Get, Logger, Module, Put } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ShiftScheduleSnapshot } from '../entities/shift-schedule-snapshot.entity';
+import { ShiftScheduleSnapshot } from '../entities/scheduling/shift-schedule-snapshot.entity';
 
 const SNAPSHOT_ID = 1;
 type ShiftDraftLike = {

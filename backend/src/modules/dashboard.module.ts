@@ -1,10 +1,10 @@
 ﻿import { Controller, Get, Injectable, Module } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Vehicle } from '../entities/vehicle.entity';
-import { Trip, TripStatus } from '../entities/trip.entity';
-import { MechanicalInspection } from '../entities/mechanical.entity';
-import { CheckStatus, MedicalCheck } from '../entities/medical.entity';
+import { Vehicle } from '../entities/fleet/vehicle.entity';
+import { Trip, TripStatus } from '../entities/fleet/trip.entity';
+import { MechanicalInspection } from '../entities/operations/mechanical.entity';
+import { CheckStatus, MedicalCheck } from '../entities/people/medical.entity';
 import { AccessLog } from './integrations.module';
 import {
   computeTurnstileDailyAccessKpis,

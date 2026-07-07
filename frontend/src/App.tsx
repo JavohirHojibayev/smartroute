@@ -35,7 +35,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { useI18n } from './i18n';
-import { LoginPage } from './components/LoginPage';
+import { LoginPage } from './features/auth/LoginPage';
 import { resolveApiBaseUrl } from './utils/apiBase';
 import type { EimzoLoginResponse } from './features/auth/eimzo/eimzo.types';
 import {
@@ -49,46 +49,46 @@ import {
 } from './permissions';
 
 const SmartStartWorkflow = lazy(() =>
-  import('./components/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
+  import('./features/smart-start/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
 );
 const FleetManager = lazy(() =>
-  import('./components/FleetManager').then((module) => ({ default: module.FleetManager })),
+  import('./features/transport/FleetManager').then((module) => ({ default: module.FleetManager })),
 );
 const DispatcherDashboard = lazy(() =>
-  import('./components/DispatcherDashboard').then((module) => ({ default: module.DispatcherDashboard })),
+  import('./features/dashboard/DispatcherDashboard').then((module) => ({ default: module.DispatcherDashboard })),
 );
 const DriverManager = lazy(() =>
-  import('./components/DriverManager').then((module) => ({ default: module.DriverManager })),
+  import('./features/drivers/DriverManager').then((module) => ({ default: module.DriverManager })),
 );
 const FuelManager = lazy(() =>
-  import('./components/FuelManager').then((module) => ({ default: module.FuelManager })),
+  import('./features/fuel-monitoring/FuelManager').then((module) => ({ default: module.FuelManager })),
 );
 const WaybillManager = lazy(() =>
-  import('./components/WaybillManager').then((module) => ({ default: module.WaybillManager })),
+  import('./features/waybill/WaybillManager').then((module) => ({ default: module.WaybillManager })),
 );
 const LiveTracker = lazy(() =>
-  import('./components/LiveTracker').then((module) => ({ default: module.LiveTracker })),
+  import('./features/gps-monitoring/LiveTracker').then((module) => ({ default: module.LiveTracker })),
 );
 const AccessControlManager = lazy(() =>
-  import('./components/AccessControlManager').then((module) => ({ default: module.AccessControlManager })),
+  import('./features/turniket-jurnal/AccessControlManager').then((module) => ({ default: module.AccessControlManager })),
 );
 const MedicalManager = lazy(() =>
-  import('./components/MedicalManager').then((module) => ({ default: module.MedicalManager })),
+  import('./features/esmo-jurnal/MedicalManager').then((module) => ({ default: module.MedicalManager })),
 );
 const ShiftScheduleManager = lazy(() =>
-  import('./components/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
+  import('./features/shift-schedule/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
 );
 const ToolsManager = lazy(() =>
-  import('./components/ToolsManager').then((module) => ({ default: module.ToolsManager })),
+  import('./features/tools/ToolsManager').then((module) => ({ default: module.ToolsManager })),
 );
 const MechanicManager = lazy(() =>
-  import('./components/MechanicManager').then((module) => ({ default: module.MechanicManager })),
+  import('./features/maintenance/MechanicManager').then((module) => ({ default: module.MechanicManager })),
 );
 const CargoManager = lazy(() =>
-  import('./components/CargoManager').then((module) => ({ default: module.CargoManager })),
+  import('./features/cargo-volume/CargoManager').then((module) => ({ default: module.CargoManager })),
 );
 const UserManager = lazy(() =>
-  import('./components/UserManager').then((module) => ({ default: module.UserManager })),
+  import('./features/users/UserManager').then((module) => ({ default: module.UserManager })),
 );
 
 type AuthUser = {

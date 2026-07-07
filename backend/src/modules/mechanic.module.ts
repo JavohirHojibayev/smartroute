@@ -16,9 +16,9 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { AuthModule, AuthService } from './auth.module';
-import { MechanicalInspection } from '../entities/mechanical.entity';
-import { CheckStatus } from '../entities/medical.entity';
-import { FuelType, Vehicle, VehicleCategory } from '../entities/vehicle.entity';
+import { MechanicalInspection } from '../entities/operations/mechanical.entity';
+import { CheckStatus } from '../entities/people/medical.entity';
+import { FuelType, Vehicle, VehicleCategory } from '../entities/fleet/vehicle.entity';
 
 type InspectionStatus = 'passed' | 'pending' | 'failed';
 

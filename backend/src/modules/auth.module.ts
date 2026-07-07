@@ -14,7 +14,7 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
-import { User, UserRole } from '../entities/user.entity';
+import { User, UserRole } from '../entities/people/user.entity';
 import { hashPassword, verifyPassword } from '../utils/password.util';
 import { buildFullPermissions, sanitizePermissionMap, type PermissionMap } from '../utils/permissions';
 

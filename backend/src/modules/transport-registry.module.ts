@@ -2,7 +2,7 @@ import { Body, Controller, Get, Logger, Module, Put } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TransportRegistrySnapshot } from '../entities/transport-registry-snapshot.entity';
+import { TransportRegistrySnapshot } from '../entities/fleet/transport-registry-snapshot.entity';
 
 const SNAPSHOT_ID = 1;
 type TransportRecordLike = {

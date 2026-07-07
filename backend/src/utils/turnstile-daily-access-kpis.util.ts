@@ -11,7 +11,7 @@ import {
   readTurnstileNoiseEnvFromProcess,
   shouldIgnoreHikvisionTurnstilePayload,
 } from '../hikvision/hikvision-access-event-filter';
-import { CheckStatus } from '../entities/medical.entity';
+import { CheckStatus } from '../entities/people/medical.entity';
 import type { AccessLog } from '../modules/integrations.module';
 
 export type HikvisionEventType = 'entrance' | 'exit';

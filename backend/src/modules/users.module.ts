@@ -18,8 +18,8 @@ import { Repository } from 'typeorm';
 import { AuthModule, AuthService, toPublicUser } from './auth.module';
 import { EimzoAuthModule, EimzoAuthService, type SignerInfo } from './eimzo-auth.module';
 import { hashPassword } from '../utils/password.util';
-import { User, UserRole } from '../entities/user.entity';
-import { RolePermission } from '../entities/role-permission.entity';
+import { User, UserRole } from '../entities/people/user.entity';
+import { RolePermission } from '../entities/people/role-permission.entity';
 import {
   buildFullPermissions,
   buildRoleDefaultPermissions,

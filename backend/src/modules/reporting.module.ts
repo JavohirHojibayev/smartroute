@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Trip } from '../entities/trip.entity';
-import { Vehicle } from '../entities/vehicle.entity';
+import { Trip } from '../entities/fleet/trip.entity';
+import { Vehicle } from '../entities/fleet/vehicle.entity';
 
 @Injectable()
 export class ReportingService {

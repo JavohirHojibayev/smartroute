@@ -1,26 +1,26 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Vehicle } from '../entities/vehicle.entity';
-import { User } from '../entities/user.entity';
-import { Driver } from '../entities/driver.entity';
-import { MedicalCheck } from '../entities/medical.entity';
-import { MechanicalInspection } from '../entities/mechanical.entity';
-import { Trip } from '../entities/trip.entity';
+import { Vehicle } from '../entities/fleet/vehicle.entity';
+import { User } from '../entities/people/user.entity';
+import { Driver } from '../entities/people/driver.entity';
+import { MedicalCheck } from '../entities/people/medical.entity';
+import { MechanicalInspection } from '../entities/operations/mechanical.entity';
+import { Trip } from '../entities/fleet/trip.entity';
 import { AccessLog, TurnstileIdentity, TurnstileStatusEvent } from './integrations.module';
 import { resolve, sep } from 'path';
-import { RolePermission } from '../entities/role-permission.entity';
-import { OneCWeightEntry } from '../entities/onec-weight-entry.entity';
-import { FuelEntry } from '../entities/fuel-entry.entity';
-import { GarvexTrackingPoint } from '../entities/garvex-tracking-point.entity';
-import { TransportRegistrySnapshot } from '../entities/transport-registry-snapshot.entity';
+import { RolePermission } from '../entities/people/role-permission.entity';
+import { OneCWeightEntry } from '../entities/hr/onec-weight-entry.entity';
+import { FuelEntry } from '../entities/operations/fuel-entry.entity';
+import { GarvexTrackingPoint } from '../entities/operations/garvex-tracking-point.entity';
+import { TransportRegistrySnapshot } from '../entities/fleet/transport-registry-snapshot.entity';
 
-import { ShiftScheduleSnapshot } from '../entities/shift-schedule-snapshot.entity';
+import { ShiftScheduleSnapshot } from '../entities/scheduling/shift-schedule-snapshot.entity';
 import { WaybillDraft } from '../waybill-pdf-editor/entities/waybill-draft.entity';
 import { WaybillDraftValue } from '../waybill-pdf-editor/entities/waybill-draft-value.entity';
 import { WaybillTemplateCalibration } from '../waybill-pdf-editor/entities/waybill-template-calibration.entity';
 import { WaybillTemplateField } from '../waybill-pdf-editor/entities/waybill-template-field.entity';
-import { EimzoLoginLog } from '../entities/eimzo-login-log.entity';
-import { ToolIssue } from '../entities/tool-issue.entity';
+import { EimzoLoginLog } from '../entities/auth/eimzo-login-log.entity';
+import { ToolIssue } from '../entities/operations/tool-issue.entity';
 
 const backendRoot = __dirname.includes(`${sep}dist${sep}`)
   ? resolve(__dirname, '..', '..', '..')

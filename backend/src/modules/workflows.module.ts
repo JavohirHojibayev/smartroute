@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Trip } from '../entities/trip.entity';
-import { MedicalCheck } from '../entities/medical.entity';
-import { MechanicalInspection } from '../entities/mechanical.entity';
-import { Driver } from '../entities/driver.entity';
-import { Vehicle } from '../entities/vehicle.entity';
+import { Trip } from '../entities/fleet/trip.entity';
+import { MedicalCheck } from '../entities/people/medical.entity';
+import { MechanicalInspection } from '../entities/operations/mechanical.entity';
+import { Driver } from '../entities/people/driver.entity';
+import { Vehicle } from '../entities/fleet/vehicle.entity';
 import { SmartStartService } from '../services/smart-start.service';
 import { Controller, Post, Body } from '@nestjs/common';
 

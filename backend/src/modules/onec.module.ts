@@ -14,8 +14,8 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthModule, AuthService } from './auth.module';
-import { OneCWeightEntry } from '../entities/onec-weight-entry.entity';
-import { UserRole } from '../entities/user.entity';
+import { OneCWeightEntry } from '../entities/hr/onec-weight-entry.entity';
+import { UserRole } from '../entities/people/user.entity';
 
 type OneCWeightParsedRow = {
   externalId: string;
@@ -668,8 +668,8 @@ export class OneCWeightsController {
   }
 }
 
-import { Trip, TripStatus } from '../entities/trip.entity';
-import { Driver } from '../entities/driver.entity';
+import { Trip, TripStatus } from '../entities/fleet/trip.entity';
+import { Driver } from '../entities/people/driver.entity';
 
 @Controller('integrations/1c/trips')
 export class OneCTripsController {

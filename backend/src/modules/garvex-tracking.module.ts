@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { GarvexTrackingPoint } from '../entities/garvex-tracking-point.entity';
+import { GarvexTrackingPoint } from '../entities/operations/garvex-tracking-point.entity';
 
 type GarvexTrackingConfig = {
   enabled: boolean;

@@ -1,4 +1,4 @@
-import { UserRole } from '../entities/user.entity';
+import { UserRole } from '../entities/people/user.entity';
 
 export type PermissionLevel = 'none' | 'read' | 'full';
 export type PermissionSelection = PermissionLevel[];

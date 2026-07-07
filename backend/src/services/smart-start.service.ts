@@ -1,11 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Trip, TripStatus } from '../entities/trip.entity';
-import { MedicalCheck, CheckStatus } from '../entities/medical.entity';
-import { MechanicalInspection } from '../entities/mechanical.entity';
-import { Driver } from '../entities/driver.entity';
-import { Vehicle } from '../entities/vehicle.entity';
+import { Trip, TripStatus } from '../entities/fleet/trip.entity';
+import { MedicalCheck, CheckStatus } from '../entities/people/medical.entity';
+import { MechanicalInspection } from '../entities/operations/mechanical.entity';
+import { Driver } from '../entities/people/driver.entity';
+import { Vehicle } from '../entities/fleet/vehicle.entity';
 
 @Injectable()
 export class SmartStartService {

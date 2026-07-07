@@ -13,7 +13,7 @@ import {
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { createHash } from 'crypto';
-import { FuelEntry } from '../entities/fuel-entry.entity';
+import { FuelEntry } from '../entities/operations/fuel-entry.entity';
 
 type AzsConfig = {
   enabled: boolean;

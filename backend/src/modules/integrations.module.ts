@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
-import { Driver } from '../entities/driver.entity';
-import { CheckStatus } from '../entities/medical.entity';
+import { Driver } from '../entities/people/driver.entity';
+import { CheckStatus } from '../entities/people/medical.entity';
 import { Module, Controller, Post, Body, Get, Query, UnauthorizedException, Headers, Req, Logger, Res, HttpCode, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InjectRepository } from '@nestjs/typeorm';

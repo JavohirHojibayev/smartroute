@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Query, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ToolIssue } from '../entities/tool-issue.entity';
+import { ToolIssue } from '../entities/operations/tool-issue.entity';
 
 @Controller('reports/lamp-self-rescuer')
 export class ToolsController {
