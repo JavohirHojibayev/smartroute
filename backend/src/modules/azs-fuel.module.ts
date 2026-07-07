@@ -3554,6 +3554,76 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  private dashboardIssuedPointValue(row: Record<string, any>): number {
+    return this.parseNumber(row?.issuedDut) ?? 0;
+  }
+
+  private dashboardIssuedPointDateLabel(value: unknown, sameDay: boolean): string {
+    const raw = this.normalizeWhitespace(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(raw);
+    if (!match) return raw || '-';
+    return sameDay ? `${match[3]}.${match[2]} ${match[4]}:${match[5]}` : `${match[3]}.${match[2]}`;
+  }
+
+  private resolveDashboardDevicePostId(posts: any[], station?: string): number | null {
+    const stationFilter = this.normalizeWhitespace(station);
+    if (!stationFilter || stationFilter.toLowerCase() === 'all') return null;
+
+    const numeric = Number.parseInt(stationFilter, 10);
+    if (Number.isFinite(numeric) && String(numeric) === stationFilter) return numeric;
+
+    const stationKey = stationFilter.toLowerCase();
+    for (const post of posts) {
+      const name = this.normalizeWhitespace(String(post?.devicePostName ?? post?.name ?? ''));
+      if (name.toLowerCase() !== stationKey) continue;
+      const id = Number.parseInt(String(post?.devicePostId ?? post?.id ?? ''), 10);
+      return Number.isFinite(id) ? id : null;
+    }
+
+    return null;
+  }
+
+  private async fetchAzsDashboardIssuedStats(
+    config: AzsConfig,
+    token: string,
+    startDate: Date,
+    endDate: Date,
+    devicePostId: number | null,
+  ): Promise<Array<Record<string, any>>> {
+    const params = new URLSearchParams();
+    if (devicePostId != null) params.set('devicePostId', String(devicePostId));
+    params.set('utcOffset', String(this.getAzsCalendarOffsetHours()));
+    params.set('startDate', String(this.toUnixSeconds(startDate)));
+    params.set('endDate', String(this.toUnixSeconds(endDate)));
+
+    const response = await this.fetchWithRetry(
+      'dashboard-issued-stats',
+      `${config.baseUrl}/dashboard/DeviceIssuedStats?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Accept-Language': 'ru',
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      config.timeoutMs,
+      config.requestRetries,
+    );
+
+    if (response.status === 401) {
+      this.cachedToken = null;
+      this.cachedTokenExpiresAt = 0;
+      throw new BadRequestException('AZS token muddati o\'tgan (401)');
+    }
+    if (!response.ok) {
+      throw new BadRequestException(`AZS dashboard DeviceIssuedStats olishda xatolik: ${response.status}`);
+    }
+
+    const payload = await response.json().catch(() => null);
+    return Array.isArray(payload) ? payload.filter((row) => row && typeof row === 'object') : [];
+  }
+
   async getSummary(
     dateFrom?: string,
     dateTo?: string,
@@ -3567,6 +3637,84 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const compact = ['1', 'true', 'yes', 'on'].includes(this.normalizeWhitespace(compactRaw).toLowerCase());
 
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
+    {
+    const dashboardSameDay = this.azsCalendarYmdFromInstant(start) === this.azsCalendarYmdFromInstant(end);
+    let dashboardIssuedRows: Array<Record<string, any>> = [];
+    let gaugeRowsDirect: Array<{ name: string; liters: number }> = [];
+    let allStationsDirect: Array<{ id: number; name: string }> = [];
+
+    if (config.enabled) {
+      const ctx = await this.loadAzsObjectKindContext(config, objectKind).catch(() => null);
+      if (ctx?.token) {
+        allStationsDirect = ctx.postsForKind.map((p: any) => ({
+          id: Number(p?.devicePostId ?? 0),
+          name: String(p?.devicePostName ?? ''),
+        })).filter((p: { id: number, name: string }) => p.name);
+
+        const devicePostId = this.resolveDashboardDevicePostId(ctx.postsForKind, station);
+        const [issuedRows, sectionsInfo] = await Promise.all([
+          this.fetchAzsDashboardIssuedStats(config, ctx.token, start, end, devicePostId).catch((error) => {
+            this.logger.warn(`AZS dashboard DeviceIssuedStats: ${String((error as any)?.message ?? error)}`);
+            return [];
+          }),
+          this.fetchAllFuelTankSections(config, ctx.token).catch(() => []),
+        ]);
+        dashboardIssuedRows = issuedRows;
+        gaugeRowsDirect = sectionsInfo.map((sec: any, index: number) => ({
+          name: this.azsSectionRowPrimaryName(sec && typeof sec === 'object' ? sec : {}, index),
+          liters: this.parseNumber(sec?.levelGaugeLevel) ?? 0,
+        }));
+      }
+    }
+
+    const chart = dashboardIssuedRows.map((row) => {
+      const issuedLiters = this.dashboardIssuedPointValue(row);
+      return {
+        day: this.dashboardIssuedPointDateLabel(row?.date ?? row?.dateTime, dashboardSameDay),
+        consumption: Math.round(issuedLiters * 100) / 100,
+        cost: 0,
+      };
+    });
+    const totalLitersResolved = chart.reduce((sum, row) => sum + row.consumption, 0);
+
+    const sectionFilterDirect = this.normalizeWhitespace(section).toLowerCase();
+    let liveLevelGaugeLiters: number | null = null;
+    if (gaugeRowsDirect.length > 0) {
+      if (!sectionFilterDirect || sectionFilterDirect === 'all') {
+        const vals = gaugeRowsDirect.map((row) => row.liters).filter((value) => Number.isFinite(value));
+        if (vals.length) liveLevelGaugeLiters = vals.reduce((sum, value) => sum + value, 0);
+      } else {
+        const matching = gaugeRowsDirect.find((row) => row.name.toLowerCase() === sectionFilterDirect);
+        if (matching) liveLevelGaugeLiters = matching.liters;
+      }
+    }
+
+    const dbStats = await this.fetchAzsDashboardStats(config, objectKind);
+    const selectedStationName = this.normalizeWhitespace(station);
+
+    return {
+      health: await this.getHealth(),
+      window: {
+        dateFrom: start.toISOString(),
+        dateTo: end.toISOString(),
+        records: dashboardIssuedRows.length,
+        totalLiters: totalLitersResolved,
+        totalLitersRounded: Math.round(totalLitersResolved),
+        totalAmount: 0,
+        liveLevelGaugeLiters,
+      },
+      stats: dbStats.stats,
+      chart,
+      levelChart: [],
+      sections: gaugeRowsDirect.map((row) => ({ name: row.name, records: 0 })),
+      stations: allStationsDirect.map((post) => ({
+        name: post.name,
+        records: selectedStationName && selectedStationName !== 'all' && selectedStationName === post.name ? dashboardIssuedRows.length : 0,
+        liters: selectedStationName && selectedStationName !== 'all' && selectedStationName === post.name ? totalLitersResolved : 0,
+      })),
+      ...(compact ? {} : { fuelTypes: [], anomalies: [] }),
+    };
+    }
 
     // Instead of waiting for the full 10s dashboard stats, we fetch exactly what we need directly.
     let kindFilter = this.azsKindFilterAll;

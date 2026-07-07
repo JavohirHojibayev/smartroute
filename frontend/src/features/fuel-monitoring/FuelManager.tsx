@@ -217,13 +217,6 @@ const FuelPanelGradientHeading = ({ children, className }: { children: ReactNode
     </h3>
 );
 
-const toDateInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
 const formatDateTime = (value: string | null | undefined) => {
     if (!value) return '-';
     const date = new Date(value);
@@ -911,24 +904,22 @@ export const FuelManager = () => {
         () => buildNiceAxis(levelChartData.map((point) => Number(point?.level ?? 0)), 5),
         [levelChartData],
     );
-    const chartYAxisMax = useMemo(() => {
-        const seriesMax = chartData.reduce((max, point) => {
-            const value = Number(point?.consumption ?? 0);
-            return Number.isFinite(value) ? Math.max(max, value) : max;
-        }, 0);
-        const step = seriesMax > 1000 ? 1000 : 200;
-        const paddedMax = seriesMax > 0 ? seriesMax * 1.1 : step;
-        const roundedMax = Math.ceil(paddedMax / step) * step;
-        return Math.max(step * 4, roundedMax);
-    }, [chartData]);
-    const chartYAxisTicks = useMemo(() => {
-        const step = chartYAxisMax > 1000 ? 1000 : 200;
+    const chartYAxis = useMemo(() => {
+        const values = chartData
+            .map((point) => Number(point?.consumption ?? 0))
+            .filter((value) => Number.isFinite(value));
+        const minValue = values.length ? Math.min(...values) : 0;
+        const maxValue = values.length ? Math.max(...values) : 0;
+        const largestAbs = Math.max(Math.abs(minValue), Math.abs(maxValue));
+        const step = largestAbs > 1000 ? 1000 : 200;
+        const min = minValue < 0 ? Math.floor(minValue / step) * step : 0;
+        const max = Math.max(step * 4, Math.ceil(Math.max(maxValue, step) / step) * step);
         const ticks: number[] = [];
-        for (let value = 0; value <= chartYAxisMax; value += step) {
+        for (let value = min; value <= max; value += step) {
             ticks.push(value);
         }
-        return ticks;
-    }, [chartYAxisMax]);
+        return { min, max, ticks };
+    }, [chartData]);
     const totalLiters = Number(summary?.window?.totalLiters ?? 0);
     const totalLitersDisplay =
         summary?.window?.totalLitersRounded != null
@@ -1925,8 +1916,8 @@ export const FuelManager = () => {
                                     tick={{ fontSize: 11 }}
                                     width={40}
                                     unit={t('fuelYAxisLiter')}
-                                    domain={['auto', chartYAxisMax]}
-                                    ticks={chartYAxisTicks}
+                                    domain={[chartYAxis.min, chartYAxis.max]}
+                                    ticks={chartYAxis.ticks}
                                     allowDecimals={false}
                                 />
                                 {/* custom dark tooltip to match Probeg chart tooltip */}
@@ -2162,4 +2153,3 @@ export const FuelManager = () => {
         </div>
     );
 };
-
