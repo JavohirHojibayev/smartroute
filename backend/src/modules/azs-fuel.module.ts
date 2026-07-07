@@ -122,7 +122,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(FuelEntry)
     private readonly fuelRepo: Repository<FuelEntry>,
-  ) {}
+  ) { }
 
   onModuleInit(): void {
     const config = this.getConfig();
@@ -197,8 +197,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       autoSyncEveryMs: Math.max(10000, Math.min(3600000, Number.parseInt(process.env.AZS_AUTO_SYNC_MS ?? '60000', 10) || 60000)),
       staleAfterMs: Math.max(15000, Math.min(3600000, Number.parseInt(process.env.AZS_STALE_AFTER_MS ?? '120000', 10) || 120000)),
       anomalyLiters: Math.max(1, Number.parseFloat(process.env.AZS_ANOMALY_LITERS ?? '120') || 120),
-      fetchPageSize: Math.max(10, Math.min(200, Number.parseInt(process.env.AZS_FETCH_PAGE_SIZE ?? '50', 10) || 50)),
-      fetchMaxPages: Math.max(1, Math.min(50, Number.parseInt(process.env.AZS_FETCH_MAX_PAGES ?? '5', 10) || 5)),
+      fetchPageSize: Math.max(10, Math.min(1000, Number.parseInt(process.env.AZS_FETCH_PAGE_SIZE ?? '200', 10) || 200)),
+      fetchMaxPages: Math.max(1, Math.min(2000, Number.parseInt(process.env.AZS_FETCH_MAX_PAGES ?? '200', 10) || 200)),
       initialBackfillHours: Math.max(1, Math.min(87600, Number.parseInt(process.env.AZS_INITIAL_BACKFILL_HOURS ?? '24', 10) || 24)),
       overlapSeconds: Math.max(30, Math.min(3600, Number.parseInt(process.env.AZS_OVERLAP_SECONDS ?? '120', 10) || 120)),
       retryMaxMs: Math.max(30000, Math.min(3600000, Number.parseInt(process.env.AZS_RETRY_MAX_MS ?? '300000', 10) || 300000)),
@@ -974,9 +974,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const postsForKind = kindAll
       ? postsRaw
       : postsRaw.filter((p: any) => {
-          const did = this.normalizeWhitespace(p?.deviceId ?? p?.DeviceId ?? p?.controllerDeviceId ?? '');
-          return did && allowedDeviceIds.has(did);
-        });
+        const did = this.normalizeWhitespace(p?.deviceId ?? p?.DeviceId ?? p?.controllerDeviceId ?? '');
+        return did && allowedDeviceIds.has(did);
+      });
 
     const kindFilter: AzsObjectKindFilter = {
       kindAll,
@@ -1771,8 +1771,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
   private deviceDisplayName(d: Record<string, any>, index: number): string {
     const name = this.normalizeWhitespace(
       this.pickFirst(d, ['deviceName', 'name', 'controllerName', 'title', 'deviceTitle', 'displayName']) ??
-        d?.deviceName ??
-        d?.name,
+      d?.deviceName ??
+      d?.name,
     );
     if (name) return name;
     const id = this.normalizeWhitespace(d?.deviceId ?? d?.id ?? d?.deviceID ?? '');
@@ -1793,12 +1793,12 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const label = this.normalizeWhitespace(
       String(
         picked ??
-          d?.objectTypeName ??
-          d?.objectTypeString ??
-          d?.deviceTypeName ??
-          d?.typeName ??
-          d?.objectKindName ??
-          '',
+        d?.objectTypeName ??
+        d?.objectTypeString ??
+        d?.deviceTypeName ??
+        d?.typeName ??
+        d?.objectKindName ??
+        '',
       ),
     );
     if (label) return label;
@@ -1848,11 +1848,11 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
           'devicePostStatusName',
           'trkStatusName',
         ]) ??
-          p?.lastTrkStateName ??
-          p?.trkStateName ??
-          p?.devicePostStateName ??
-          p?.stateName ??
-          '',
+        p?.lastTrkStateName ??
+        p?.trkStateName ??
+        p?.devicePostStateName ??
+        p?.stateName ??
+        '',
       ),
     );
     if (text) return text;
@@ -2319,9 +2319,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const nm = this.normalizeWhitespace(
       String(
         this.pickFirst(row, ['fuelTankName', 'name', 'tankName', 'deviceName', 'title']) ??
-          row?.fuelTankName ??
-          row?.name ??
-          '',
+        row?.fuelTankName ??
+        row?.name ??
+        '',
       ),
     );
     if (nm) return nm;
@@ -2807,13 +2807,13 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const kindKey = kindFilter.kindAll
       ? 'all'
       : [
-          ...kindFilter.deviceIds.map((v) => `d:${this.normalizeWhitespace(v)}`),
-          ...kindFilter.postIds.map((v) => `p:${this.normalizeWhitespace(v)}`),
-          ...kindFilter.postNames.map((v) => `n:${this.normalizeWhitespace(v)}`),
-        ]
-          .filter(Boolean)
-          .sort()
-          .join(',');
+        ...kindFilter.deviceIds.map((v) => `d:${this.normalizeWhitespace(v)}`),
+        ...kindFilter.postIds.map((v) => `p:${this.normalizeWhitespace(v)}`),
+        ...kindFilter.postNames.map((v) => `n:${this.normalizeWhitespace(v)}`),
+      ]
+        .filter(Boolean)
+        .sort()
+        .join(',');
     return [
       config.baseUrl,
       kindKey,
@@ -2947,14 +2947,14 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       explicitPaths
         ? explicitPaths.split(',').map((p) => this.normalizePath(p, '')).filter(Boolean)
         : [
-            this.normalizePath(
-              process.env.AZS_LEVEL_EVENTS_PATH || this.deriveAzsDeviceEventsPath(config.eventsPath),
-              '/events/DeviceEvents',
-            ),
-            this.deriveAzsDeviceEventsPath(config.eventsPath),
-            this.normalizePath('/events/DeviceEvents', '/events/DeviceEvents'),
-            this.normalizePath('/api/Events/GetDeviceEvents', '/api/Events/GetDeviceEvents'),
-          ]
+          this.normalizePath(
+            process.env.AZS_LEVEL_EVENTS_PATH || this.deriveAzsDeviceEventsPath(config.eventsPath),
+            '/events/DeviceEvents',
+          ),
+          this.deriveAzsDeviceEventsPath(config.eventsPath),
+          this.normalizePath('/events/DeviceEvents', '/events/DeviceEvents'),
+          this.normalizePath('/api/Events/GetDeviceEvents', '/api/Events/GetDeviceEvents'),
+        ]
     ).filter((p, i, arr) => arr.indexOf(p) === i);
 
     const pageSize = Math.max(
@@ -3389,8 +3389,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       return { start, end };
     }
 
-    const fromStr = dateFrom ?? dateTo;
-    const toStr = dateTo ?? dateFrom ?? fromStr;
+    const fromStr = (dateFrom ?? dateTo)!.split('T')[0];
+    const toStr = (dateTo ?? dateFrom ?? fromStr)!.split('T')[0];
     const start = new Date(`${fromStr}T00:00:00.000${tz}`);
     const end = new Date(`${toStr}T23:59:59.999${tz}`);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
@@ -3453,17 +3453,17 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
 
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
     const config = this.getConfig();
-    
+
     let allRows: ExternalFuelRow[] = [];
     let kindFilter = this.azsKindFilterAll;
 
     if (config.enabled) {
       const ctx = await this.loadAzsObjectKindContext(config, objectKind).catch(() => null);
       if (ctx) {
-         kindFilter = ctx.kindFilter;
-         if (ctx.token) {
-           allRows = await this.fetchEventsInRange(config, ctx.token, start, end).catch(() => []);
-         }
+        kindFilter = ctx.kindFilter;
+        if (ctx.token) {
+          allRows = await this.fetchEventsInRange(config, ctx.token, start, end).catch(() => []);
+        }
       }
     }
 
@@ -3472,7 +3472,8 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
 
     const filteredRows = allRows.filter((row) => {
       const p = row.payload || {};
-      if (p.eventsType !== 131 && p.eventsType !== 132) return false;
+      const actualEventType = row.eventType || (row as any).eventsType || p.eventsType || p.eventType;
+      if (actualEventType !== 131 && actualEventType !== 132) return false;
       if (!this.externalRowMatchesKindFilter(row, kindFilter)) return false;
       if (stationFilter && stationFilter !== 'all') {
         const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? '')).toLowerCase();
@@ -3499,7 +3500,9 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
 
     const getIssuedValue = (p: any, row: any) => {
       const vVirtual = parseVal(p.issuedVirtual) ?? (p.issuedVolumeVirtual != null ? parseVal(p.issuedVolumeVirtual) * 1000 : null) ?? (p.differenceRefuelVolume != null ? parseVal(p.differenceRefuelVolume) * 1000 : null);
-      if (opsMode === 'dut') {
+      if (opsMode === 'liters') {
+        return row.liters ?? parseVal(p.value) ?? null;
+      } else if (opsMode === 'dut') {
         return parseVal(p.issuedDut) ?? vVirtual ?? row.liters ?? null;
       } else if (opsMode === 'virtual') {
         return vVirtual ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? null;
@@ -3564,7 +3567,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const compact = ['1', 'true', 'yes', 'on'].includes(this.normalizeWhitespace(compactRaw).toLowerCase());
 
     const { start, end } = this.parseDateBoundaries(dateFrom, dateTo);
-    
+
     // Instead of waiting for the full 10s dashboard stats, we fetch exactly what we need directly.
     let kindFilter = this.azsKindFilterAll;
     let azsToken = '';
@@ -3580,25 +3583,25 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
         if (azsToken) {
           // Fetch events in 7-day chunks to avoid 2000 events API limit
           const fetchAllEventsChunked = async () => {
-             const allRows: ExternalFuelRow[] = [];
-             let currentStart = new Date(start);
-             while (currentStart < end) {
-                const chunkEnd = new Date(Math.min(currentStart.getTime() + 7 * 24 * 3600 * 1000, end.getTime()));
-                const chunkRows = await this.fetchEventsInRange(config, azsToken, currentStart, chunkEnd).catch(() => []);
-                allRows.push(...chunkRows);
-                currentStart = new Date(chunkEnd.getTime() + 1000);
-             }
-             const unique = new Map<string, ExternalFuelRow>();
-             for (const r of allRows) unique.set(r.externalId, r);
-             return Array.from(unique.values());
+            const allRows: ExternalFuelRow[] = [];
+            let currentStart = new Date(start);
+            while (currentStart < end) {
+              const chunkEnd = new Date(Math.min(currentStart.getTime() + 7 * 24 * 3600 * 1000, end.getTime()));
+              const chunkRows = await this.fetchEventsInRange(config, azsToken, currentStart, chunkEnd).catch(() => []);
+              allRows.push(...chunkRows);
+              currentStart = new Date(chunkEnd.getTime() + 1000);
+            }
+            const unique = new Map<string, ExternalFuelRow>();
+            for (const r of allRows) unique.set(r.externalId, r);
+            return Array.from(unique.values());
           };
 
           const [rows, sectionsInfo] = await Promise.all([
-             fetchAllEventsChunked().catch(() => []),
-             this.fetchAllFuelTankSections(config, azsToken).catch(() => [])
+            fetchAllEventsChunked().catch((e) => { console.error("FETCH ERROR:", e); return []; }),
+            this.fetchAllFuelTankSections(config, azsToken).catch(() => [])
           ]);
           apiChartRows = rows;
-          
+
           gaugeRows = sectionsInfo.map((sec: any) => ({
             name: this.normalizeWhitespace(String(sec?.name ?? "Noma'lum")),
             liters: Number.parseFloat(String(sec?.volume ?? '0')) || 0,
@@ -3607,17 +3610,18 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
           allStations = ctx.postsForKind.map((p: any) => ({
             id: Number(p?.devicePostId ?? 0),
             name: String(p?.devicePostName ?? ''),
-          })).filter((p: {id: number, name: string}) => p.name);
+          })).filter((p: { id: number, name: string }) => p.name);
         }
       }
     }
 
     const stationFilter = this.normalizeWhitespace(station).toLowerCase();
     const sectionFilter = this.normalizeWhitespace(section).toLowerCase();
-    
+
     const filteredRows = apiChartRows.filter((row) => {
       const p = row.payload || {};
-      if (p.eventsType !== 131 && p.eventsType !== 132) return false;
+      const actualEventType = row.eventType || (row as any).eventsType || p.eventsType || p.eventType;
+      if (actualEventType !== 131 && actualEventType !== 132) return false;
       if (!this.externalRowMatchesKindFilter(row, kindFilter)) return false;
       if (stationFilter && stationFilter !== 'all') {
         const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? '')).toLowerCase();
@@ -3636,109 +3640,115 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       const v = typeof x === 'number' ? x : Number.parseFloat(String(x).replace(',', '.'));
       return Number.isFinite(v) ? v : null;
     };
-    
+
     let totalCountResolved = 0;
     let totalLitersResolved = 0;
     let totalAmountResolved = 0;
-    
+
     const fuelTypeMap = new Map<string, number>();
     const stationMap = new Map<string, { records: number; liters: number }>();
     const sectionMap = new Map<string, { records: number }>();
     const dailyMap = new Map<string, { liters: number; amount: number; records: number }>();
-    
+
     const sameDay = this.azsCalendarYmdFromInstant(start) === this.azsCalendarYmdFromInstant(end);
-    
+
     for (const row of filteredRows) {
-       const p = row.payload || {};
-       let issuedLiters = 0;
-       if (sumMode === 'dut') {
-          issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? 0;
-       } else if (sumMode === 'virtual') {
-          issuedLiters = parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? 0;
-       } else if (sumMode === 'hybrid') {
-          issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? 0;
-       } else {
-          issuedLiters = parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? 0;
-       }
-       const amount = row.amount || 0;
-       
-       totalCountResolved++;
-       totalLitersResolved += issuedLiters;
-       totalAmountResolved += amount;
-       
-       const fuelType = row.fuelType || "Noma'lum";
-       fuelTypeMap.set(fuelType, (fuelTypeMap.get(fuelType) || 0) + issuedLiters);
-       
-       const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? "Noma'lum"));
-       const st = stationMap.get(rowStation) || { records: 0, liters: 0 };
-       st.records++;
-       st.liters += issuedLiters;
-       stationMap.set(rowStation, st);
-       
-       const rowSection = this.normalizeWhitespace(String(p.fuelSectionName ?? p.devicePostName ?? p.fuelTankName ?? "Noma'lum"));
-       const sec = sectionMap.get(rowSection) || { records: 0 };
-       sec.records++;
-       sectionMap.set(rowSection, sec);
-       
-       const localTime = new Date(row.eventTime.getTime() + 5 * 3600 * 1000);
-       const bucketHour = localTime.toISOString().substring(11, 13) + ':00';
-       const bucketDay = this.azsCalendarYmdFromInstant(row.eventTime);
-       const key = sameDay ? bucketHour : bucketDay;
-       
-       const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
-       d.liters += issuedLiters;
-       d.amount += amount;
-       d.records++;
-       dailyMap.set(key, d);
+      const p = row.payload || {};
+      let issuedLiters = 0;
+      if (sumMode === 'liters') {
+        issuedLiters = row.liters ?? parseVal(p.value) ?? 0;
+      } else if (sumMode === 'dut') {
+        issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? 0;
+      } else if (sumMode === 'virtual') {
+        issuedLiters = parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? 0;
+      } else if (sumMode === 'hybrid') {
+        issuedLiters = parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? 0;
+      } else {
+        issuedLiters = parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? 0;
+      }
+      const amount = row.amount || 0;
+
+      totalCountResolved++;
+      totalLitersResolved += issuedLiters; console.log("Adding:", issuedLiters, "row.liters:", row.liters);
+      totalAmountResolved += amount;
+
+      const fuelType = row.fuelType || "Noma'lum";
+      fuelTypeMap.set(fuelType, (fuelTypeMap.get(fuelType) || 0) + issuedLiters);
+
+      const rowStation = this.normalizeWhitespace(String(p.devicePostName ?? row.stationName ?? "Noma'lum"));
+      const st = stationMap.get(rowStation) || { records: 0, liters: 0 };
+      st.records++;
+      st.liters += issuedLiters;
+      stationMap.set(rowStation, st);
+
+      const rowSection = this.normalizeWhitespace(String(p.fuelSectionName ?? p.devicePostName ?? p.fuelTankName ?? "Noma'lum"));
+      const sec = sectionMap.get(rowSection) || { records: 0 };
+      sec.records++;
+      sectionMap.set(rowSection, sec);
+
+      const localTime = new Date(row.eventTime.getTime() + 5 * 3600 * 1000);
+      const bucketHour = localTime.toISOString().substring(11, 13) + ':00';
+      const bucketDay = this.azsCalendarYmdFromInstant(row.eventTime);
+      const key = sameDay ? bucketHour : bucketDay;
+
+      const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+      d.liters += issuedLiters;
+      d.amount += amount;
+      d.records++;
+      dailyMap.set(key, d);
     }
-    
+
     const chart: Array<{ day: string; consumption: number; cost: number }> = [];
     if (sameDay) {
-       for (let hour = 0; hour < 24; hour++) {
-          const key = String(hour).padStart(2, '0') + ':00';
-          const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+      const sortedHours = Array.from(dailyMap.keys()).sort();
+      for (const key of sortedHours) {
+        const d = dailyMap.get(key)!;
+        if (d.records > 0 || d.liters > 0) {
           chart.push({
-             day: key,
-             consumption: Math.round(d.liters * 100) / 100,
-             cost: Math.round(d.amount * 100) / 100
+            day: key,
+            consumption: Math.round(d.liters * 100) / 100,
+            cost: Math.round(d.amount * 100) / 100
           });
-       }
+        }
+      }
     } else {
-       for (const key of this.eachAzsDayKeyBetween(start, end)) {
-          const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+      for (const key of this.eachAzsDayKeyBetween(start, end)) {
+        const d = dailyMap.get(key) || { liters: 0, amount: 0, records: 0 };
+        if (d.records > 0 || d.liters > 0) {
           chart.push({
-             day: this.formatShortDate(key),
-             consumption: Math.round(d.liters * 100) / 100,
-             cost: Math.round(d.amount * 100) / 100
+            day: this.formatShortDate(key),
+            consumption: Math.round(d.liters * 100) / 100,
+            cost: Math.round(d.amount * 100) / 100
           });
-       }
+        }
+      }
     }
-    
+
     const anomalyLiters = config.anomalyLiters || 120;
     filteredRows.sort((a, b) => b.eventTime.getTime() - a.eventTime.getTime());
     const anomalies = compact ? [] : filteredRows.filter(r => (r.liters || 0) >= anomalyLiters).slice(0, 5).map(r => ({
-       id: r.externalId,
-       vehicle: r.vehicleNumber || '-',
-       time: this.sqliteToIso(r.eventTime),
-       type: "Me'yordan ortiq sarf",
-       amount: `${r.liters}L`,
-       status: 'warning'
+      id: r.externalId,
+      vehicle: r.vehicleNumber || '-',
+      time: this.sqliteToIso(r.eventTime),
+      type: "Me'yordan ortiq sarf",
+      amount: `${r.liters}L`,
+      status: 'warning'
     }));
 
     let liveLevelGaugeLiters: number | null = null;
     if (gaugeRows.length > 0) {
       if (!sectionFilter || sectionFilter === 'all') {
-         const vals = gaugeRows.map(r => r.liters).filter(v => Number.isFinite(v));
-         if (vals.length) {
-            const aggMode = this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'max').toLowerCase();
-            liveLevelGaugeLiters = aggMode === 'avg' ? vals.reduce((a,b)=>a+b,0)/vals.length : Math.max(...vals);
-         }
+        const vals = gaugeRows.map(r => r.liters).filter(v => Number.isFinite(v));
+        if (vals.length) {
+          const aggMode = this.normalizeWhitespace(process.env.AZS_LEVEL_ALL_SECTIONS_AGG || 'max').toLowerCase();
+          liveLevelGaugeLiters = aggMode === 'avg' ? vals.reduce((a, b) => a + b, 0) / vals.length : Math.max(...vals);
+        }
       } else {
-         const matching = gaugeRows.find(r => r.name.toLowerCase() === sectionFilter);
-         if (matching) liveLevelGaugeLiters = matching.liters;
+        const matching = gaugeRows.find(r => r.name.toLowerCase() === sectionFilter);
+        if (matching) liveLevelGaugeLiters = matching.liters;
       }
     }
-    
+
     const dbStats = await this.fetchAzsDashboardStats(config, objectKind); const dummyStats = dbStats.stats;
 
     return {
@@ -3757,15 +3767,15 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
       levelChart: [],
       sections: Array.from(sectionMap.entries()).map(([name, data]) => ({ name, records: data.records })),
       stations: allStations.length > 0 ? allStations.map(s => {
-          const m = stationMap.get(s.name);
-          return { name: s.name, records: m?.records || 0, liters: m?.liters || 0 };
+        const m = stationMap.get(s.name);
+        return { name: s.name, records: m?.records || 0, liters: m?.liters || 0 };
       }) : Array.from(stationMap.entries()).map(([name, data]) => ({ name, records: data.records, liters: data.liters })),
       ...(compact ? {} : {
-         fuelTypes: Array.from(fuelTypeMap.entries()).map(([type, liters]) => ({
-             key: type.toLowerCase().replace(/\s+/g, '_'),
-             type,
-             liters
-         }))
+        fuelTypes: Array.from(fuelTypeMap.entries()).map(([type, liters]) => ({
+          key: type.toLowerCase().replace(/\s+/g, '_'),
+          type,
+          liters
+        }))
       }),
       ...(compact ? {} : { anomalies }),
     };
@@ -3775,7 +3785,7 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
 
 @Controller('integrations/fuel/azs')
 export class AzsFuelController {
-  constructor(private readonly service: AzsFuelService) {}
+  constructor(private readonly service: AzsFuelService) { }
 
   @Get('health')
   async health() {
@@ -3851,4 +3861,4 @@ export class AzsFuelController {
   controllers: [AzsFuelController],
   providers: [AzsFuelService],
 })
-export class AzsFuelModule {}
+export class AzsFuelModule { }
