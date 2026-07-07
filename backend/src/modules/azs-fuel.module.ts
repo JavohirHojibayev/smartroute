@@ -520,10 +520,10 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     const driverName = this.normalizeWhitespace(
       this.pickFirst(row, ['driver', 'driverName', 'employee', 'operator']),
     ) || null;
-    // AZS "Выдано по счётчику" grafik Итого = issuedDut (DUT sensori bilan o'lchangan)
-    // value = hisoblagich buyurmasi (zakazano), issuedDut = haqiqiy berilgan
+    // AZS "Выдано по счётчику" grafik Итого = issuedVirtual (virtual schyotchik)
+    // value = hisoblagich buyurmasi (zakazano), issuedVirtual = haqiqiy berilgan (schyotchik bo'yicha)
     let liters = this.parseNumber(
-      row?.issuedDut ?? row?.issuedVirtual ?? row?.differenceRefuel ?? row?.issuedValue ?? row?.liters ?? row?.volume ?? row?.quantity ?? row?.amountL ?? row?.fuelVolume,
+      row?.issuedVirtual ?? row?.issuedDut ?? row?.differenceRefuel ?? row?.issuedValue ?? row?.liters ?? row?.volume ?? row?.quantity ?? row?.amountL ?? row?.fuelVolume,
     );
     if (liters == null) {
       const volumeVirtual = this.parseNumber(row?.issuedVolumeVirtual ?? row?.differenceRefuelVolume);
@@ -3498,14 +3498,15 @@ export class AzsFuelService implements OnModuleInit, OnModuleDestroy {
     };
 
     const getIssuedValue = (p: any, row: any) => {
+      const vVirtual = parseVal(p.issuedVirtual) ?? (p.issuedVolumeVirtual != null ? parseVal(p.issuedVolumeVirtual) * 1000 : null) ?? (p.differenceRefuelVolume != null ? parseVal(p.differenceRefuelVolume) * 1000 : null);
       if (opsMode === 'dut') {
-        return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? row.liters ?? null;
+        return parseVal(p.issuedDut) ?? vVirtual ?? row.liters ?? null;
       } else if (opsMode === 'virtual') {
-        return parseVal(p.issuedVirtual) ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? null;
+        return vVirtual ?? parseVal(p.issuedDut) ?? parseVal(p.differenceRefuel) ?? parseVal(p.value) ?? row.liters ?? null;
       } else if (opsMode === 'hybrid') {
-        return parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? null;
+        return parseVal(p.issuedDut) ?? vVirtual ?? parseVal(p.differenceRefuel) ?? parseVal(p.issuedValue) ?? parseVal(p.value) ?? row.liters ?? null;
       }
-      return parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? parseVal(p.issuedVirtual) ?? parseVal(p.differenceRefuel) ?? row.liters ?? null;
+      return parseVal(p.value) ?? parseVal(p.issuedValue) ?? parseVal(p.issuedDut) ?? vVirtual ?? parseVal(p.differenceRefuel) ?? row.liters ?? null;
     };
 
     return {

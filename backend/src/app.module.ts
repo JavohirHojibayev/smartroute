@@ -24,7 +24,7 @@ import { ToolsModule } from './modules/tools.module';
   imports: [
     ThrottlerModule.forRoot([{
       ttl: 60000,
-      limit: 100,
+      limit: 5000,
     }]),
     DatabaseModule, WorkflowsModule, IntegrationsModule, ReportingModule, EsmoModule, DashboardModule, AuthModule, EimzoAuthModule, UsersModule, MechanicModule, OneCModule, AzsFuelModule, GarvexTrackingModule, TransportRegistryModule, ShiftScheduleModule, WaybillPdfEditorModule, ToolsModule
   ],
