@@ -52,7 +52,13 @@ scripts/turnstile-backups/
 # Docker
 docker-compose.override.yml
 
-
 # Local backups
 backups/
 **/backups/
+
+# Temp data files
+azs_*.json
+ops_dump.json
+sr_summary.json
+raw_events.json
+_cleanup-candidates/
