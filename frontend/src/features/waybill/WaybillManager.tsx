@@ -10,6 +10,7 @@ import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
 import yolVaraqasiPdfUrl from '../../assets/000000.pdf?url';
 import { WaybillFormModal } from './WaybillFormModal';
 import { WaybillSignModal } from './WaybillSignModal';
+import { WaybillDetailsModal } from './WaybillDetailsModal';
 
 type EsmoHealthStatus = 'passed' | 'review' | 'failed';
 
@@ -138,6 +139,8 @@ export const WaybillManager = () => {
     const [waybillFormInitialValues, setWaybillFormInitialValues] = useState<Record<string, string> | undefined>(undefined);
     const [isSignModalOpen, setIsSignModalOpen] = useState(false);
     const [signTargetRow, setSignTargetRow] = useState<WaybillRow | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [detailsTargetRow, setDetailsTargetRow] = useState<WaybillRow | null>(null);
     const [approvalInfo, setApprovalInfo] = useState<{ signedBy: string; signedAt: string } | null>(null);
     const [signedWaybills, setSignedWaybills] = useState<Record<string, { signedBy: string; signedAt: string }>>({});
 
@@ -358,6 +361,11 @@ export const WaybillManager = () => {
         });
         setAutoDownload(true);
         setIsWaybillFormOpen(true);
+    };
+
+    const handleDetailsClick = (row: WaybillRow) => {
+        setDetailsTargetRow(row);
+        setIsDetailsModalOpen(true);
     };
 
     const handleApproveClick = (row: WaybillRow) => {
@@ -616,9 +624,11 @@ export const WaybillManager = () => {
                         <thead>
                             <tr className="bg-slate-900/50 text-slate-300 text-xs uppercase tracking-wide">
                                 <th className="px-4 md:px-6 py-4 !font-normal">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">Ma'lumotlar</th>
                                 <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
                                 <th className="px-4 md:px-6 py-4 !font-normal border-l border-slate-700/50">{tCols.name}</th>
+                                <th className="px-4 md:px-6 py-4 text-center">Ma'lumotlar</th>
                                 <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
                             </tr>
@@ -661,6 +671,16 @@ export const WaybillManager = () => {
                                                 </div>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDetailsClick(rowA)}
+                                            className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-blue-400"
+                                            title="Ma'lumotlar"
+                                        >
+                                            <FileText size={20} />
+                                        </button>
                                     </td>
                                     <td className="px-4 md:px-6 py-4 text-center">
                                         <button
@@ -740,6 +760,20 @@ export const WaybillManager = () => {
                                         {rowB ? (
                                             <button
                                                 type="button"
+                                                onClick={() => handleDetailsClick(rowB)}
+                                                className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-blue-400"
+                                                title="Ma'lumotlar"
+                                            >
+                                                <FileText size={20} />
+                                            </button>
+                                        ) : (
+                                            <span className="text-slate-500">-</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        {rowB ? (
+                                            <button
+                                                type="button"
                                                 onClick={() => handleApproveClick(rowB)}
                                                 className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
                                                     signedWaybills[rowB.id] 
@@ -782,7 +816,7 @@ export const WaybillManager = () => {
                             ))}
                             {!loading && totalRowsCount === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-400 text-sm">
+                                    <td colSpan={8} className="px-6 py-8 text-center text-slate-400 text-sm">
                                         {t('dataNotFound')}
                                     </td>
                                 </tr>
@@ -849,6 +883,12 @@ export const WaybillManager = () => {
                     autoDownload={autoDownload}
                 />
             )}
+
+            <WaybillDetailsModal
+                open={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)}
+                data={detailsTargetRow}
+            />
 
             <WaybillSignModal
                 open={isSignModalOpen}
