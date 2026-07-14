@@ -153,9 +153,6 @@ export const WaybillSignModal = ({ open, driverName, onClose, onSigned }: Waybil
                             <h3 className="text-sm font-bold text-slate-100">
                                 E-IMZO bilan tasdiqlash
                             </h3>
-                            <p className="text-xs text-slate-400 mt-0.5 max-w-[240px] truncate">
-                                {driverName}
-                            </p>
                         </div>
                     </div>
                     <button
