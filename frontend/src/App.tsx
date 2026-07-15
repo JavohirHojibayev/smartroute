@@ -1289,12 +1289,12 @@ function App() {
           className="p-6 flex items-center gap-3 text-left group"
         >
           <img
-            src="/smartroute-logo.svg"
-            alt="SmartRoute logo"
-            className="w-10 h-10 rounded-xl shadow-lg shadow-blue-500/30 transition-transform duration-300 group-hover:scale-105"
+            src="/logo1.png"
+            alt="MainTrack logo"
+            className="h-7 w-auto object-contain shrink-0 transition-transform duration-300 group-hover:scale-105"
           />
-          <h1 className="brand-title font-bold text-lg tracking-wide uppercase">
-            SmartRoute
+          <h1 className="brand-title text-blue-500 font-extrabold text-lg tracking-wide uppercase">
+            MainTrack
           </h1>
         </button>
         <nav className="flex-1 p-4 space-y-2 -mt-px">
@@ -1341,12 +1341,12 @@ function App() {
               className="md:hidden flex items-center gap-1.5 sm:gap-2 text-left min-w-0"
             >
               <img
-                src="/smartroute-logo.svg"
-                alt="SmartRoute logo"
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg shadow-lg shadow-blue-500/20 shrink-0"
+                src="/logo1.png"
+                alt="MainTrack logo"
+                className="h-6 w-auto sm:h-7 object-contain shrink-0"
               />
-              <span className="brand-title font-bold text-sm sm:text-base tracking-wide uppercase truncate max-w-[80px] min-[380px]:max-w-[140px]">
-                SmartRoute
+              <span className="brand-title text-blue-500 font-extrabold text-sm sm:text-base tracking-wide uppercase truncate max-w-[80px] min-[380px]:max-w-[140px]">
+                MainTrack
               </span>
             </button>
             {hideHeaderTitle ? <div className="hidden md:block" /> : <h2 className="hidden md:block text-2xl font-semibold">{t(activeTab as any)}</h2>}
@@ -1513,11 +1513,11 @@ function App() {
                     className="flex items-center gap-3 text-left"
                   >
                     <img
-                      src="/smartroute-logo.svg"
-                      alt="SmartRoute logo"
-                      className="w-10 h-10 rounded-xl shadow-lg shadow-blue-500/30"
+                      src="/logo1.png"
+                      alt="MainTrack logo"
+                      className="h-7 w-auto object-contain shrink-0"
                     />
-                    <h1 className="brand-title font-bold text-lg tracking-wide uppercase">SmartRoute</h1>
+                    <h1 className="brand-title text-blue-500 font-extrabold text-lg tracking-wide uppercase">MainTrack</h1>
                   </button>
                   <button
                     type="button"

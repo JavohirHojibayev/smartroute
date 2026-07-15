@@ -42,8 +42,13 @@ export const LoginPage = ({
   }, [eimzoError, mode]);
 
   return (
-    <div className={`app-shell min-h-screen text-slate-100 ${theme === 'light' ? 'theme-light' : 'theme-dark'} login-page`}>
-      <div className="absolute inset-0 pointer-events-none overflow-hidden login-blobs">
+    <div 
+      className={`app-shell min-h-screen text-slate-100 ${theme === 'light' ? 'theme-light' : 'theme-dark'} login-page`}
+      style={{ backgroundImage: "url('/01.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+    >
+      <div className="absolute inset-0 bg-slate-900/80 pointer-events-none z-0"></div>
+
+      <div className="absolute inset-0 pointer-events-none overflow-hidden login-blobs z-0 opacity-80">
         <motion.div
           className="absolute top-0 left-0 h-[36rem] w-[36rem] rounded-full bg-blue-500/35 blur-[145px]"
           animate={{
@@ -90,11 +95,11 @@ export const LoginPage = ({
           <div className="mb-7 flex items-center justify-between gap-3 sm:mb-8">
             <div className="flex items-center gap-3">
               <img
-                src="/smartroute-logo.svg"
+                src="/logo1.png"
                 alt={t.smartRouteLogoAlt}
-                className="h-9 w-9 rounded-xl shadow-lg shadow-blue-500/30 sm:h-10 sm:w-10"
+                className="h-7 w-auto sm:h-8 object-contain shrink-0"
               />
-              <p className="brand-title text-base font-bold uppercase tracking-wide sm:text-lg">SmartRoute</p>
+              <p className="brand-title text-blue-500 text-base font-extrabold uppercase tracking-wide sm:text-lg">MainTrack</p>
             </div>
 
             <div className="flex items-center gap-2">
