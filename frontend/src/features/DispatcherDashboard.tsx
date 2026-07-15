@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Car, Navigation, Wrench, Clock, Pickaxe, FileText, Table2 } from 'lucide-react';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 interface DispatcherRow {
   id: number;

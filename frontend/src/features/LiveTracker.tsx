@@ -36,21 +36,21 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import { useI18n } from '../../i18n';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
+import { useI18n } from '../i18n';
+import { resolveApiBaseUrl } from '../utils/apiBase';
 
 import 'leaflet/dist/leaflet.css';
 // (No local CSS variables needed here)
-import isuzuPng from '../../assets/icon/avtobus(isuzu).png';
-import karaPng from '../../assets/icon/kara.png';
-import pogruzchikPng from '../../assets/icon/pagruzchik.png';
-import gazelPng from '../../assets/icon/gazel.png';
-import manPng from '../../assets/icon/man.png';
-import chakmanPng from '../../assets/icon/man.png';
-import sedanPng from '../../assets/icon/sedan.png';
-import traktorPng from '../../assets/icon/traktor.png';
-import ekskovatorPng from '../../assets/icon/ekskovator.png';
-import vodavozPng from '../../assets/icon/vodavoz.png';
+import isuzuPng from '../assets/icon/avtobus(isuzu).png';
+import karaPng from '../assets/icon/kara.png';
+import pogruzchikPng from '../assets/icon/pagruzchik.png';
+import gazelPng from '../assets/icon/gazel.png';
+import manPng from '../assets/icon/man.png';
+import chakmanPng from '../assets/icon/man.png';
+import sedanPng from '../assets/icon/sedan.png';
+import traktorPng from '../assets/icon/traktor.png';
+import ekskovatorPng from '../assets/icon/ekskovator.png';
+import vodavozPng from '../assets/icon/vodavoz.png';
 
 type VehicleState = 'moving' | 'stopped' | 'offline';
 type VehicleKind = 'car' | 'truck' | 'forklift' | 'loader';

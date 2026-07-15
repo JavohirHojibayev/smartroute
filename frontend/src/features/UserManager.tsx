@@ -16,9 +16,9 @@ import {
   EyeOff,
   RefreshCw,
 } from 'lucide-react';
-import { useI18n } from '../../i18n';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import eImzoIcon from '../../assets/e-imzo.png';
+import { useI18n } from '../i18n';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import eImzoIcon from '../assets/e-imzo.png';
 import {
   bindEimzoKeyToUser,
   formatEimzoKeyLocation,
@@ -26,8 +26,8 @@ import {
   getEimzoKeys,
   getEimzoKeyIdentity,
   isEimzoApiKeyErrorMessage,
-} from '../../features/auth/eimzo/eimzo.service';
-import type { EimzoKey } from '../../features/auth/eimzo/eimzo.types';
+} from '../features/auth/eimzo/eimzo.service';
+import type { EimzoKey } from '../features/auth/eimzo/eimzo.types';
 import {
   type AppRole,
   type PermissionLevel,
@@ -37,7 +37,7 @@ import {
   getEffectivePermissionLevel,
   normalizePermissionMap,
   normalizePermissionSelection,
-} from '../../permissions';
+} from '../permissions';
 
 type RoleKey = 'admin' | 'dispatcher' | 'user';
 type StatusKey = 'active' | 'inactive';

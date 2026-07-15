@@ -49,46 +49,46 @@ import {
 } from './permissions';
 
 const SmartStartWorkflow = lazy(() =>
-  import('./features/smart-start/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
+  import('./features/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
 );
 const FleetManager = lazy(() =>
-  import('./features/transport/FleetManager').then((module) => ({ default: module.FleetManager })),
+  import('./features/FleetManager').then((module) => ({ default: module.FleetManager })),
 );
 const DispatcherDashboard = lazy(() =>
-  import('./features/dashboard/DispatcherDashboard').then((module) => ({ default: module.DispatcherDashboard })),
+  import('./features/DispatcherDashboard').then((module) => ({ default: module.DispatcherDashboard })),
 );
 const DriverManager = lazy(() =>
-  import('./features/drivers/DriverManager').then((module) => ({ default: module.DriverManager })),
+  import('./features/DriverManager').then((module) => ({ default: module.DriverManager })),
 );
 const FuelManager = lazy(() =>
-  import('./features/fuel-monitoring/FuelManager').then((module) => ({ default: module.FuelManager })),
+  import('./features/FuelManager').then((module) => ({ default: module.FuelManager })),
 );
 const WaybillManager = lazy(() =>
   import('./features/waybill/WaybillManager').then((module) => ({ default: module.WaybillManager })),
 );
 const LiveTracker = lazy(() =>
-  import('./features/gps-monitoring/LiveTracker').then((module) => ({ default: module.LiveTracker })),
+  import('./features/LiveTracker').then((module) => ({ default: module.LiveTracker })),
 );
 const AccessControlManager = lazy(() =>
-  import('./features/turniket-jurnal/AccessControlManager').then((module) => ({ default: module.AccessControlManager })),
+  import('./features/AccessControlManager').then((module) => ({ default: module.AccessControlManager })),
 );
 const MedicalManager = lazy(() =>
-  import('./features/esmo-jurnal/MedicalManager').then((module) => ({ default: module.MedicalManager })),
+  import('./features/MedicalManager').then((module) => ({ default: module.MedicalManager })),
 );
 const ShiftScheduleManager = lazy(() =>
-  import('./features/shift-schedule/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
+  import('./features/ShiftScheduleManager').then((module) => ({ default: module.ShiftScheduleManager })),
 );
 const ToolsManager = lazy(() =>
-  import('./features/tools/ToolsManager').then((module) => ({ default: module.ToolsManager })),
+  import('./features/ToolsManager').then((module) => ({ default: module.ToolsManager })),
 );
 const MechanicManager = lazy(() =>
-  import('./features/maintenance/MechanicManager').then((module) => ({ default: module.MechanicManager })),
+  import('./features/MechanicManager').then((module) => ({ default: module.MechanicManager })),
 );
 const CargoManager = lazy(() =>
-  import('./features/cargo-volume/CargoManager').then((module) => ({ default: module.CargoManager })),
+  import('./features/CargoManager').then((module) => ({ default: module.CargoManager })),
 );
 const UserManager = lazy(() =>
-  import('./features/users/UserManager').then((module) => ({ default: module.UserManager })),
+  import('./features/UserManager').then((module) => ({ default: module.UserManager })),
 );
 
 type AuthUser = {
@@ -326,8 +326,14 @@ function App() {
         });
 
         if (!response.ok) {
-          window.localStorage.removeItem(AUTH_STORAGE_KEY);
-          setAuthSession(null);
+          // Agar server ishga tushayotgan bo'lsa (502/504), tokenni o'chirmaymiz.
+          if (response.status !== 502 && response.status !== 504) {
+            window.localStorage.removeItem(AUTH_STORAGE_KEY);
+            setAuthSession(null);
+          } else {
+            // Server hali tayyor emas, lekin localda sessiya bor, shunchaki o'tkazib yuboramiz.
+            setAuthSession(parsed);
+          }
           setAuthLoading(false);
           return;
         }
@@ -385,7 +391,13 @@ function App() {
       });
       setDashboardError(null);
     } catch (error) {
-      setDashboardError(error instanceof Error ? error.message : 'Dashboard ma\'lumotlarini olishda xatolik');
+      const message = error instanceof Error ? error.message : 'Dashboard ma\'lumotlarini olishda xatolik';
+      // Tarmoq xatoliklarida (backend hali ishga tushmagan) foydalanuvchiga tushunarli xabar
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setDashboardError("Server bilan aloqa yo'q. Backend ishga tushishini kuting.");
+      } else {
+        setDashboardError(message);
+      }
     } finally {
       if (!silent) {
         setDashboardLoading(false);
@@ -493,6 +505,10 @@ function App() {
           password: credentials.password,
         }),
       });
+
+      if (response.status === 502 || response.status === 504) {
+        throw new Error("Server ishga tushmoqda yoki aloqa yo'q. Iltimos biroz kuting va qayta urinib ko'ring.");
+      }
 
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.token || !payload?.user) {

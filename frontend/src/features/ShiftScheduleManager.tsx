@@ -4,10 +4,10 @@ import { Table2, FileText, PlusCircle, X, Save, LogOut } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { downloadXlsSections } from '../../utils/exportXls';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { downloadXlsSections } from '../utils/exportXls';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 const API_BASE = resolveApiBaseUrl();
 

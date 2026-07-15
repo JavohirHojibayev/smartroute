@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Search, Table2, FileText, Plus, X, Save, Pencil, Trash2, Car, User, Users, FileBadge2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { downloadXls } from '../../utils/exportXls';
-import { type DriverIdentity, type TransportRecord } from '../../data/transportRegistry';
-import { loadTransportRegistry, saveTransportRegistry } from '../../data/transportStore';
-import { useI18n } from '../../i18n';
+import { downloadXls } from '../utils/exportXls';
+import { type DriverIdentity, type TransportRecord } from '../data/transportRegistry';
+import { loadTransportRegistry, saveTransportRegistry } from '../data/transportStore';
+import { useI18n } from '../i18n';
 
 type DriverSlot = '1-haydovchi' | '2-haydovchi';
 

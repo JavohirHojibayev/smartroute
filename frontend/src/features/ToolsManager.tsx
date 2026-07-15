@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Search, Table2, FileText, CheckCircle2, HardHat, Clock, Filter, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { downloadXls } from '../../utils/exportXls';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { downloadXls } from '../utils/exportXls';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 /* ---------- Row type used by lamp-self-rescuer API ---------- */
 type ToolIssueRow = {

@@ -18,10 +18,10 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { useI18n, numberLocaleFor, uz } from '../../i18n';
-import { downloadXls } from '../../utils/exportXls';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { useI18n, numberLocaleFor, uz } from '../i18n';
+import { downloadXls } from '../utils/exportXls';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 type FuelSummaryResponse = {
     health?: {

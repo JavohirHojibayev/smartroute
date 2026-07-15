@@ -19,11 +19,11 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { downloadXls } from '../../utils/exportXls';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { type TransportRecord } from '../../data/transportRegistry';
-import { hydrateTransportRegistryRecords, loadTransportRegistry, saveTransportRegistry } from '../../data/transportStore';
-import { useI18n } from '../../i18n';
+import { downloadXls } from '../utils/exportXls';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { type TransportRecord } from '../data/transportRegistry';
+import { hydrateTransportRegistryRecords, loadTransportRegistry, saveTransportRegistry } from '../data/transportStore';
+import { useI18n } from '../i18n';
 
 const API_BASE = resolveApiBaseUrl();
 

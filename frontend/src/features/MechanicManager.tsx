@@ -11,12 +11,12 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import type { PermissionLevel } from '../../permissions';
-import { type TransportRecord } from '../../data/transportRegistry';
-import { loadTransportRegistry } from '../../data/transportStore';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import type { PermissionLevel } from '../permissions';
+import { type TransportRecord } from '../data/transportRegistry';
+import { loadTransportRegistry } from '../data/transportStore';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 type InspectionStatus = 'passed' | 'pending' | 'failed';
 

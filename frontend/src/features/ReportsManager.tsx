@@ -12,10 +12,10 @@ import {
 } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { downloadXlsSections } from '../../utils/exportXls';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { downloadXlsSections } from '../utils/exportXls';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 type ReportsManagerProps = {
   authToken: string;

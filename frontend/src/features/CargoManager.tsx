@@ -12,11 +12,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { downloadXls } from '../../utils/exportXls';
-import type { PermissionLevel } from '../../permissions';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { downloadXls } from '../utils/exportXls';
+import type { PermissionLevel } from '../permissions';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 type CargoSummaryVehicle = {
   plate: string;

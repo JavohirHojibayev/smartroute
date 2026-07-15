@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { Activity, Droplets, AlertCircle, CheckCircle2, Search, Table2, FileText, Server, HardHat, Clock, AlertTriangle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { downloadXls } from '../../utils/exportXls';
-import { resolveApiBaseUrl } from '../../utils/apiBase';
-import { useI18n } from '../../i18n';
-import { LocalizedDateInput } from '../../components/shared/LocalizedDateInput';
+import { downloadXls } from '../utils/exportXls';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+import { useI18n } from '../i18n';
+import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 
 type EsmoSummary = {
     day: string;
