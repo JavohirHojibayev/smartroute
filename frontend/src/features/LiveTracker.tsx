@@ -1220,21 +1220,21 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
             connection,
             movement,
             connectionDonut: [
-                { name: 'Tarmoqda', value: connection.online ?? 0, color: DASHBOARD_COLORS.green },
-                { name: "Aloqa yo'q", value: connection.offline ?? 0, color: DASHBOARD_COLORS.red },
-                { name: "Ma'lumot yo'q", value: connection.noData ?? 0, color: DASHBOARD_COLORS.gray },
+                { name: t('dashboardOnline'), value: connection.online ?? 0, color: DASHBOARD_COLORS.green },
+                { name: t('dashboardOffline'), value: connection.offline ?? 0, color: DASHBOARD_COLORS.red },
+                { name: t('dashboardNoData'), value: connection.noData ?? 0, color: DASHBOARD_COLORS.gray },
             ].filter((item) => item.value > 0),
             movementDonut: [
-                { name: 'Harakatda', value: movement.moving ?? 0, color: DASHBOARD_COLORS.green },
-                { name: "To'xtagan", value: movement.parking ?? 0, color: DASHBOARD_COLORS.blue },
-                { name: "Aloqa yo'q", value: movement.offline ?? 0, color: DASHBOARD_COLORS.red },
+                { name: t('dashboardMoving'), value: movement.moving ?? 0, color: DASHBOARD_COLORS.green },
+                { name: t('dashboardStopped'), value: movement.parking ?? 0, color: DASHBOARD_COLORS.blue },
+                { name: t('dashboardOffline'), value: movement.offline ?? 0, color: DASHBOARD_COLORS.red },
             ].filter((item) => item.value > 0),
             mileageChart,
             mileageTimeSeries,
             mileageTimeBuckets: mileageTimeBuckets.length > 0 ? mileageTimeBuckets : fallbackMileageBucket,
             fuelDonut: [
-                { name: 'Zapravka', value: fuel.refueled ?? 0, color: DASHBOARD_COLORS.green },
-                { name: 'Sliv', value: fuel.drained ?? 0, color: DASHBOARD_COLORS.red },
+                { name: t('dashboardRefuel'), value: fuel.refueled ?? 0, color: DASHBOARD_COLORS.green },
+                { name: t('dashboardDrain'), value: fuel.drained ?? 0, color: DASHBOARD_COLORS.red },
             ].filter((item) => item.value > 0),
             fuel,
             totalMileage: dashboardData?.mileage?.total ?? 0,
@@ -1323,7 +1323,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                     <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <div className="mb-2 flex items-start justify-between gap-2">
-                                <h3 className="text-lg font-semibold text-slate-100">Ulanish holati</h3>
+                                <h3 className="text-lg font-semibold text-slate-100">{t('dashboardConnectionStatus')}</h3>
                             </div>
                             <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 <div className="relative h-full min-w-0 overflow-visible">
@@ -1372,7 +1372,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
 
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <div className="mb-2 flex items-start justify-between gap-2">
-                                <h3 className="text-lg font-semibold text-slate-100">Harakat holati</h3>
+                                <h3 className="text-lg font-semibold text-slate-100">{t('dashboardMovementStatus')}</h3>
                             </div>
                             <div className="grid h-[270px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 <div className="relative h-full min-w-0 overflow-visible">
@@ -1419,7 +1419,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                         </section>
 
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
-                            <h3 className="mb-2 text-lg font-semibold text-slate-100">Top obyektlar probegi</h3>
+                            <h3 className="mb-2 text-lg font-semibold text-slate-100">{t('dashboardTopMileage')}</h3>
                             {dashboardChartData.mileageChart.length > 0 ? (
                                 <>
                                     <div className={`chart-container relative h-[285px] ${hoveredTopIndex != null ? 'show-tooltip' : ''}`}>
@@ -1482,7 +1482,7 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                 </>
                             ) : (
                                 <div className="flex h-[285px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
-                                    Probeg ma'lumoti yo'q
+                                    {t('dashboardNoMileage')}
                                 </div>
                             )}
                         </section>
@@ -1491,10 +1491,10 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                     <div className="grid grid-cols-1 gap-3 xl:grid-cols-[2fr_1fr]">
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
                             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <h3 className="text-lg font-semibold text-slate-100">Probeg, km</h3>
+                                <h3 className="text-lg font-semibold text-slate-100">{t('dashboardMileageKm')}</h3>
                                 <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-400">
-                                    <span>Jami: {formatChartNumber(dashboardChartData.totalMileage, 1)} km</span>
-                                    <span>O'rtacha tezlik: {formatChartNumber(dashboardChartData.averageSpeed, 1)} km/h</span>
+                                    <span>{t('dashboardTotal')}: {formatChartNumber(dashboardChartData.totalMileage, 1)} km</span>
+                                    <span>{t('dashboardAvgSpeed')}: {formatChartNumber(dashboardChartData.averageSpeed, 1)} km/h</span>
                                 </div>
                             </div>
                             {dashboardChartData.mileageTimeBuckets.length > 0 ? (
@@ -1577,13 +1577,13 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                 </div>
                             ) : (
                                 <div className="flex h-[340px] items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
-                                    Tanlangan davrda probeg ma'lumoti yo'q
+                                    {t('dashboardNoMileagePeriod')}
                                 </div>
                             )}
                         </section>
 
                         <section className="glass-panel rounded-xl border border-slate-700/50 p-4">
-                            <h3 className="mb-2 text-lg font-semibold text-slate-100">Zapravka / Sliv</h3>
+                            <h3 className="mb-2 text-lg font-semibold text-slate-100">{t('dashboardRefuelDrain')}</h3>
                             <div className="grid h-[280px] grid-cols-[minmax(210px,1fr)_max-content] items-center gap-3 overflow-visible">
                                 {dashboardChartData.fuelDonut.length > 0 ? (
                                     <>
@@ -1630,16 +1630,16 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
                                     </>
                                 ) : (
                                     <div className="col-span-2 flex h-full items-center justify-center rounded-xl border border-dashed border-slate-700 text-sm font-semibold text-slate-500">
-                                        Yoqilg'i hodisalari yo'q
+                                        {t('dashboardNoFuelEvents')}
                                     </div>
                                 )}
                             </div>
                             <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold">
                                 <div className="rounded-lg bg-emerald-500/10 px-3 py-2 text-emerald-300">
-                                    Zapravka: {formatChartNumber(dashboardChartData.fuel.refueled, 1)} l
+                                    {t('dashboardRefuel')}: {formatChartNumber(dashboardChartData.fuel.refueled, 1)} l
                                 </div>
                                 <div className="rounded-lg bg-red-500/10 px-3 py-2 text-red-300">
-                                    Sliv: {formatChartNumber(dashboardChartData.fuel.drained, 1)} l
+                                    {t('dashboardDrain')}: {formatChartNumber(dashboardChartData.fuel.drained, 1)} l
                                 </div>
                             </div>
                         </section>

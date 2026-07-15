@@ -23,6 +23,8 @@ import {
   Menu,
   X,
   HardHat,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -223,6 +225,10 @@ function App() {
     return storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem('smartroute-sidebar-collapsed') === 'true';
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'users' | 'roles'>('users');
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
@@ -243,6 +249,10 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem('smartroute-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem('smartroute-sidebar-collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -825,19 +835,19 @@ function App() {
   const dashboardActivity = [
     {
       id: 1,
-      action: `Turniket oqimi: kirish ${formatCount(dashboardData?.access?.entrancesToday)}, chiqish ${formatCount(dashboardData?.access?.exitsToday)}`,
+      action: t('dashboardTurnstileFlow').replace('{in}', formatCount(dashboardData?.access?.entrancesToday)).replace('{out}', formatCount(dashboardData?.access?.exitsToday)),
       user: 'Hikvision',
       time: t('fuelPresetToday'),
     },
     {
       id: 2,
-      action: `ESMO natijalari: ${formatCount(dashboardData?.medical?.passedToday)} passed / ${formatCount(dashboardData?.medical?.failedToday)} failed`,
+      action: t('dashboardEsmoResults').replace('{passed}', formatCount(dashboardData?.medical?.passedToday)).replace('{failed}', formatCount(dashboardData?.medical?.failedToday)),
       user: 'ESMO',
       time: t('fuelPresetToday'),
     },
     {
       id: 3,
-      action: `Texnik ko'rik: ${formatCount(dashboardData?.pulse?.checksPassed)} / ${formatCount(dashboardData?.pulse?.checksTotal)} muvaffaqiyatli`,
+      action: t('dashboardTechCheck').replace('{passed}', formatCount(dashboardData?.pulse?.checksPassed)).replace('{total}', formatCount(dashboardData?.pulse?.checksTotal)),
       user: 'Mexanik',
       time: t('fuelPresetToday'),
     },
@@ -1280,24 +1290,26 @@ function App() {
   }
 
   return (
-    <div className={`app-shell min-h-screen flex text-slate-100 bg-slate-900 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
+    <div className={`app-shell min-h-screen w-full overflow-x-hidden flex text-slate-100 bg-slate-900 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
       {/* Sidebar Navigation */}
-      <aside className="w-64 glass-panel border-r border-slate-700/50 flex flex-col hidden md:flex">
+      <aside className={`glass-panel border-r border-slate-700/50 h-screen flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <button
           type="button"
           onClick={() => setActiveTab('dashboard')}
-          className="p-6 flex items-center gap-3 text-left group"
+          className={`p-6 flex items-center text-left group transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
         >
           <img
             src="/logo1.png"
             alt="MainTrack logo"
             className="h-7 w-auto object-contain shrink-0 transition-transform duration-300 group-hover:scale-105"
           />
-          <h1 className="brand-title text-blue-500 font-extrabold text-lg tracking-wide uppercase">
-            MainTrack
-          </h1>
+          {!sidebarCollapsed && (
+            <h1 className="brand-title text-blue-500 font-extrabold text-lg tracking-wide uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+              MainTrack
+            </h1>
+          )}
         </button>
-        <nav className="flex-1 p-4 space-y-2 -mt-px">
+        <nav className="flex-1 p-4 space-y-2 -mt-px overflow-x-hidden overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -1307,33 +1319,48 @@ function App() {
                 }
                 setActiveTab(item.id);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border min-w-0 transition-colors duration-200
+              title={sidebarCollapsed ? item.label : undefined}
+              className={`w-full flex items-center px-4 py-3 rounded-xl border min-w-0 transition-all duration-200
+                ${sidebarCollapsed ? 'justify-center px-0' : 'gap-3'}
                 ${activeTab === item.id
                   ? 'bg-blue-500/20 text-blue-400 border-blue-500/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]'
                   : 'text-slate-400 border-transparent hover:border-slate-700/60 hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
             >
-              <div className={activeTab === item.id ? 'text-blue-400' : ''}>{item.icon}</div>
-              <span className="font-medium text-sm leading-5 whitespace-nowrap">{item.label}</span>
+              <div className={`shrink-0 ${activeTab === item.id ? 'text-blue-400' : ''}`}>{item.icon}</div>
+              {!sidebarCollapsed && <span className="font-medium text-sm leading-5 whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
             </button>
           ))}
         </nav>
+        <div className={`p-4 flex items-center shrink-0 ${sidebarCollapsed ? 'justify-center' : 'justify-end'}`}>
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-300 hover:bg-slate-700 hover:text-white transition-all shadow-sm shrink-0"
+            aria-label="Toggle Sidebar"
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight className="w-5 h-5" />
+            ) : (
+              <ChevronLeft className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden relative">
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-float"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10 animate-float-delay-minus3"></div>
 
         {/* Top Header */}
-        <header className="h-16 sm:h-20 glass-panel px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 z-10">
-          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink-0">
+        <header className="h-16 sm:h-20 glass-panel flex items-center justify-between z-10">
+          <div className={`flex items-center min-w-0 shrink-0 pl-3 sm:pl-6 md:pl-8 ${hideHeaderTitle ? 'lg:pl-0 lg:gap-0' : 'gap-1.5 sm:gap-3 pr-2 lg:pr-4'}`}>
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="md:hidden h-9 w-9 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0"
+              className="md:hidden h-8 w-8 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0"
               aria-label={t('menuOpen')}
             >
-              <Menu className="w-[18px] h-[18px]" />
+              <Menu className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
             </button>
             <button
               type="button"
@@ -1353,13 +1380,13 @@ function App() {
           </div>
 
           {/* Platforma test mode indicator restored */}
-          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center pr-2 md:-ml-8" role="status" aria-live="polite">
+          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center h-full" role="status" aria-live="polite">
             <div className="test-mode-inline-track">
               <span>{t('platformTestMode')}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0 pr-3 sm:pr-6 md:pr-8">
             <button
               onClick={toggleTheme}
               className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-9 sm:w-auto sm:px-4 h-9 sm:h-10 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer shrink-0"
@@ -1581,6 +1608,8 @@ function App() {
 
 export default App;
 // Trigger Vite reload
+
+
 
 
 

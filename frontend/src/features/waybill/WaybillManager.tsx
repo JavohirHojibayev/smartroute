@@ -627,122 +627,42 @@ export const WaybillManager = () => {
                                 <th className="px-4 md:px-6 py-4 text-center">Ma'lumotlar</th>
                                 <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
                                 <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
-                                <th className="px-4 md:px-6 py-4 !font-normal border-l border-slate-700/50">{tCols.name}</th>
-                                <th className="px-4 md:px-6 py-4 text-center">Ma'lumotlar</th>
-                                <th className="px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
-                                <th className="px-4 md:px-6 py-4 text-center">{t('download')}</th>
+                                <th className="hidden md:table-cell px-4 md:px-6 py-4 !font-normal border-l border-slate-700/50">{tCols.name}</th>
+                                <th className="hidden md:table-cell px-4 md:px-6 py-4 text-center">Ma'lumotlar</th>
+                                <th className="hidden md:table-cell px-4 md:px-6 py-4 text-center">Tasdiqlash</th>
+                                <th className="hidden md:table-cell px-4 md:px-6 py-4 text-center">{t('download')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/30">
-                            {pagedRowPairs.map(([rowA, rowB], index) => (
-                                <motion.tr key={rowA.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hover:bg-slate-800/40 transition-all text-sm group">
-                                    <td className="px-4 md:px-6 py-4">
-                                        <div className="relative inline-block group/tooltip max-w-full">
-                                            <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
-                                                {rowA.driver}
-                                            </div>
-                                            <div className={`waybill-esmo-tooltip absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
-                                                <div>
-                                                    <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
-                                                    {rowA.bp || rowA.pulse != null || rowA.temperature != null ? (
-                                                        <div className="waybill-esmo-tooltip-inner space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
-                                                            {rowA.bp && (
-                                                                <div className="flex justify-between gap-4">
-                                                                    <span className="text-slate-400">{t('bloodPressure')}:</span>
-                                                                    <span>{rowA.bp}</span>
-                                                                </div>
-                                                            )}
-                                                            {rowA.pulse != null && (
-                                                                <div className="flex justify-between gap-4">
-                                                                    <span className="text-slate-400">{t('pulse')}:</span>
-                                                                    <span>{rowA.pulse} p/m</span>
-                                                                </div>
-                                                            )}
-                                                            {rowA.temperature != null && (
-                                                                <div className="flex justify-between gap-4">
-                                                                    <span className="text-slate-400">{t('temperature')}:</span>
-                                                                    <span>{formatNumber(rowA.temperature)}°C</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-slate-500 italic">{t('noDataAvailable')}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDetailsClick(rowA)}
-                                            className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-blue-400"
-                                            title="Ma'lumotlar"
-                                        >
-                                            <FileText size={20} />
-                                        </button>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleApproveClick(rowA)}
-                                            className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
-                                                signedWaybills[rowA.id] 
-                                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' 
-                                                : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-500'
-                                            }`}
-                                            title="E-IMZO bilan tasdiqlash"
-                                        >
-                                            <ShieldCheck size={20} />
-                                        </button>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        <div className="flex justify-center items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleViewClick(rowA)}
-                                                className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-slate-500 hover:text-slate-300"
-                                                title="Ko'rish"
-                                            >
-                                                <Eye size={20} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDownloadClick(rowA)}
-                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowA.healthStatus)}`}
-                                                title={t('downloadWaybill')}
-                                            >
-                                                <Download size={20} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 border-l border-slate-700/30">
-                                        {rowB ? (
+                            {pagedRowPairs.flatMap(([rowA, rowB], index) => {
+                                const renderEmployeeCells = (row: WaybillRow, isRight: boolean) => (
+                                    <>
+                                        <td className={`px-4 md:px-6 py-4 ${isRight ? 'border-l border-slate-700/30' : ''}`}>
                                             <div className="relative inline-block group/tooltip max-w-full">
                                                 <div className="!font-normal text-slate-300 group-hover/tooltip:text-blue-400 transition-colors break-words whitespace-normal leading-6 cursor-help">
-                                                    {rowB.driver}
+                                                    {row.driver}
                                                 </div>
                                                 <div className={`waybill-esmo-tooltip absolute left-4 hidden group-hover/tooltip:block z-50 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-3 w-52 text-xs text-slate-300 pointer-events-none select-none transition-all duration-200 backdrop-blur-md ${index === 0 ? 'top-full mt-1' : 'bottom-full mb-2'}`}>
                                                     <div>
                                                         <div className="text-slate-400 mb-1.5 font-medium">{t('indicators')}:</div>
-                                                        {rowB.bp || rowB.pulse != null || rowB.temperature != null ? (
+                                                        {row.bp || row.pulse != null || row.temperature != null ? (
                                                             <div className="waybill-esmo-tooltip-inner space-y-1 font-mono text-[11px] text-slate-200 bg-slate-950/40 p-2 rounded-lg border border-slate-800/40">
-                                                                {rowB.bp && (
+                                                                {row.bp && (
                                                                     <div className="flex justify-between gap-4">
                                                                         <span className="text-slate-400">{t('bloodPressure')}:</span>
-                                                                        <span>{rowB.bp}</span>
+                                                                        <span>{row.bp}</span>
                                                                     </div>
                                                                 )}
-                                                                {rowB.pulse != null && (
+                                                                {row.pulse != null && (
                                                                     <div className="flex justify-between gap-4">
                                                                         <span className="text-slate-400">{t('pulse')}:</span>
-                                                                        <span>{rowB.pulse} p/m</span>
+                                                                        <span>{row.pulse} p/m</span>
                                                                     </div>
                                                                 )}
-                                                                {rowB.temperature != null && (
+                                                                {row.temperature != null && (
                                                                     <div className="flex justify-between gap-4">
                                                                         <span className="text-slate-400">{t('temperature')}:</span>
-                                                                        <span>{formatNumber(rowB.temperature)}°C</span>
+                                                                        <span>{formatNumber(row.temperature)}°C</span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -752,31 +672,23 @@ export const WaybillManager = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <span className="text-slate-500">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        {rowB ? (
+                                        </td>
+                                        <td className="px-4 md:px-6 py-4 text-center">
                                             <button
                                                 type="button"
-                                                onClick={() => handleDetailsClick(rowB)}
+                                                onClick={() => handleDetailsClick(row)}
                                                 className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-blue-400"
                                                 title="Ma'lumotlar"
                                             >
                                                 <FileText size={20} />
                                             </button>
-                                        ) : (
-                                            <span className="text-slate-500">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        {rowB ? (
+                                        </td>
+                                        <td className="px-4 md:px-6 py-4 text-center">
                                             <button
                                                 type="button"
-                                                onClick={() => handleApproveClick(rowB)}
+                                                onClick={() => handleApproveClick(row)}
                                                 className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
-                                                    signedWaybills[rowB.id] 
+                                                    signedWaybills[row.id] 
                                                     ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' 
                                                     : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-500'
                                                 }`}
@@ -784,16 +696,12 @@ export const WaybillManager = () => {
                                             >
                                                 <ShieldCheck size={20} />
                                             </button>
-                                        ) : (
-                                            <span className="text-slate-500">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 md:px-6 py-4 text-center">
-                                        {rowB ? (
+                                        </td>
+                                        <td className="px-4 md:px-6 py-4 text-center">
                                             <div className="flex justify-center items-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleViewClick(rowB)}
+                                                    onClick={() => handleViewClick(row)}
                                                     className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-slate-500 hover:text-slate-300"
                                                     title="Ko'rish"
                                                 >
@@ -801,19 +709,39 @@ export const WaybillManager = () => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleDownloadClick(rowB)}
-                                                    className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(rowB.healthStatus)}`}
+                                                    onClick={() => handleDownloadClick(row)}
+                                                    className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${downloadButtonClass(row.healthStatus)}`}
                                                     title={t('downloadWaybill')}
                                                 >
                                                     <Download size={20} />
                                                 </button>
                                             </div>
-                                        ) : (
-                                            <span className="text-slate-500">-</span>
+                                        </td>
+                                    </>
+                                );
+
+                                return [
+                                    <motion.tr key={`desktop-${rowA.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hidden md:table-row hover:bg-slate-800/40 transition-all text-sm group">
+                                        {renderEmployeeCells(rowA, false)}
+                                        {rowB ? renderEmployeeCells(rowB, true) : (
+                                            <>
+                                                <td className="px-4 md:px-6 py-4 border-l border-slate-700/30 text-slate-500">-</td>
+                                                <td className="px-4 md:px-6 py-4 text-center text-slate-500">-</td>
+                                                <td className="px-4 md:px-6 py-4 text-center text-slate-500">-</td>
+                                                <td className="px-4 md:px-6 py-4 text-center text-slate-500">-</td>
+                                            </>
                                         )}
-                                    </td>
-                                </motion.tr>
-                            ))}
+                                    </motion.tr>,
+                                    <motion.tr key={`mob-${rowA.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="md:hidden hover:bg-slate-800/40 transition-all text-sm group border-b border-slate-700/30">
+                                        {renderEmployeeCells(rowA, false)}
+                                    </motion.tr>,
+                                    ...(rowB ? [
+                                        <motion.tr key={`mob-${rowB.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="md:hidden hover:bg-slate-800/40 transition-all text-sm group border-b border-slate-700/30">
+                                            {renderEmployeeCells(rowB, false)}
+                                        </motion.tr>
+                                    ] : [])
+                                ];
+                            })}
                             {!loading && totalRowsCount === 0 && (
                                 <tr>
                                     <td colSpan={8} className="px-6 py-8 text-center text-slate-400 text-sm">

@@ -663,7 +663,7 @@ export const AccessControlManager = () => {
                         <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase leading-tight line-clamp-2">{t('todayMineExits')}</p>
                     </div>
                 </div>
-                <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-full md:w-max max-w-full min-w-0 shrink-0">
+                <div className="col-span-2 md:col-span-4 xl:col-span-1 glass-panel p-4 rounded-2xl flex items-center gap-3 border-l-4 border-l-slate-500 w-full xl:w-max max-w-full min-w-0 shrink-0">
                     <div className="p-2.5 bg-slate-500/10 text-slate-400 rounded-xl shrink-0"><Shield size={24} /></div>
                     <div className="min-w-0 flex-1 md:flex-none md:overflow-x-auto [scrollbar-width:thin]">
                         <div className="turnstile-device-grid grid w-full md:w-max gap-x-3 sm:gap-x-4 gap-y-2.5 text-sm sm:text-base leading-snug text-slate-200 font-semibold [grid-auto-flow:column] md:[grid-auto-flow:row] [grid-template-columns:repeat(2,minmax(0,1fr))] md:[grid-template-columns:repeat(4,max-content)] [grid-template-rows:repeat(4,auto)] md:[grid-template-rows:none]">
