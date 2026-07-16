@@ -904,22 +904,7 @@ export const FuelManager = () => {
         () => buildNiceAxis(levelChartData.map((point) => Number(point?.level ?? 0)), 5),
         [levelChartData],
     );
-    const chartYAxis = useMemo(() => {
-        const values = chartData
-            .map((point) => Number(point?.consumption ?? 0))
-            .filter((value) => Number.isFinite(value));
-        const minValue = values.length ? Math.min(...values) : 0;
-        const maxValue = values.length ? Math.max(...values) : 0;
-        const largestAbs = Math.max(Math.abs(minValue), Math.abs(maxValue));
-        const step = largestAbs > 1000 ? 1000 : 200;
-        const min = minValue < 0 ? Math.floor(minValue / step) * step : 0;
-        const max = Math.max(step * 4, Math.ceil(Math.max(maxValue, step) / step) * step);
-        const ticks: number[] = [];
-        for (let value = min; value <= max; value += step) {
-            ticks.push(value);
-        }
-        return { min, max, ticks };
-    }, [chartData]);
+
     const totalLiters = Number(summary?.window?.totalLiters ?? 0);
     const totalLitersDisplay =
         summary?.window?.totalLitersRounded != null
@@ -1916,8 +1901,6 @@ export const FuelManager = () => {
                                     tick={{ fontSize: 11 }}
                                     width={40}
                                     unit={t('fuelYAxisLiter')}
-                                    domain={[chartYAxis.min, chartYAxis.max]}
-                                    ticks={chartYAxis.ticks}
                                     allowDecimals={false}
                                 />
                                 {/* custom dark tooltip to match Probeg chart tooltip */}
