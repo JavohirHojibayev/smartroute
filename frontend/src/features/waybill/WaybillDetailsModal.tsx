@@ -4,35 +4,38 @@ import { useI18n } from '../../i18n';
 import { loadTransportRegistry } from '../../data/transportStore';
 
 export type WaybillDetailsData = {
-    id: string;
     driver: string;
     plate: string;
+    type: string;
     cargo: string;
     route: string;
-    sourceTime: string;
+    departureTime: string;
+    expectedReturn: string;
 };
 
 type WaybillDetailsModalProps = {
     open: boolean;
     onClose: () => void;
     data: WaybillDetailsData | null;
+    onSave: (data: WaybillDetailsData) => void;
 };
 
 const translations = {
-    headerTitle: { uz: "Transport tayinlash ma'lumotlari", ru: 'Данные назначения транспорта', en: 'Transport assignment details' },
+    headerTitle: { uz: "Yo'l varaqasini shakllantirish", ru: 'Формирование путевого листа', en: 'Waybill generation' },
     panelTitle: { uz: "Dispetcher: transport tayinlash", ru: 'Диспетчер: назначение транспорта', en: 'Dispatcher: transport assignment' },
     driver: { uz: 'Haydovchi', ru: 'Водитель', en: 'Driver' },
     transport: { uz: 'Transport', ru: 'Транспорт', en: 'Transport' },
     type: { uz: 'Transport turi', ru: 'Тип транспорта', en: 'Transport type' },
     goal: { uz: 'Maqsad / Ish', ru: 'Цель / Работа', en: 'Goal / Work' },
     direction: { uz: "Obyekt / Yo'nalish", ru: 'Объект / Направление', en: 'Object / Direction' },
-    departureTime: { uz: 'Chiqish vaqti', ru: 'Время выезда', en: 'Departure time' },
-    expectedReturn: { uz: 'Kutilayotgan qaytish vaqti', ru: 'Ожидаемое время возврата', en: 'Expected return time' },
+    departureTime: { uz: 'Chiqish vaqti', ru: 'Время выхода', en: 'Departure time' },
+    expectedReturn: { uz: 'Qaytish vaqti', ru: 'Время возвращения', en: 'Return time' },
     save: { uz: 'Saqlash', ru: 'Сохранить', en: 'Save' },
-    cancel: { uz: 'Bekor qilish', ru: 'Отмена', en: 'Cancel' }
+    cancel: { uz: 'Bekor qilish', ru: 'Отмена', en: 'Cancel' },
+    transportPlaceholder: { uz: 'Transport raqami', ru: 'Номер транспорта', en: 'Transport number' }
 };
 
-export const WaybillDetailsModal = ({ open, onClose, data }: WaybillDetailsModalProps) => {
+export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDetailsModalProps) => {
     const { lang } = useI18n();
     const t = (key: keyof typeof translations) => translations[key][lang as keyof typeof translations[keyof typeof translations]] || translations[key]['ru'];
 
@@ -52,14 +55,15 @@ export const WaybillDetailsModal = ({ open, onClose, data }: WaybillDetailsModal
 
     useEffect(() => {
         if (open) {
+            const clean = (val: string | undefined) => val === '-' ? '' : (val || '');
             setFormData({
-                driver: '',
-                plate: '',
-                type: '',
-                cargo: '',
-                route: '',
-                departureTime: '',
-                expectedReturn: ''
+                driver: clean(data?.driver),
+                plate: clean(data?.plate),
+                type: clean(data?.type),
+                cargo: clean(data?.cargo),
+                route: clean(data?.route),
+                departureTime: clean(data?.departureTime),
+                expectedReturn: clean(data?.expectedReturn)
             });
 
             const transports = loadTransportRegistry();
@@ -77,9 +81,10 @@ export const WaybillDetailsModal = ({ open, onClose, data }: WaybillDetailsModal
             setAllDrivers(drivers);
             setPlateToType(p2t);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
-    if (!open || !data) return null;
+    if (!open) return null;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -93,8 +98,7 @@ export const WaybillDetailsModal = ({ open, onClose, data }: WaybillDetailsModal
     };
 
     const handleSave = () => {
-        // Here we could call an API or save the data
-        console.log("Saved data:", formData);
+        onSave(formData);
         onClose();
     };
 
@@ -132,12 +136,12 @@ export const WaybillDetailsModal = ({ open, onClose, data }: WaybillDetailsModal
                             </datalist>
 
                             <InputRow label={t('driver')} name="driver" value={formData.driver} onChange={handleChange} list="drivers-list" />
-                            <InputRow label={t('transport')} name="plate" value={formData.plate} onChange={handleChange} list="plates-list" />
+                            <InputRow label={t('transport')} name="plate" value={formData.plate} onChange={handleChange} list="plates-list" placeholder={t('transportPlaceholder')} />
                             <InputRow label={t('type')} name="type" value={formData.type} onChange={handleChange} />
                             <InputRow label={t('goal')} name="cargo" value={formData.cargo} onChange={handleChange} />
                             <InputRow label={t('direction')} name="route" value={formData.route} onChange={handleChange} />
-                            <InputRow label={t('departureTime')} name="departureTime" value={formData.departureTime} onChange={handleChange} type="time" />
-                            <InputRow label={t('expectedReturn')} name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} type="time" />
+                            <InputRow label={t('departureTime')} name="departureTime" value={formData.departureTime} onChange={handleChange} type="datetime-local" />
+                            <InputRow label={t('expectedReturn')} name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} type="datetime-local" />
                         </div>
                     </div>
                 </div>

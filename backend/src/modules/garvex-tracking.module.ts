@@ -229,6 +229,8 @@ type MileageBucket = {
 
 type DashboardRangePreset = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
+import { TrackingGateway } from '../gateways/tracking.gateway';
+
 @Injectable()
 export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GarvexTrackingService.name);
@@ -246,6 +248,7 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(GarvexTrackingPoint)
     private readonly pointsRepo: Repository<GarvexTrackingPoint>,
+    private readonly trackingGateway: TrackingGateway,
   ) {}
 
   onModuleInit(): void {
@@ -710,6 +713,11 @@ export class GarvexTrackingService implements OnModuleInit, OnModuleDestroy {
           removed,
         };
         this.status = 'online';
+
+        // Broadcast the update via WebSocket
+        if (upserted > 0 || units.length > 0) {
+           this.trackingGateway.broadcastTrackingUpdate(normalized);
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Garvex sync xatoligi';
         this.lastSyncError = message;
@@ -1530,7 +1538,7 @@ export class GarvexTrackingController {
 
 @Module({
   imports: [TypeOrmModule.forFeature([GarvexTrackingPoint])],
-  providers: [GarvexTrackingService],
+  providers: [GarvexTrackingService, TrackingGateway],
   controllers: [GarvexTrackingController],
 })
 export class GarvexTrackingModule {}

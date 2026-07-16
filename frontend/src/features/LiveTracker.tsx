@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
 import { startTransition } from 'react';
 import {
     ChevronDown,
@@ -208,6 +209,7 @@ const TRACKING_NAV_ITEMS: ReadonlyArray<{ id: TrackingNavTab; label: string; ico
 ];
 
 const API_BASE = resolveApiBaseUrl();
+const socket = io(API_BASE.replace('/api', ''), { autoConnect: false });
 const LIVE_AFTER_MS = 15 * 60 * 1000;
 const SYNC_INTERVAL_MS = 15_000;
 const HEALTH_REFRESH_MS = 60_000;
@@ -1122,7 +1124,37 @@ export const LiveTracker = ({ lang: _lang, dashboardOnly }: LiveTrackerProps) =>
             }
             void load(includeHealth);
         }, SYNC_INTERVAL_MS);
-        return () => window.clearInterval(timer);
+
+        socket.connect();
+        socket.on('tracking_update', (units: any[]) => {
+            const mapped = units
+                .map(mapApiVehicle)
+                .filter((item): item is TrackingVehicle => Boolean(item))
+                .sort((a, b) => {
+                    const statusRank: Record<VehicleState, number> = { moving: 0, stopped: 1, offline: 2 };
+                    const byStatus = statusRank[a.status] - statusRank[b.status];
+                    if (byStatus !== 0) return byStatus;
+                    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+                });
+            if (mapped.length > 0) {
+                const nextSignature = buildVehicleSignature(mapped);
+                if (nextSignature !== vehiclesSignatureRef.current) {
+                    vehiclesSignatureRef.current = nextSignature;
+                    startTransition(() => {
+                        setVehicles(mapped);
+                    });
+                }
+                cacheRef.current = mapped;
+                cacheAtRef.current = Date.now();
+                setSyncMessage(null);
+            }
+        });
+
+        return () => {
+            window.clearInterval(timer);
+            socket.disconnect();
+            socket.off('tracking_update');
+        };
     }, []);
 
     useEffect(() => {

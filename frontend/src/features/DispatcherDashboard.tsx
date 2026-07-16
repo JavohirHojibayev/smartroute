@@ -1,49 +1,133 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Car, Navigation, Wrench, Clock, Pickaxe, FileText, Table2 } from 'lucide-react';
+import { Search, Car, Navigation, Wrench, Clock, Pickaxe, FileText, Table2, MapPin } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
+import { resolveApiBaseUrl } from '../utils/apiBase';
+
+import { useWaybillStore } from '../store/waybillStore';
+
+const API_BASE = resolveApiBaseUrl();
 
 interface DispatcherRow {
-  id: number;
+  id: string;
   plate: string;
   type: string;
   driver: string;
   task: string;
-  status: 'в работе' | 'в шахте' | 'на ремонте' | 'в простое';
+  timeRange: {
+      dep: string;
+      ret: string;
+  };
+  status: string;
   location: string;
+  locationLink?: string;
 }
 
-const DUMMY_DATA: DispatcherRow[] = [];
+const formatDateTimeStr = (dt: string | undefined | null) => {
+  if (!dt) return '--:--';
+  const parts = dt.split('T');
+  if (parts.length === 2) {
+      const [date, time] = parts;
+      const [y, m, d] = date.split('-');
+      return `${d}.${m}.${y} ${time}`;
+  }
+  return dt;
+};
 
 export const DispatcherDashboard = () => {
   const { t, lang } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const { savedDetails } = useWaybillStore();
+  const [gpsData, setGpsData] = useState<Record<string, { address: string; lat: number; lng: number }>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchGps = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/integrations/tracking/garvex/vehicles`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.items && Array.isArray(data.items)) {
+          const newGps: Record<string, { address: string; lat: number; lng: number }> = {};
+          data.items.forEach((item: any) => {
+            const name = String(item.name || item.objectCode || '').trim().replace(/\s+/g, '').toLowerCase();
+            const address = String(item.point?.a || '').trim();
+            const lat = Number(item.point?.y);
+            const lng = Number(item.point?.x);
+            if (name && lat && lng) {
+              newGps[name] = { address, lat, lng };
+            }
+          });
+          if (mounted) setGpsData(newGps);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    void fetchGps();
+    const interval = setInterval(fetchGps, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const dispatchData: DispatcherRow[] = useMemo(() => {
+    return Object.entries(savedDetails).map(([key, details]) => {
+      const normalizedPlate = (details.plate || '').replace(/\s+/g, '').toLowerCase();
+      const gps = gpsData[normalizedPlate];
+      let location = '';
+      let locationLink = undefined;
+      
+      if (gps) {
+        location = gps.address || "Manzil ma'lumoti yo'q";
+        locationLink = `https://yandex.uz/maps/?pt=${gps.lng},${gps.lat}&z=16&l=map`;
+      }
+
+      const dep = formatDateTimeStr(details.departureTime);
+      const ret = formatDateTimeStr(details.expectedReturn);
+
+      return {
+        id: key,
+        plate: details.plate || '-',
+        type: details.type || '-',
+        driver: details.driver || '-',
+        task: details.cargo || '-',
+        timeRange: { dep, ret },
+        status: 'в работе',
+        location,
+        locationLink
+      };
+    });
+  }, [savedDetails, gpsData]);
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return DUMMY_DATA;
-    return DUMMY_DATA.filter(
-      (row) =>
-        row.plate.toLowerCase().includes(query) ||
-        row.driver.toLowerCase().includes(query) ||
-        row.type.toLowerCase().includes(query) ||
-        row.task.toLowerCase().includes(query) ||
-        row.location.toLowerCase().includes(query)
-    );
-  }, [searchTerm]);
+    if (!query) return dispatchData;
+      return dispatchData.filter(
+        (row) =>
+          row.plate.toLowerCase().includes(query) ||
+          row.driver.toLowerCase().includes(query) ||
+          row.type.toLowerCase().includes(query) ||
+          row.task.toLowerCase().includes(query) ||
+          row.timeRange.dep.toLowerCase().includes(query) ||
+          row.timeRange.ret.toLowerCase().includes(query) ||
+          row.location.toLowerCase().includes(query)
+      );
+  }, [searchTerm, dispatchData]);
 
   const stats = useMemo(() => {
     return {
-      inWork: 0,
-      onLine: 0,
+      inWork: dispatchData.length,
+      onLine: dispatchData.length,
       inMine: 0,
       inRepair: 0,
       idle: 0,
     };
-  }, []);
+  }, [dispatchData]);
 
   const statCards = [
     {
@@ -97,9 +181,10 @@ export const DispatcherDashboard = () => {
     plate: lang === 'uz' ? 'Davlat raqami' : lang === 'ru' ? 'Гос. номер' : 'Plate',
     type: lang === 'uz' ? 'Turi' : lang === 'ru' ? 'Тип' : 'Type',
     driver: lang === 'uz' ? 'Haydovchi' : lang === 'ru' ? 'Водитель' : 'Driver',
-    task: lang === 'uz' ? 'Topshiriq' : lang === 'ru' ? 'Задача' : 'Task',
+    task: lang === 'uz' ? 'Topshiriq' : lang === 'ru' ? 'Задание' : 'Task',
+    timeRange: lang === 'uz' ? 'Vaqt (Chiqish \u2014 Qaytish)' : lang === 'ru' ? 'Время (Выезд \u2014 Возврат)' : 'Time (Out \u2014 In)',
     status: lang === 'uz' ? 'Status' : lang === 'ru' ? 'Статус' : 'Status',
-    location: lang === 'uz' ? 'Geopozitsiya' : lang === 'ru' ? 'Местоположение' : 'Location',
+    location: lang === 'uz' ? 'Geopozitsiya' : lang === 'ru' ? 'Геопозиция' : 'Location',
   };
 
   return (
@@ -186,10 +271,11 @@ export const DispatcherDashboard = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-slate-900/70">
               <tr className="text-slate-400 uppercase text-xs tracking-wider">
+                <th className="px-4 py-3 text-left">{headers.driver}</th>
                 <th className="px-4 py-3 text-left">{headers.plate}</th>
                 <th className="px-4 py-3 text-left">{headers.type}</th>
-                <th className="px-4 py-3 text-left">{headers.driver}</th>
                 <th className="px-4 py-3 text-left">{headers.task}</th>
+                <th className="px-4 py-3 text-left">{headers.timeRange}</th>
                 <th className="px-4 py-3 text-left">{headers.status}</th>
                 <th className="px-4 py-3 text-left">{headers.location}</th>
               </tr>
@@ -209,12 +295,36 @@ export const DispatcherDashboard = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="border-t border-slate-800/80 hover:bg-slate-900/40 transition-colors"
                 >
+                  <td className="px-4 py-3 text-slate-100 font-semibold">{row.driver}</td>
                   <td className="px-4 py-3 text-slate-100 font-semibold">{row.plate}</td>
                   <td className="px-4 py-3 text-slate-300">{row.type}</td>
-                  <td className="px-4 py-3 text-slate-300">{row.driver}</td>
                   <td className="px-4 py-3 text-slate-300">{row.task}</td>
+                  <td className="px-4 py-3 text-slate-300 whitespace-nowrap">
+                    {row.timeRange.dep !== '--:--' || row.timeRange.ret !== '--:--' ? (
+                      <div className="flex flex-col gap-1.5 text-[13px] sm:text-sm">
+                        <span className="text-emerald-400 font-semibold tracking-wide">↑ {row.timeRange.dep}</span>
+                        <span className="text-amber-400 font-semibold tracking-wide">↓ {row.timeRange.ret}</span>
+                      </div>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td className={`px-4 py-3 font-medium ${getStatusColor(row.status)} capitalize`}>{row.status}</td>
-                  <td className="px-4 py-3 text-slate-300">{row.location}</td>
+                  <td className="px-4 py-3 text-slate-300">
+                    {row.locationLink ? (
+                      <a 
+                        href={row.locationLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-4 decoration-blue-500/30 transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <MapPin size={14} className="text-blue-500/70" />
+                        {row.location}
+                      </a>
+                    ) : (
+                      row.location
+                    )}
+                  </td>
                 </motion.tr>
               ))}
             </tbody>

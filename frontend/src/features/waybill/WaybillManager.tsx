@@ -11,6 +11,7 @@ import yolVaraqasiPdfUrl from '../../assets/000000.pdf?url';
 import { WaybillFormModal } from './WaybillFormModal';
 import { WaybillSignModal } from './WaybillSignModal';
 import { WaybillDetailsModal } from './WaybillDetailsModal';
+import { useWaybillStore } from '../../store/waybillStore';
 
 type EsmoHealthStatus = 'passed' | 'review' | 'failed';
 
@@ -122,6 +123,8 @@ const formatNumber = (value: number | null | undefined, fractionDigits = 1) => {
     return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(fractionDigits);
 };
 
+const getDriverKey = (row: WaybillRow) => `id:${row.id}`;
+
 export const WaybillManager = () => {
     const { t, lang } = useI18n();
     const [waybills, setWaybills] = useState<WaybillRow[]>([]);
@@ -129,8 +132,8 @@ export const WaybillManager = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [dateFrom, setDateFrom] = useState(getTodayTashkent());
-    const [dateTo, setDateTo] = useState(getTodayTashkent());
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [exportingXls, setExportingXls] = useState(false);
@@ -141,6 +144,7 @@ export const WaybillManager = () => {
     const [signTargetRow, setSignTargetRow] = useState<WaybillRow | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailsTargetRow, setDetailsTargetRow] = useState<WaybillRow | null>(null);
+    const { savedDetails, setSavedDetails } = useWaybillStore();
     const [approvalInfo, setApprovalInfo] = useState<{ signedBy: string; signedAt: string } | null>(null);
     const [signedWaybills, setSignedWaybills] = useState<Record<string, { signedBy: string; signedAt: string }>>({});
 
@@ -677,7 +681,11 @@ export const WaybillManager = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => handleDetailsClick(row)}
-                                                className="p-2.5 rounded-xl transition-colors inline-flex items-center justify-center bg-slate-700/20 hover:bg-slate-700/40 text-blue-400"
+                                                className={`p-2.5 rounded-xl transition-colors inline-flex items-center justify-center ${
+                                                    savedDetails[getDriverKey(row)] 
+                                                    ? 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400' 
+                                                    : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-500'
+                                                }`}
                                                 title="Ma'lumotlar"
                                             >
                                                 <FileText size={20} />
@@ -815,7 +823,23 @@ export const WaybillManager = () => {
             <WaybillDetailsModal
                 open={isDetailsModalOpen}
                 onClose={() => setIsDetailsModalOpen(false)}
-                data={detailsTargetRow}
+                data={detailsTargetRow ? savedDetails[getDriverKey(detailsTargetRow)] || {
+                    driver: detailsTargetRow.driver,
+                    plate: detailsTargetRow.plate,
+                    type: '',
+                    cargo: detailsTargetRow.cargo,
+                    route: detailsTargetRow.route,
+                    departureTime: '',
+                    expectedReturn: ''
+                } : null}
+                onSave={(data) => {
+                    if (detailsTargetRow) {
+                        setSavedDetails(prev => ({
+                            ...prev,
+                            [getDriverKey(detailsTargetRow)]: data
+                        }));
+                    }
+                }}
             />
 
             <WaybillSignModal
