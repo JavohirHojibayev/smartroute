@@ -1,4 +1,4 @@
-import { X, Save } from 'lucide-react';
+import { X, Save, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useI18n } from '../../i18n';
 import { loadTransportRegistry } from '../../data/transportStore';
@@ -11,6 +11,9 @@ export type WaybillDetailsData = {
     route: string;
     departureTime: string;
     expectedReturn: string;
+    securityStatus?: 'pending' | 'allowed' | 'denied' | 'returned';
+    dispatcherName?: string;
+    updatedAt?: number;
 };
 
 type WaybillDetailsModalProps = {
@@ -32,6 +35,7 @@ const translations = {
     expectedReturn: { uz: 'Qaytish vaqti', ru: 'Время возвращения', en: 'Return time' },
     save: { uz: 'Saqlash', ru: 'Сохранить', en: 'Save' },
     cancel: { uz: 'Bekor qilish', ru: 'Отмена', en: 'Cancel' },
+    complete: { uz: 'Yakunlash', ru: 'Завершить', en: 'Complete' },
     transportPlaceholder: { uz: 'Transport raqami', ru: 'Номер транспорта', en: 'Transport number' }
 };
 
@@ -93,12 +97,27 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
             if (name === 'plate' && plateToType[value]) {
                 next.type = plateToType[value];
             }
+            if (name === 'departureTime') {
+                if (next.expectedReturn && new Date(value) > new Date(next.expectedReturn)) {
+                    next.expectedReturn = value;
+                }
+            }
+            if (name === 'expectedReturn') {
+                if (next.departureTime && new Date(value) < new Date(next.departureTime)) {
+                    next.expectedReturn = next.departureTime;
+                }
+            }
             return next;
         });
     };
 
     const handleSave = () => {
         onSave(formData);
+        onClose();
+    };
+
+    const handleComplete = () => {
+        onSave({ ...formData, securityStatus: 'returned', updatedAt: Date.now() });
         onClose();
     };
 
@@ -141,12 +160,20 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                             <InputRow label={t('goal')} name="cargo" value={formData.cargo} onChange={handleChange} />
                             <InputRow label={t('direction')} name="route" value={formData.route} onChange={handleChange} />
                             <InputRow label={t('departureTime')} name="departureTime" value={formData.departureTime} onChange={handleChange} type="datetime-local" />
-                            <InputRow label={t('expectedReturn')} name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} type="datetime-local" />
+                            <InputRow label={t('expectedReturn')} name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} type="datetime-local" min={formData.departureTime} />
                         </div>
                     </div>
                 </div>
 
                 <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-700/50 px-6 py-4 bg-slate-800/50">
+                    <button
+                        type="button"
+                        onClick={handleComplete}
+                        className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 mr-auto"
+                    >
+                        <CheckCircle2 size={16} />
+                        {t('complete')}
+                    </button>
                     <button
                         type="button"
                         onClick={onClose}
@@ -168,7 +195,7 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
     );
 };
 
-const InputRow = ({ label, name, value, onChange, type = "text", list, placeholder }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; type?: string; list?: string; placeholder?: string }) => (
+const InputRow = ({ label, name, value, onChange, type = "text", list, placeholder, min, max }: { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; type?: string; list?: string; placeholder?: string; min?: string; max?: string }) => (
     <div className="flex items-center gap-4">
         <div className="w-[40%] text-sm text-slate-400 font-medium leading-tight">{label}</div>
         <div className="w-[60%]">
@@ -178,6 +205,8 @@ const InputRow = ({ label, name, value, onChange, type = "text", list, placehold
                 value={value}
                 onChange={onChange}
                 list={list}
+                min={min}
+                max={max}
                 className="w-full bg-slate-950/50 border border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg px-3 py-2 text-sm text-slate-200 font-medium transition-all outline-none placeholder-slate-600"
                 placeholder={placeholder || label}
             />

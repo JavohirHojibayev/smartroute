@@ -94,7 +94,6 @@ const modules: Array<{ id: PermissionModule; labelKey: string }> = [
   { id: 'fleet', labelKey: 'fleet' },
   { id: 'drivers', labelKey: 'drivers' },
   { id: 'mechanic', labelKey: 'vehicleInspections' },
-  { id: 'cargo', labelKey: 'cargoStats' },
   { id: 'settings', labelKey: 'settings' },
 ];
 

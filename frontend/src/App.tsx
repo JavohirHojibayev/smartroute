@@ -12,7 +12,6 @@ import {
   ScanFace,
   Stethoscope,
 
-  Box,
   Shield,
   AlertTriangle,
   Zap,
@@ -49,6 +48,7 @@ import {
   normalizePermissionMap,
   toEffectivePermissionMap,
 } from './permissions';
+import { useWaybillStore } from './store/waybillStore';
 
 const SmartStartWorkflow = lazy(() =>
   import('./features/SmartStartWorkflow').then((module) => ({ default: module.SmartStartWorkflow })),
@@ -86,11 +86,12 @@ const ToolsManager = lazy(() =>
 const MechanicManager = lazy(() =>
   import('./features/MechanicManager').then((module) => ({ default: module.MechanicManager })),
 );
-const CargoManager = lazy(() =>
-  import('./features/CargoManager').then((module) => ({ default: module.CargoManager })),
-);
+
 const UserManager = lazy(() =>
   import('./features/UserManager').then((module) => ({ default: module.UserManager })),
+);
+const SecurityTabletPage = lazy(() =>
+  import('./features/SecurityTabletPage').then((module) => ({ default: module.SecurityTabletPage })),
 );
 
 type AuthUser = {
@@ -216,6 +217,7 @@ function App() {
     }
     return 'dashboard';
   });
+  const [autoOpenWaybillId, setAutoOpenWaybillId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window === 'undefined') {
       return 'dark';
@@ -622,13 +624,13 @@ function App() {
     { id: 'medical', icon: <Stethoscope />, label: t('medicalChecks') },
     { id: 'tools', icon: <HardHat />, label: t('tools') },
     { id: 'waybills', icon: <FileText />, label: t('waybills') },
+    { id: 'tablet', icon: <Shield />, label: "O'tkazish punkti" },
+    { id: 'dispatch', icon: <Map />, label: t('dispatch') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'tracking', icon: <Navigation />, label: t('liveTracking') },
-    { id: 'dispatch', icon: <Map />, label: t('dispatch') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
-    { id: 'cargo', icon: <Box />, label: t('cargoStats') },
     { id: 'settings', icon: <Shield />, label: t('settings') },
   ];
 
@@ -750,6 +752,15 @@ function App() {
   }
   const integrationAlertTarget: PermissionModule = integrationIssues.some((item) => /azs|yoqilg'i|fuel/i.test(item)) ? 'fuel' : 'dashboard';
 
+  const savedDetails = useWaybillStore((state) => state.savedDetails);
+  const delayedWaybillsCount = Object.values(savedDetails).filter((details) => {
+    if (details.securityStatus !== 'allowed') return false;
+    if (!details.expectedReturn) return false;
+    const returnTime = new Date(details.expectedReturn).getTime();
+    if (Number.isNaN(returnTime)) return false;
+    return Date.now() > returnTime;
+  }).length;
+
   const dashboardAlerts = (() => {
     const existingAlerts = [
       {
@@ -800,6 +811,13 @@ function App() {
         message: t('dashboardCriticalIssuesToday').replace('{count}', formatCount(criticalServiceCount)),
         time: t('fuelPresetToday'),
         targetTab: 'mechanic' as PermissionModule,
+      },
+      {
+        count: delayedWaybillsCount,
+        type: 'warning',
+        message: `Kechikayotgan transportlar: ${formatCount(delayedWaybillsCount)} ta`,
+        time: 'Bugun',
+        targetTab: 'dispatch' as PermissionModule,
       },
       {
         count: integrationIssues.length,
@@ -1158,7 +1176,7 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
           >
-            <WaybillManager />
+            <WaybillManager autoOpenWaybillId={autoOpenWaybillId} onClearAutoOpen={() => setAutoOpenWaybillId(null)} />
           </motion.div>
         );
       case 'access':
@@ -1194,15 +1212,6 @@ function App() {
             />
           </motion.div>
         );
-      case 'cargo':
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <CargoManager
-              authToken={authSession?.token ?? ''}
-              accessLevel={userPermissions.cargo}
-            />
-          </motion.div>
-        );
       case 'settings':
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -1213,6 +1222,21 @@ function App() {
               onPermissionsChanged={refreshCurrentSession}
               initialTab={settingsInitialTab}
             />
+          </motion.div>
+        );
+      case 'tablet':
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Suspense fallback={<div className="p-8 text-center text-slate-400">Sahifa yuklanmoqda...</div>}>
+              <SecurityTabletPage onNavigate={(tab, id) => {
+                setActiveTab(tab);
+                if (id) setAutoOpenWaybillId(id);
+              }} />
+            </Suspense>
           </motion.div>
         );
       // 'mobile' page removed
@@ -1288,6 +1312,8 @@ function App() {
       />
     );
   }
+
+
 
   return (
     <div className={`app-shell min-h-screen w-full overflow-x-hidden flex text-slate-100 bg-slate-900 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>

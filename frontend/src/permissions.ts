@@ -17,6 +17,7 @@ export type PermissionModule =
   | 'cargo'
   | 'tools'
   | 'settings'
+  | 'tablet'
   ;
 
 export type PermissionMap = Record<PermissionModule, PermissionSelection>;
@@ -37,13 +38,13 @@ export const PERMISSION_MODULES: PermissionModule[] = [
   'cargo',
   'tools',
   'settings',
-  
+  'tablet',
 ];
 
 const ROLE_ENABLED_MODULES: Record<AppRole, PermissionModule[]> = {
   admin: [...PERMISSION_MODULES],
-  dispatcher: ['dashboard', 'access', 'medical', 'tools', 'shiftSchedule', 'fleet', 'drivers', 'waybills', 'tracking', 'dispatch', 'cargo'],
-  user: ['dashboard', 'fleet', 'waybills', 'tracking'],
+  dispatcher: ['dashboard', 'access', 'medical', 'tools', 'shiftSchedule', 'fleet', 'drivers', 'waybills', 'tracking', 'dispatch', 'cargo', 'tablet'],
+  user: ['dashboard', 'fleet', 'waybills', 'tracking', 'tablet'],
 };
 const PERMISSION_LEVELS: PermissionLevel[] = ['none', 'read', 'full'];
 

@@ -125,7 +125,7 @@ const formatNumber = (value: number | null | undefined, fractionDigits = 1) => {
 
 const getDriverKey = (row: WaybillRow) => `id:${row.id}`;
 
-export const WaybillManager = () => {
+export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpenWaybillId?: string | null, onClearAutoOpen?: () => void }) => {
     const { t, lang } = useI18n();
     const [waybills, setWaybills] = useState<WaybillRow[]>([]);
     const [loading, setLoading] = useState(false);
@@ -147,6 +147,17 @@ export const WaybillManager = () => {
     const { savedDetails, setSavedDetails } = useWaybillStore();
     const [approvalInfo, setApprovalInfo] = useState<{ signedBy: string; signedAt: string } | null>(null);
     const [signedWaybills, setSignedWaybills] = useState<Record<string, { signedBy: string; signedAt: string }>>({});
+
+    useEffect(() => {
+        if (autoOpenWaybillId && waybills.length > 0) {
+            const target = waybills.find(w => w.id === autoOpenWaybillId);
+            if (target) {
+                setDetailsTargetRow(target);
+                setIsDetailsModalOpen(true);
+                onClearAutoOpen?.();
+            }
+        }
+    }, [autoOpenWaybillId, waybills, onClearAutoOpen]);
 
     const [autoDownload, setAutoDownload] = useState(false);
     
@@ -834,9 +845,24 @@ export const WaybillManager = () => {
                 } : null}
                 onSave={(data) => {
                     if (detailsTargetRow) {
+                        let dispatcherName = 'Dispetcher';
+                        try {
+                            const sessionStr = localStorage.getItem('smartroute-auth-session');
+                            if (sessionStr) {
+                                const session = JSON.parse(sessionStr);
+                                dispatcherName = session.user?.fullName || session.user?.username || 'Dispetcher';
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                        
                         setSavedDetails(prev => ({
                             ...prev,
-                            [getDriverKey(detailsTargetRow)]: data
+                            [getDriverKey(detailsTargetRow)]: {
+                                ...data,
+                                securityStatus: prev[getDriverKey(detailsTargetRow)]?.securityStatus || 'pending',
+                                dispatcherName
+                            }
                         }));
                     }
                 }}

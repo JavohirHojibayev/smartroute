@@ -22,6 +22,8 @@ interface DispatcherRow {
   status: string;
   location: string;
   locationLink?: string;
+  rawDepartureTime: number;
+  updatedAt: number;
 }
 
 const formatDateTimeStr = (dt: string | undefined | null) => {
@@ -76,7 +78,9 @@ export const DispatcherDashboard = () => {
   }, []);
 
   const dispatchData: DispatcherRow[] = useMemo(() => {
-    return Object.entries(savedDetails).map(([key, details]) => {
+    return Object.entries(savedDetails)
+      .filter(([_, details]) => details.securityStatus === 'allowed' || details.securityStatus === 'returned')
+      .map(([key, details]) => {
       const normalizedPlate = (details.plate || '').replace(/\s+/g, '').toLowerCase();
       const gps = gpsData[normalizedPlate];
       let location = '';
@@ -90,6 +94,11 @@ export const DispatcherDashboard = () => {
       const dep = formatDateTimeStr(details.departureTime);
       const ret = formatDateTimeStr(details.expectedReturn);
 
+      let statusStr = lang === 'uz' ? 'ishda' : lang === 'ru' ? 'в работе' : 'in work';
+      if (details.securityStatus === 'returned') {
+          statusStr = lang === 'uz' ? 'qaytgan' : lang === 'ru' ? 'возвращен' : 'returned';
+      }
+
       return {
         id: key,
         plate: details.plate || '-',
@@ -97,12 +106,19 @@ export const DispatcherDashboard = () => {
         driver: details.driver || '-',
         task: details.cargo || '-',
         timeRange: { dep, ret },
-        status: 'в работе',
+        status: statusStr,
         location,
-        locationLink
+        locationLink,
+        rawDepartureTime: new Date(details.departureTime || 0).getTime() || 0,
+        updatedAt: details.updatedAt || 0
       };
+    }).sort((a, b) => {
+      if (a.updatedAt !== b.updatedAt) {
+        return b.updatedAt - a.updatedAt;
+      }
+      return b.rawDepartureTime - a.rawDepartureTime;
     });
-  }, [savedDetails, gpsData]);
+  }, [savedDetails, gpsData, lang]);
 
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -168,13 +184,13 @@ export const DispatcherDashboard = () => {
   ];
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'в работе': return 'text-emerald-400';
-      case 'в шахте': return 'text-amber-400';
-      case 'на ремонте': return 'text-red-400';
-      case 'в простое': return 'text-slate-400';
-      default: return 'text-slate-100';
-    }
+    const s = status.toLowerCase();
+    if (['в работе', 'ishda', 'in work'].includes(s)) return 'text-emerald-400';
+    if (['qaytgan', 'возвращен', 'returned'].includes(s)) return 'text-emerald-500';
+    if (['в шахте', 'shaxtada', 'in mine'].includes(s)) return 'text-amber-400';
+    if (['на ремонте', "ta'mirda", 'in repair'].includes(s)) return 'text-red-400';
+    if (['в простое', "to'xtab turgan", 'idle'].includes(s)) return 'text-slate-400';
+    return 'text-slate-100';
   };
 
   const headers = {
