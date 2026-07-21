@@ -24,7 +24,10 @@ import {
   HardHat,
   ChevronLeft,
   ChevronRight,
+  ParkingSquare,
+  LockKeyhole,
 } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart,
@@ -624,14 +627,14 @@ function App() {
     { id: 'medical', icon: <Stethoscope />, label: t('medicalChecks') },
     { id: 'tools', icon: <HardHat />, label: t('tools') },
     { id: 'waybills', icon: <FileText />, label: t('waybills') },
-    { id: 'tablet', icon: <Shield />, label: "O'tkazish punkti" },
+    { id: 'tablet', icon: <ParkingSquare />, label: "O'tkazish punkti" },
     { id: 'dispatch', icon: <Map />, label: t('dispatch') },
     { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'tracking', icon: <Navigation />, label: t('liveTracking') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
-    { id: 'settings', icon: <Shield />, label: t('settings') },
+    { id: 'settings', icon: <LockKeyhole />, label: t('settings') },
   ];
 
   const navItems = allNavItems.filter((item) => canViewModule(userPermissions, item.id));
