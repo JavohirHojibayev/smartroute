@@ -626,11 +626,11 @@ function App() {
     { id: 'waybills', icon: <FileText />, label: t('waybills') },
     { id: 'tablet', icon: <Shield />, label: "O'tkazish punkti" },
     { id: 'dispatch', icon: <Map />, label: t('dispatch') },
+    { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
     { id: 'fuel', icon: <Droplet />, label: t('fuel') },
     { id: 'tracking', icon: <Navigation />, label: t('liveTracking') },
     { id: 'fleet', icon: <Car />, label: t('fleet') },
     { id: 'drivers', icon: <Users />, label: t('drivers') },
-    { id: 'mechanic', icon: <Wrench />, label: t('vehicleInspections') },
     { id: 'settings', icon: <Shield />, label: t('settings') },
   ];
 
