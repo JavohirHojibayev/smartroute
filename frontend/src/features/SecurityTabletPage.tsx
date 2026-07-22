@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, Shield, Clock, User, MapPin, FileText, Activity, AlertTriangle } from 'lucide-react';
 import { useI18n } from '../i18n';
@@ -9,7 +9,77 @@ type SecurityStatus = 'pending' | 'allowed' | 'denied' | 'returned';
 
 type SecurityLogRow = {
   id: string; plate: string; driver: string; purpose: string;
-  direction: string; dispatcher: string; time: string; status: SecurityStatus;
+  direction: string; dispatcher: string; time: string; status: SecurityStatus; denyReason?: string;
+};
+
+const playSound = (type: 'new' | 'allow' | 'deny') => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const t = ctx.currentTime;
+
+    if (type === 'new') {
+      // Soft, crystal-like ping
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1046.50, t); // C6
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      
+      osc.start(t);
+      osc.stop(t + 0.5);
+    } 
+    else if (type === 'allow') {
+      // Elegant upward success chime (A5 -> C#6)
+      const playNote = (freq: number, start: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, start);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.3, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.7);
+        osc.start(start);
+        osc.stop(start + 0.7);
+      };
+      playNote(880, t); // A5
+      playNote(1108.73, t + 0.12); // C#6
+    } 
+    else if (type === 'deny') {
+      // Deep, soft double-thump (modern error)
+      const playThump = (freq: number, start: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        
+        // Pitch drop effect
+        osc.frequency.setValueAtTime(freq, start);
+        osc.frequency.exponentialRampToValueAtTime(freq / 2, start + 0.1);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.4, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.2);
+        
+        osc.start(start);
+        osc.stop(start + 0.2);
+      };
+      playThump(250, t);
+      playThump(250, t + 0.12);
+    }
+  } catch (e) {
+    // Ignore errors
+  }
 };
 
 const statusBadgeClass = (status: SecurityStatus) => status === 'allowed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : status === 'denied' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-amber-500/10 text-amber-300 border-amber-500/30';
@@ -51,6 +121,9 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
   const { t } = useI18n();
   const [isGateOpen, setIsGateOpen] = useState(false);
   const [queueFilter, setQueueFilter] = useState<SecurityStatus>('pending');
+  const [denyModalOpen, setDenyModalOpen] = useState(false);
+  const [selectedDenyReason, setSelectedDenyReason] = useState('Hujjatlar to\'liq emas');
+  const prevPendingLength = useRef(0);
 
   const { savedDetails, setSavedDetails } = useWaybillStore();
 
@@ -86,11 +159,19 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
           direction: details.route || '-',
           dispatcher: details.dispatcherName || currentUser,
           time: details.departureTime ? details.departureTime.replace('T', ' ') : '--:--',
-          status: details.securityStatus || 'pending'
+          status: details.securityStatus || 'pending',
+          denyReason: details.denyReason
       })).sort((a, b) => b.time.localeCompare(a.time));
   }, [savedDetails]);
 
   const pendingQueue = useMemo(() => realData.filter(r => r.status === 'pending'), [realData]);
+  
+  useEffect(() => {
+    if (pendingQueue.length > prevPendingLength.current) {
+      playSound('new');
+    }
+    prevPendingLength.current = pendingQueue.length;
+  }, [pendingQueue.length]);
   const displayQueue = useMemo(() => realData.filter(r => r.status === queueFilter), [realData, queueFilter]);
   const summary = useMemo(() => {
     const today = new Date();
@@ -119,7 +200,11 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
       status: 'pending' as SecurityStatus
   };
 
-  const handleStatusUpdate = (status: SecurityStatus) => {
+  const handleStatusUpdate = (status: SecurityStatus, reason?: string) => {
+      if (status === 'denied' && !reason) {
+          setDenyModalOpen(true);
+          return;
+      }
       if (activeVehicle) {
           setSavedDetails(prev => {
               const prevDetails = prev[activeVehicle.id];
@@ -129,12 +214,19 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
                   [activeVehicle.id]: {
                       ...prevDetails,
                       securityStatus: status,
+                      denyReason: reason,
                       updatedAt: Date.now()
                   }
               };
           });
       }
-      setIsGateOpen(status === 'allowed');
+      
+      if (status === 'allowed') {
+          setIsGateOpen(true);
+          playSound('allow');
+      } else if (status === 'denied') {
+          playSound('deny');
+      }
   };
 
   const getStatusLabel = (status: SecurityStatus) => {
@@ -255,6 +347,11 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
                         <span>{row.driver}</span>
                         <span>{row.time}</span>
                       </div>
+                      {row.status === 'denied' && row.denyReason && (
+                        <div className="text-[11px] text-red-300/90 font-medium mt-1.5 relative z-10 bg-red-500/10 px-2 py-1 rounded-md border border-red-500/20 shadow-sm leading-tight">
+                          Sabab: {row.denyReason}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -271,6 +368,41 @@ export function SecurityTabletPage({ onNavigate }: { onNavigate?: (tab: string, 
           }
         `}</style>
       </motion.div>
+
+      {/* Deny Modal */}
+      {denyModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setDenyModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700/60 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700/50 pb-3 flex items-center gap-2">
+              <AlertTriangle className="text-red-500" />
+              Rad etish sababini tanlang
+            </h3>
+            <div className="space-y-3 mb-6">
+              {[
+                'Hujjatlar to\'liq emas',
+                'Yo\'l varaqasi yopilgan',
+                'Haydovchi tibbiy ko\'rikdan o\'tmagan',
+                'Transport nosoz holatda',
+                'Boshqa sabab'
+              ].map(r => (
+                <label key={r} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedDenyReason === r ? 'bg-red-500/10 border-red-500/50 text-red-100' : 'bg-slate-800/50 border-slate-700/50 text-slate-300 hover:bg-slate-800'}`}>
+                  <input type="radio" name="denyReason" value={r} checked={selectedDenyReason === r} onChange={(e) => setSelectedDenyReason(e.target.value)} className="w-4 h-4 text-red-500 bg-slate-950 border-slate-700 focus:ring-red-500 focus:ring-offset-slate-900" />
+                  <span className="font-medium">{r}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setDenyModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors">
+                Bekor qilish
+              </button>
+              <button onClick={() => { setDenyModalOpen(false); handleStatusUpdate('denied', selectedDenyReason); }} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20">
+                Rad etish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

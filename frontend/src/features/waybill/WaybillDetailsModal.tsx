@@ -12,6 +12,7 @@ export type WaybillDetailsData = {
     departureTime: string;
     expectedReturn: string;
     securityStatus?: 'pending' | 'allowed' | 'denied' | 'returned';
+    denyReason?: string;
     dispatcherName?: string;
     updatedAt?: number;
 };

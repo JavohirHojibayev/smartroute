@@ -791,8 +791,9 @@
 }
 
 .theme-light .brand-title {
-  color: #4f46e5 !important;
-  background-image: linear-gradient(90deg, #4f46e5, #6366f1) !important;
+  color: #3b82f6 !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #3b82f6 !important;
 }
 
 .theme-light .glass-panel {
@@ -843,24 +844,34 @@
   color: #2563eb !important;
 }
 
-.theme-light .app-module-heading,
-.theme-light .brand-title {
-  color: #3b82f6 !important;
+.theme-light [class*="text-amber-200"],
+.theme-light [class*="text-amber-300"],
+.theme-light [class*="text-amber-400"] {
+  color: #d97706 !important;
+}
+
+.theme-light [class*="border-amber-400"],
+.theme-light [class*="border-amber-500"] {
+  border-color: #fbbf24 !important;
+}
+
+.theme-light .app-module-heading {
+  color: #4f46e5 !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #4f46e5 !important;
 }
 
 .theme-light .fuel-tab-heading {
-  color: transparent !important;
-  background-image: linear-gradient(90deg, #4f46e5, #6366f1) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+  color: #4f46e5 !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #4f46e5 !important;
 }
 
 /* Gradient text fix */
 .theme-light .bg-clip-text.text-transparent {
-  color: transparent !important;
-  background-image: linear-gradient(90deg, #4f46e5, #6366f1) !important;
-  -webkit-text-fill-color: transparent !important;
+  color: #4f46e5 !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #4f46e5 !important;
 }
 
 /* Background overrides for inputs and tables */
@@ -875,6 +886,7 @@
 }
 
 .theme-light [class~="bg-slate-950/15"],
+.theme-light [class~="bg-slate-900"],
 .theme-light [class~="bg-slate-900/50"],
 .theme-light [class~="bg-slate-900/40"],
 .theme-light [class~="bg-slate-900/30"],
