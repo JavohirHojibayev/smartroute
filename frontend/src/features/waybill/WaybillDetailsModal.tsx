@@ -541,24 +541,27 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
     return (
         <div className="fixed inset-0 z-50 flex flex-col w-screen h-screen bg-slate-950 overflow-hidden animate-in fade-in duration-200">
             {/* Full Screen Header Bar */}
-            <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-6 py-3.5 bg-slate-900/90 shadow-md">
-                <div className="w-10"></div>
-                <h3 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-2.5 text-center flex-1">
-                    <FileSpreadsheet className="text-blue-400 shrink-0" size={22} />
-                    Yo'l varaqasini shakllantirish (YUK AVTOMOBILI № 4-m namunaviy shakl)
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-3 sm:px-6 py-2.5 sm:py-3.5 bg-slate-900/90 shadow-md gap-2">
+                <div className="w-8 sm:w-10 hidden sm:block"></div>
+                <h3 className="text-xs sm:text-base md:text-lg font-bold text-slate-100 flex items-center justify-center gap-1.5 sm:gap-2.5 text-center flex-1 leading-tight px-1">
+                    <FileSpreadsheet className="text-blue-400 shrink-0 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                    <span className="line-clamp-2 sm:line-clamp-none">
+                        Yo'l varaqasini shakllantirish (YUK AVTOMOBILI № 4-m namunaviy shakl)
+                    </span>
                 </h3>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors shrink-0"
+                    className="p-1.5 sm:p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors shrink-0"
                     title="Yopish"
                 >
-                    <X size={22} />
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
             </div>
 
-            {/* Form Document Body (Full Screen A4 Landscape Layout) */}
-            <fieldset disabled={!isEditing} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-200 text-sm font-sans bg-slate-950/60 border-none m-0 disabled:opacity-95">
+            {/* Form Document Body */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 text-slate-200 text-sm font-sans bg-slate-950/60 border-none m-0 dark-scrollbar min-w-0">
+                <fieldset disabled={!isEditing} className="contents">
                 <datalist id="drivers-list">
                     {allDrivers.map((d, i) => <option key={i} value={d} />)}
                 </datalist>
@@ -572,24 +575,28 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                     <div className="lg:col-span-5 border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3.5 shadow-md">
 
 
-                        <div className="flex items-center justify-between gap-2 py-1">
-                            <span className="font-bold text-base text-blue-400">YO'L VARAQASI №</span>
-                            <input
-                                type="text"
-                                name="waybillNo"
-                                value={formData.waybillNo || ''}
-                                onChange={handleChange}
-                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2.5 py-1 text-slate-100 font-bold text-sm w-32 text-center"
-                                placeholder=""
-                            />
-                            <span className="font-medium text-slate-300 text-xs">Sana:</span>
-                            <input
-                                type="date"
-                                name="waybillDate"
-                                value={formData.waybillDate || ''}
-                                onChange={handleChange}
-                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm"
-                            />
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-1">
+                            <div className="flex items-center gap-2 justify-between sm:justify-start">
+                                <span className="font-bold text-sm sm:text-base text-blue-400 whitespace-nowrap">YO'L VARAQASI №</span>
+                                <input
+                                    type="text"
+                                    name="waybillNo"
+                                    value={formData.waybillNo || ''}
+                                    onChange={handleChange}
+                                    className="bg-slate-950/60 border border-slate-700/60 rounded px-2.5 py-1 text-slate-100 font-bold text-sm w-28 sm:w-32 text-center"
+                                    placeholder=""
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 justify-between sm:justify-end">
+                                <span className="font-medium text-slate-300 text-xs sm:text-sm shrink-0">Sana:</span>
+                                <input
+                                    type="date"
+                                    name="waybillDate"
+                                    value={formData.waybillDate || ''}
+                                    onChange={handleChange}
+                                    className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm min-w-0"
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/40 text-xs">
@@ -653,8 +660,8 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                             <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60">
                                 Haydovchi va avtomobilning ishi
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-center border-collapse">
+                            <div className="overflow-x-auto touch-pan-x dark-scrollbar max-w-full">
+                                <table className="w-full text-center border-collapse min-w-[600px]">
                                     <thead>
                                         <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                             <th className="p-1.5 border-r border-slate-700/50 w-28">Operatsiya</th>
@@ -709,8 +716,8 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                 <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60">
                                     yonilg'i harajati, litr
                                 </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-center border-collapse">
+                                <div className="overflow-x-auto touch-pan-x dark-scrollbar max-w-full">
+                                    <table className="w-full text-center border-collapse min-w-[700px]">
                                         <thead>
                                             <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                                 <th className="p-1 border-r border-slate-700/50" rowSpan={2}>yonilg'i markasi</th>
@@ -831,8 +838,8 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                         <div className="bg-slate-800/80 px-4 py-2 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60 flex items-center justify-center gap-2">
                             <span>XAYDOVCHIGA TOPSHIRIQ</span>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-center border-collapse">
+                        <div className="overflow-x-auto touch-pan-x dark-scrollbar max-w-full">
+                            <table className="w-full text-center border-collapse min-w-[850px]">
                                 <thead>
                                     <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                         <th className="p-2 border-r border-slate-700/50 min-w-[140px]">Kimning ixtiyoriga</th>
@@ -1178,8 +1185,8 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                         <div className="bg-slate-800/80 px-3 py-2 font-bold text-slate-200 text-center border-b border-slate-700/60 text-sm tracking-wide uppercase">
                             TOPSHIRIWNI BAJARILISHI IZCHILLIGI
                         </div>
-                        <div className="overflow-x-auto flex-1">
-                            <table className="w-full text-center border-collapse">
+                        <div className="overflow-x-auto touch-pan-x dark-scrollbar flex-1 max-w-full">
+                            <table className="w-full text-center border-collapse min-w-[500px]">
                                 <thead>
                                     <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                         <th className="p-2 border-r border-slate-700/50 min-w-[200px]">
@@ -1235,8 +1242,8 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                             <div className="bg-slate-800/80 px-3 py-2 font-bold text-slate-200 text-center border-b border-slate-700/60 text-sm tracking-wide uppercase">
                                 LINIYADA TURIB QOLISHLAR
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-center border-collapse">
+                            <div className="overflow-x-auto touch-pan-x dark-scrollbar max-w-full">
+                                <table className="w-full text-center border-collapse min-w-[550px]">
                                     <thead>
                                         <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                             <th className="p-1.5 border-r border-slate-700/50 min-w-[100px]" rowSpan={2}>Nomi</th>
@@ -1336,9 +1343,9 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                 </div>
 
                 {/* NEW SECTION: TTX Header, Avtomobilning ish natijalari & ish haqi Table (Cols 31-47) */}
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-2 min-w-0">
                     {/* Header Bar: TTX Soni & Signatures */}
-                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 shadow-md flex flex-wrap items-center justify-between gap-4 text-sm text-slate-200">
+                    <div className="border border-slate-700/60 rounded-xl p-3 sm:p-4 bg-slate-900/60 shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs sm:text-sm text-slate-200 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-slate-200">TTX soni:</span>
                             <input
@@ -1347,7 +1354,7 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                 value={formData.ttxCount || ''}
                                 onChange={handleChange}
                                 placeholder=""
-                                className="w-20 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center text-slate-100 font-semibold text-sm focus:outline-none focus:border-blue-500/80"
+                                className="w-16 sm:w-20 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center text-slate-100 font-semibold text-xs sm:text-sm"
                             />
                             <input
                                 type="text"
@@ -1355,41 +1362,41 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                 value={formData.ttxCountInWords || ''}
                                 onChange={handleChange}
                                 placeholder="(yozuv bilan)"
-                                className="w-48 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                className="flex-1 min-w-[120px] bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                             />
                             <span className="text-slate-300">ta</span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-slate-300">Topshirdi haydovchi:</span>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800/60">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
+                                <span className="text-slate-300 shrink-0">Topshirdi:</span>
                                 <input
                                     type="text"
                                     name="driverHandoverSig"
                                     value={formData.driverHandoverSig || ''}
                                     onChange={handleChange}
                                     placeholder="(imzo)"
-                                    className="w-36 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                    className="w-full min-w-0 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-slate-300">Qabul qildim dispetcher:</span>
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
+                                <span className="text-slate-300 shrink-0">Qabul qildim:</span>
                                 <input
                                     type="text"
                                     name="dispatcherReceiveSig"
                                     value={formData.dispatcherReceiveSig || ''}
                                     onChange={handleChange}
                                     placeholder="(imzo)"
-                                    className="w-36 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                    className="w-full min-w-0 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Table: Avtomobilning ish natijalari & ish haqi (Cols 31-47) */}
-                    <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-center border-collapse">
+                    <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md min-w-0">
+                        <div className="overflow-x-auto touch-pan-x dark-scrollbar max-w-full">
+                            <table className="w-full text-center border-collapse min-w-[1150px]">
                                 <thead>
                                     {/* Main Group Headers */}
                                     <tr className="bg-slate-800/90 text-sm font-bold text-slate-200 border-b border-slate-700/60">
@@ -1547,61 +1554,62 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                     </div>
 
                     {/* Bottom Footer Bar: Vehicle & Trailer Codes + Days worked */}
-                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 shadow-md flex flex-wrap items-center justify-between gap-4 text-sm text-slate-200">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="font-bold text-slate-200">Rusumlar kodi:</span>
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-slate-300">Avtomobil</span>
+                    <div className="border border-slate-700/60 rounded-xl p-3 sm:p-4 bg-slate-900/60 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs sm:text-sm text-slate-200 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <span className="font-bold text-slate-200 w-full sm:w-auto">Rusumlar kodi:</span>
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[110px]">
+                                <span className="text-slate-300">Avto</span>
                                 <input
                                     type="text"
                                     name="codeVehicleModel"
                                     value={formData.codeVehicleModel || ''}
                                     onChange={handleChange}
-                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                    className="w-full min-w-0 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[110px]">
                                 <span className="text-slate-300">Tirkama</span>
                                 <input
                                     type="text"
                                     name="codeTrailer"
                                     value={formData.codeTrailer || ''}
                                     onChange={handleChange}
-                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                    className="w-full min-w-0 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                                 />
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-[110px]">
                                 <span className="text-slate-300">Yarimtirkama</span>
                                 <input
                                     type="text"
                                     name="codeSemiTrailer"
                                     value={formData.codeSemiTrailer || ''}
                                     onChange={handleChange}
-                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                    className="w-full min-w-0 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs sm:text-sm"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800/60 justify-between md:justify-end">
                             <span className="font-medium text-slate-200">Avtomobil-kun ishda:</span>
                             <input
                                 type="text"
                                 name="autoDaysInWork"
                                 value={formData.autoDaysInWork || ''}
                                 onChange={handleChange}
-                                className="w-24 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center font-semibold text-slate-100 text-sm focus:outline-none focus:border-blue-500/80"
+                                className="w-20 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center font-semibold text-slate-100 text-xs sm:text-sm"
                             />
                         </div>
                     </div>
                 </div>
             </fieldset>
+            </div>
 
             {/* Footer Controls */}
-            <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-700/60 px-6 py-3.5 bg-slate-800/80">
+            <div className="flex shrink-0 items-center justify-between sm:justify-end gap-2 sm:gap-3 border-t border-slate-700/60 px-4 sm:px-6 py-2.5 sm:py-3.5 bg-slate-900/95 backdrop-blur-md shadow-2xl">
                 <button
                     type="button"
                     onClick={() => setIsEditing(prev => !prev)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all flex items-center gap-2 shadow-lg ${
+                    className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all flex items-center gap-2 shadow-lg ${
                         isEditing
                             ? 'bg-amber-500 hover:bg-amber-400 ring-2 ring-amber-400/50 shadow-amber-500/20'
                             : 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20'
@@ -1614,7 +1622,7 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                     type="button"
                     onClick={handleSave}
                     disabled={!isEditing}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Save size={18} />
                     Saqlash

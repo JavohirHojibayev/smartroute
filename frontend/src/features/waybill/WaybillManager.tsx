@@ -597,7 +597,7 @@ export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpe
 
                     <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-3 flex-1">
-                            <div className="relative flex-1 min-w-[200px] max-w-[280px]">
+                            <div className="relative flex-1 min-w-0 w-full sm:w-auto sm:min-w-[200px] sm:max-w-[280px]">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input
                                     type="text"
@@ -608,7 +608,7 @@ export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpe
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                                 <LocalizedDateInput
                                     label={t('dateFromSanadan')}
                                     value={dateFrom}
