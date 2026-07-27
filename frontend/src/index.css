@@ -739,12 +739,13 @@
   width: 100%;
   height: 42px;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .test-mode-inline-track span {
   position: absolute;
   top: 50%;
-  left: 100%;
+  left: 0;
   display: inline-block;
   white-space: nowrap;
   color: #facc15;
@@ -753,16 +754,16 @@
   letter-spacing: 0.03em;
   text-shadow: none;
   will-change: transform;
-  transform: translateY(-50%);
-  animation: test-mode-inline-scroll 22s linear infinite;
+  transform: translateY(-50%) translateX(100cqw);
+  animation: test-mode-inline-scroll 7s linear infinite;
 }
 
 @keyframes test-mode-inline-scroll {
   0% {
-    left: 100%;
+    transform: translateY(-50%) translateX(100cqw);
   }
   100% {
-    left: -320%;
+    transform: translateY(-50%) translateX(-100%);
   }
 }
 
