@@ -1,4 +1,4 @@
-import { X, Save, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { X, Save, Pencil, FileSpreadsheet } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { loadTransportRegistry } from '../../data/transportStore';
 
@@ -100,13 +100,59 @@ export type WaybillDetailsData = {
     weight5?: string;
 
     // Signatures & Page 2
+    licenseCheck?: string;
+    fuelToGive?: string;
+    doctorSignature?: string;
+    mechanicOutApproval?: string;
+    driverOutSignature?: string;
+    driverInSignature?: string;
     techOutStatus?: string;
     techInStatus?: string;
     specialNotes?: string;
     ttnNumbers?: string;
     delaysInfo?: string;
 
-    // Meta
+    // TOPSHIRIWNI BAJARILISHI IZCHILLIGI (Cols 24-25)
+    ttnNo1?: string; ttnSig1?: string;
+    ttnNo2?: string; ttnSig2?: string;
+    ttnNo3?: string; ttnSig3?: string;
+    ttnNo4?: string; ttnSig4?: string;
+    ttnNo5?: string; ttnSig5?: string;
+    ttnNo6?: string; ttnSig6?: string;
+    ttnNo7?: string; ttnSig7?: string;
+    ttnNo8?: string; ttnSig8?: string;
+
+    // LINIYADA TURIB QOLISHLAR (Cols 26-30)
+    delayName1?: string; delayCode1?: string; delayStart1?: string; delayEnd1?: string; delaySig1?: string;
+    delayName2?: string; delayCode2?: string; delayStart2?: string; delayEnd2?: string; delaySig2?: string;
+    delayName3?: string; delayCode3?: string; delayStart3?: string; delayEnd3?: string; delaySig3?: string;
+    delayName4?: string; delayCode4?: string; delayStart4?: string; delayEnd4?: string; delaySig4?: string;
+
+    // TAKSIROFKA
+    taksirofkaNotes?: string;
+
+    // TTX & Avtomobilning ish natijalari (Cols 31-47)
+    ttxCount?: string; ttxCountInWords?: string;
+    driverHandoverSig?: string; dispatcherReceiveSig?: string;
+
+    autoResults31_45?: string;
+    fuelNorm31?: string; fuelActual32?: string; hoursTotal33?: string; hoursMoving34?: string;
+    delaysTotal35?: string; loadingTotal36?: string; loadingOverNorm37?: string; techBreakdown38?: string;
+    tripsWithCargo39?: string; distanceTotal40?: string; distanceLoaded41?: string;
+    cargoWeightTotal42?: string; cargoWeightTrailer43?: string; tkmTotal44?: string; tkmTrailer45?: string;
+    salaryCode46?: string; salaryAmount47?: string;
+
+    fuelNorm31_2?: string; fuelActual32_2?: string; hoursTotal33_2?: string; hoursMoving34_2?: string;
+    delaysTotal35_2?: string; loadingTotal36_2?: string; loadingOverNorm37_2?: string; techBreakdown38_2?: string;
+    tripsWithCargo39_2?: string; distanceTotal40_2?: string; distanceLoaded41_2?: string;
+    cargoWeightTotal42_2?: string; cargoWeightTrailer43_2?: string; tkmTotal44_2?: string; tkmTrailer45_2?: string;
+    salaryCode46_2?: string; salaryAmount47_2?: string;
+
+    codeVehicleModel?: string; codeTrailer?: string; codeSemiTrailer?: string; autoDaysInWork?: string;
+
+    // Meta & Persistence
+    isSaved?: boolean;
+    savedAt?: number;
     securityStatus?: 'pending' | 'allowed' | 'denied' | 'returned';
     denyReason?: string;
     dispatcherName?: string;
@@ -121,6 +167,7 @@ type WaybillDetailsModalProps = {
 };
 
 export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDetailsModalProps) => {
+    const [isEditing, setIsEditing] = useState<boolean>(false);
 
     const [formData, setFormData] = useState<WaybillDetailsData>({
         stampInfo: '',
@@ -215,11 +262,49 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
         distance5: '',
         weight5: '',
 
+        licenseCheck: '',
+        fuelToGive: '',
+        doctorSignature: '',
+        mechanicOutApproval: '',
+        driverOutSignature: '',
+        driverInSignature: '',
         techOutStatus: 'Soz',
         techInStatus: 'Soz',
         specialNotes: '',
         ttnNumbers: '',
-        delaysInfo: ''
+        delaysInfo: '',
+
+        ttnNo1: '', ttnSig1: '',
+        ttnNo2: '', ttnSig2: '',
+        ttnNo3: '', ttnSig3: '',
+        ttnNo4: '', ttnSig4: '',
+        ttnNo5: '', ttnSig5: '',
+        ttnNo6: '', ttnSig6: '',
+        ttnNo7: '', ttnSig7: '',
+        ttnNo8: '', ttnSig8: '',
+
+        delayName1: '', delayCode1: '', delayStart1: '', delayEnd1: '', delaySig1: '',
+        delayName2: '', delayCode2: '', delayStart2: '', delayEnd2: '', delaySig2: '',
+        delayName3: '', delayCode3: '', delayStart3: '', delayEnd3: '', delaySig3: '',
+        delayName4: '', delayCode4: '', delayStart4: '', delayEnd4: '', delaySig4: '',
+
+        taksirofkaNotes: '',
+
+        ttxCount: '', ttxCountInWords: '', driverHandoverSig: '', dispatcherReceiveSig: '',
+        autoResults31_45: '',
+        fuelNorm31: '', fuelActual32: '', hoursTotal33: '', hoursMoving34: '',
+        delaysTotal35: '', loadingTotal36: '', loadingOverNorm37: '', techBreakdown38: '',
+        tripsWithCargo39: '', distanceTotal40: '', distanceLoaded41: '',
+        cargoWeightTotal42: '', cargoWeightTrailer43: '', tkmTotal44: '', tkmTrailer45: '',
+        salaryCode46: '', salaryAmount47: '',
+
+        fuelNorm31_2: '', fuelActual32_2: '', hoursTotal33_2: '', hoursMoving34_2: '',
+        delaysTotal35_2: '', loadingTotal36_2: '', loadingOverNorm37_2: '', techBreakdown38_2: '',
+        tripsWithCargo39_2: '', distanceTotal40_2: '', distanceLoaded41_2: '',
+        cargoWeightTotal42_2: '', cargoWeightTrailer43_2: '', tkmTotal44_2: '', tkmTrailer45_2: '',
+        salaryCode46_2: '', salaryAmount47_2: '',
+
+        codeVehicleModel: '', codeTrailer: '', codeSemiTrailer: '', autoDaysInWork: ''
     });
 
     const [allDrivers, setAllDrivers] = useState<string[]>([]);
@@ -228,6 +313,13 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
 
     useEffect(() => {
         if (open) {
+            const hasSavedData = Boolean(
+                data?.isSaved ||
+                data?.savedAt ||
+                (data && (data.departureTime || data.customer || data.fuelGiven || data.odometerOut || data.licenseCheck || data.waybillNo))
+            );
+            setIsEditing(!hasSavedData);
+
             const clean = (val: string | undefined) => val === '-' ? '' : (val || '');
             setFormData({
                 stampInfo: clean(data?.stampInfo),
@@ -322,12 +414,62 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                 distance5: clean(data?.distance5),
                 weight5: clean(data?.weight5),
 
+                licenseCheck: clean(data?.licenseCheck),
+                fuelToGive: clean(data?.fuelToGive),
+                doctorSignature: clean(data?.doctorSignature),
+                mechanicOutApproval: clean(data?.mechanicOutApproval),
+                driverOutSignature: clean(data?.driverOutSignature),
+                driverInSignature: clean(data?.driverInSignature),
                 techOutStatus: clean(data?.techOutStatus) || 'Soz',
                 techInStatus: clean(data?.techInStatus) || 'Soz',
                 specialNotes: clean(data?.specialNotes),
                 ttnNumbers: clean(data?.ttnNumbers),
                 delaysInfo: clean(data?.delaysInfo),
 
+                ttnNo1: clean(data?.ttnNo1), ttnSig1: clean(data?.ttnSig1),
+                ttnNo2: clean(data?.ttnNo2), ttnSig2: clean(data?.ttnSig2),
+                ttnNo3: clean(data?.ttnNo3), ttnSig3: clean(data?.ttnSig3),
+                ttnNo4: clean(data?.ttnNo4), ttnSig4: clean(data?.ttnSig4),
+                ttnNo5: clean(data?.ttnNo5), ttnSig5: clean(data?.ttnSig5),
+                ttnNo6: clean(data?.ttnNo6), ttnSig6: clean(data?.ttnSig6),
+                ttnNo7: clean(data?.ttnNo7), ttnSig7: clean(data?.ttnSig7),
+                ttnNo8: clean(data?.ttnNo8), ttnSig8: clean(data?.ttnSig8),
+
+                delayName1: clean(data?.delayName1), delayCode1: clean(data?.delayCode1), delayStart1: clean(data?.delayStart1), delayEnd1: clean(data?.delayEnd1), delaySig1: clean(data?.delaySig1),
+                delayName2: clean(data?.delayName2), delayCode2: clean(data?.delayCode2), delayStart2: clean(data?.delayStart2), delayEnd2: clean(data?.delayEnd2), delaySig2: clean(data?.delaySig2),
+                delayName3: clean(data?.delayName3), delayCode3: clean(data?.delayCode3), delayStart3: clean(data?.delayStart3), delayEnd3: clean(data?.delayEnd3), delaySig3: clean(data?.delaySig3),
+                delayName4: clean(data?.delayName4), delayCode4: clean(data?.delayCode4), delayStart4: clean(data?.delayStart4), delayEnd4: clean(data?.delayEnd4), delaySig4: clean(data?.delaySig4),
+
+                taksirofkaNotes: clean(data?.taksirofkaNotes),
+
+                ttxCount: clean(data?.ttxCount), ttxCountInWords: clean(data?.ttxCountInWords),
+                driverHandoverSig: clean(data?.driverHandoverSig), dispatcherReceiveSig: clean(data?.dispatcherReceiveSig),
+                autoResults31_45: clean(data?.autoResults31_45),
+                fuelNorm31: clean(data?.fuelNorm31), fuelActual32: clean(data?.fuelActual32),
+                hoursTotal33: clean(data?.hoursTotal33), hoursMoving34: clean(data?.hoursMoving34),
+                delaysTotal35: clean(data?.delaysTotal35), loadingTotal36: clean(data?.loadingTotal36),
+                loadingOverNorm37: clean(data?.loadingOverNorm37), techBreakdown38: clean(data?.techBreakdown38),
+                tripsWithCargo39: clean(data?.tripsWithCargo39), distanceTotal40: clean(data?.distanceTotal40),
+                distanceLoaded41: clean(data?.distanceLoaded41), cargoWeightTotal42: clean(data?.cargoWeightTotal42),
+                cargoWeightTrailer43: clean(data?.cargoWeightTrailer43), tkmTotal44: clean(data?.tkmTotal44),
+                tkmTrailer45: clean(data?.tkmTrailer45), salaryCode46: clean(data?.salaryCode46),
+                salaryAmount47: clean(data?.salaryAmount47),
+
+                fuelNorm31_2: clean(data?.fuelNorm31_2), fuelActual32_2: clean(data?.fuelActual32_2),
+                hoursTotal33_2: clean(data?.hoursTotal33_2), hoursMoving34_2: clean(data?.hoursMoving34_2),
+                delaysTotal35_2: clean(data?.delaysTotal35_2), loadingTotal36_2: clean(data?.loadingTotal36_2),
+                loadingOverNorm37_2: clean(data?.loadingOverNorm37_2), techBreakdown38_2: clean(data?.techBreakdown38_2),
+                tripsWithCargo39_2: clean(data?.tripsWithCargo39_2), distanceTotal40_2: clean(data?.distanceTotal40_2),
+                distanceLoaded41_2: clean(data?.distanceLoaded41_2), cargoWeightTotal42_2: clean(data?.cargoWeightTotal42_2),
+                cargoWeightTrailer43_2: clean(data?.cargoWeightTrailer43_2), tkmTotal44_2: clean(data?.tkmTotal44_2),
+                tkmTrailer45_2: clean(data?.tkmTrailer45_2), salaryCode46_2: clean(data?.salaryCode46_2),
+                salaryAmount47_2: clean(data?.salaryAmount47_2),
+
+                codeVehicleModel: clean(data?.codeVehicleModel), codeTrailer: clean(data?.codeTrailer),
+                codeSemiTrailer: clean(data?.codeSemiTrailer), autoDaysInWork: clean(data?.autoDaysInWork),
+
+                isSaved: data?.isSaved ?? false,
+                savedAt: data?.savedAt,
                 securityStatus: data?.securityStatus,
                 denyReason: data?.denyReason,
                 dispatcherName: data?.dispatcherName
@@ -349,6 +491,19 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
             setPlateToType(p2t);
         }
     }, [open, data]);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [open, onClose]);
 
     if (!open) return null;
 
@@ -374,12 +529,12 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
     };
 
     const handleSave = () => {
-        onSave(formData);
-        onClose();
-    };
-
-    const handleComplete = () => {
-        onSave({ ...formData, securityStatus: 'returned', updatedAt: Date.now() });
+        onSave({
+            ...formData,
+            isSaved: true,
+            savedAt: Date.now()
+        });
+        setIsEditing(false);
         onClose();
     };
 
@@ -387,14 +542,15 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
         <div className="fixed inset-0 z-50 flex flex-col w-screen h-screen bg-slate-950 overflow-hidden animate-in fade-in duration-200">
             {/* Full Screen Header Bar */}
             <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-6 py-3.5 bg-slate-900/90 shadow-md">
-                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2.5">
-                    <FileSpreadsheet className="text-blue-400" size={22} />
+                <div className="w-10"></div>
+                <h3 className="text-lg font-bold text-slate-100 flex items-center justify-center gap-2.5 text-center flex-1">
+                    <FileSpreadsheet className="text-blue-400 shrink-0" size={22} />
                     Yo'l varaqasini shakllantirish (YUK AVTOMOBILI № 4-m namunaviy shakl)
                 </h3>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors"
+                    className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors shrink-0"
                     title="Yopish"
                 >
                     <X size={22} />
@@ -402,7 +558,7 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
             </div>
 
             {/* Form Document Body (Full Screen A4 Landscape Layout) */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-200 text-xs font-sans bg-slate-950/60">
+            <fieldset disabled={!isEditing} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-slate-200 text-sm font-sans bg-slate-950/60 border-none m-0 disabled:opacity-95">
                 <datalist id="drivers-list">
                     {allDrivers.map((d, i) => <option key={i} value={d} />)}
                 </datalist>
@@ -413,80 +569,80 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                 {/* TOP SECTION: Left Info + Right Work & Fuel Tables */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     {/* LEFT COLUMN: Document Header & Vehicle Details */}
-                    <div className="lg:col-span-5 border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3 shadow-md">
+                    <div className="lg:col-span-5 border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3.5 shadow-md">
 
 
                         <div className="flex items-center justify-between gap-2 py-1">
-                            <span className="font-bold text-sm text-blue-400">YO'L VARAQASI №</span>
+                            <span className="font-bold text-base text-blue-400">YO'L VARAQASI №</span>
                             <input
                                 type="text"
                                 name="waybillNo"
                                 value={formData.waybillNo || ''}
                                 onChange={handleChange}
-                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-100 font-bold text-xs w-28 text-center"
+                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2.5 py-1 text-slate-100 font-bold text-sm w-32 text-center"
                                 placeholder=""
                             />
-                            <span className="font-medium text-slate-400">Sana:</span>
+                            <span className="font-medium text-slate-300 text-xs">Sana:</span>
                             <input
                                 type="date"
                                 name="waybillDate"
                                 value={formData.waybillDate || ''}
                                 onChange={handleChange}
-                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-xs"
+                                className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm"
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/40">
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/40 text-xs">
                             <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 shrink-0">Ish rejimi:</span>
-                                <input type="text" name="workRegime" value={formData.workRegime || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" placeholder="" />
+                                <span className="text-slate-300 shrink-0 font-medium">Ish rejimi:</span>
+                                <input type="text" name="workRegime" value={formData.workRegime || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" placeholder="" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 shrink-0">Kod:</span>
-                                <input type="text" name="regimeCode" value={formData.regimeCode || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" placeholder="" />
+                                <span className="text-slate-300 shrink-0 font-medium">Kod:</span>
+                                <input type="text" name="regimeCode" value={formData.regimeCode || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" placeholder="" />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <span className="text-slate-400 shrink-0">Kolonna:</span>
-                            <input type="text" name="columnNo" value={formData.columnNo || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" placeholder="" />
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="text-slate-300 shrink-0 font-medium">Kolonna:</span>
+                            <input type="text" name="columnNo" value={formData.columnNo || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" placeholder="" />
                         </div>
 
                         {/* Vehicle Details */}
                         <div className="space-y-2 pt-2 border-t border-slate-700/40">
-                            <div className="text-[11px] font-semibold text-slate-300">Avtomobil (rusumi, davlat raqami, tip):</div>
+                            <div className="text-xs font-semibold text-slate-200">Avtomobil (rusumi, davlat raqami, tip):</div>
                             <div className="grid grid-cols-3 gap-1.5">
-                                <input type="text" name="vehicleModel" value={formData.vehicleModel || ''} onChange={handleChange} placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" />
-                                <input type="text" name="plate" value={formData.plate} onChange={handleChange} list="plates-list" placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 font-semibold" />
-                                <input type="text" name="type" value={formData.type} onChange={handleChange} placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" />
+                                <input type="text" name="vehicleModel" value={formData.vehicleModel || ''} onChange={handleChange} placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" />
+                                <input type="text" name="plate" value={formData.plate} onChange={handleChange} list="plates-list" placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 font-semibold text-sm" />
+                                <input type="text" name="type" value={formData.type} onChange={handleChange} placeholder="" className="bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" />
                             </div>
                         </div>
 
                         {/* Driver Details */}
                         <div className="space-y-2 pt-2 border-t border-slate-700/40">
-                            <div className="text-[11px] font-semibold text-slate-300">1. Haydovchi F.I.SH. / Tab № / Klassi:</div>
+                            <div className="text-xs font-semibold text-slate-200">1. Haydovchi F.I.SH. / Tab № / Klassi:</div>
                             <div className="grid grid-cols-12 gap-1.5">
-                                <input type="text" name="driver" value={formData.driver} onChange={handleChange} list="drivers-list" placeholder="" className="col-span-6 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 font-semibold" />
-                                <input type="text" name="tabNo" value={formData.tabNo || ''} onChange={handleChange} placeholder="" className="col-span-3 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" />
-                                <input type="text" name="driverClass" value={formData.driverClass || ''} onChange={handleChange} placeholder="" className="col-span-3 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200" />
+                                <input type="text" name="driver" value={formData.driver} onChange={handleChange} list="drivers-list" placeholder="" className="col-span-6 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 font-semibold text-sm" />
+                                <input type="text" name="tabNo" value={formData.tabNo || ''} onChange={handleChange} placeholder="" className="col-span-3 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" />
+                                <input type="text" name="driverClass" value={formData.driverClass || ''} onChange={handleChange} placeholder="" className="col-span-3 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm" />
                             </div>
                         </div>
 
                         {/* Trailer Details */}
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/40">
                             <div>
-                                <span className="text-slate-400 text-[11px]">Tirkama (rusumi, raqami):</span>
-                                <input type="text" name="trailerPlate" value={formData.trailerPlate || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-0.5" placeholder="" />
+                                <span className="text-slate-300 text-xs font-medium">Tirkama (rusumi, raqami):</span>
+                                <input type="text" name="trailerPlate" value={formData.trailerPlate || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm mt-0.5" placeholder="" />
                             </div>
                             <div>
-                                <span className="text-slate-400 text-[11px]">Yarimtirkama:</span>
-                                <input type="text" name="semiTrailerPlate" value={formData.semiTrailerPlate || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-0.5" placeholder="" />
+                                <span className="text-slate-300 text-xs font-medium">Yarimtirkama:</span>
+                                <input type="text" name="semiTrailerPlate" value={formData.semiTrailerPlate || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm mt-0.5" placeholder="" />
                             </div>
                         </div>
 
                         <div>
-                            <span className="text-slate-400 text-[11px]">Hamkorlik qiluvchi shaxslar:</span>
-                            <input type="text" name="companions" value={formData.companions || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-0.5" placeholder="" />
+                            <span className="text-slate-300 text-xs font-medium">Hamkorlik qiluvchi shaxslar:</span>
+                            <input type="text" name="companions" value={formData.companions || ''} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm mt-0.5" placeholder="" />
                         </div>
                     </div>
 
@@ -494,20 +650,20 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                     <div className="lg:col-span-7 space-y-4">
                         {/* TABLE 1-6: Haydovchi va avtomobilning ishi */}
                         <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
-                            <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-center border-b border-slate-700/60">
+                            <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60">
                                 Haydovchi va avtomobilning ishi
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-center border-collapse">
                                     <thead>
-                                        <tr className="bg-slate-950/60 text-[11px] text-slate-300 border-b border-slate-700/60">
+                                        <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                             <th className="p-1.5 border-r border-slate-700/50 w-28">Operatsiya</th>
                                             <th className="p-1.5 border-r border-slate-700/50">Jadval bo'yicha vaqt</th>
                                             <th className="p-1.5 border-r border-slate-700/50">Pulli masofa, km</th>
                                             <th className="p-1.5 border-r border-slate-700/50">Spidometr ko'rsatgichlari</th>
                                             <th className="p-1.5">Amaldagi vaqt</th>
                                         </tr>
-                                        <tr className="bg-slate-900/40 text-[10px] text-slate-400 border-b border-slate-700/60">
+                                        <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
                                             <th className="py-0.5 border-r border-slate-700/50">1</th>
                                             <th className="py-0.5 border-r border-slate-700/50">2 - 3</th>
                                             <th className="py-0.5 border-r border-slate-700/50">4</th>
@@ -515,32 +671,32 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                             <th className="py-0.5">6</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-700/50">
+                                    <tbody className="divide-y divide-slate-700/50 text-sm">
                                         <tr>
-                                            <td className="p-1.5 font-medium border-r border-slate-700/50 bg-slate-950/20">Garajdan chiqish</td>
+                                            <td className="p-1.5 font-medium border-r border-slate-700/50 bg-slate-950/20 text-xs">Garajdan chiqish</td>
                                             <td className="p-1 border-r border-slate-700/50">
-                                                <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                             <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
-                                                <input type="text" name="paidDistance" value={formData.paidDistance || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="text" name="paidDistance" value={formData.paidDistance || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                             <td className="p-1 border-r border-slate-700/50">
-                                                <input type="text" name="odometerOut" value={formData.odometerOut || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="text" name="odometerOut" value={formData.odometerOut || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                             <td className="p-1">
-                                                <input type="text" name="actualDeparture" value={formData.actualDeparture || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="text" name="actualDeparture" value={formData.actualDeparture || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="p-1.5 font-medium border-r border-slate-700/50 bg-slate-950/20">Garajga qaytish</td>
+                                            <td className="p-1.5 font-medium border-r border-slate-700/50 bg-slate-950/20 text-xs">Garajga qaytish</td>
                                             <td className="p-1 border-r border-slate-700/50">
-                                                <input type="datetime-local" name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="datetime-local" name="expectedReturn" value={formData.expectedReturn} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                             <td className="p-1 border-r border-slate-700/50">
-                                                <input type="text" name="odometerIn" value={formData.odometerIn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="text" name="odometerIn" value={formData.odometerIn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                             <td className="p-1">
-                                                <input type="text" name="actualReturn" value={formData.actualReturn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200" />
+                                                <input type="text" name="actualReturn" value={formData.actualReturn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm" />
                                             </td>
                                         </tr>
                                     </tbody>
@@ -550,27 +706,27 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
 
                             {/* TABLE 7-14: Yonilg'i harajati, litr */}
                             <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
-                                <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-center border-b border-slate-700/60">
+                                <div className="bg-slate-800/80 px-3 py-1.5 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60">
                                     yonilg'i harajati, litr
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-center border-collapse">
                                         <thead>
-                                            <tr className="bg-slate-950/60 text-[11px] text-slate-300 border-b border-slate-700/60">
+                                            <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                                 <th className="p-1 border-r border-slate-700/50" rowSpan={2}>yonilg'i markasi</th>
                                                 <th className="p-1 border-r border-slate-700/50" rowSpan={2}>Marka kodi</th>
                                                 <th className="p-1 border-r border-slate-700/50" rowSpan={2}>Berildi</th>
                                                 <th className="p-1 border-r border-slate-700/50" colSpan={2}>Qoldiq</th>
-                                                <th className="p-1 border-r border-slate-700/50 text-[10px]" rowSpan={2}>Norma o'zlashtirish koeffisenti</th>
+                                                <th className="p-1 border-r border-slate-700/50 text-[11px]" rowSpan={2}>Norma o'zlashtirish koeffisenti</th>
                                                 <th className="p-1" colSpan={2}>ishlash vaqti, soat</th>
                                             </tr>
-                                            <tr className="bg-slate-900/40 text-[10px] text-slate-400 border-b border-slate-700/60">
+                                            <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
                                                 <th className="py-0.5 border-r border-slate-700/50">chiqishda</th>
                                                 <th className="py-0.5 border-r border-slate-700/50">qaytishda</th>
                                                 <th className="py-0.5 border-r border-slate-700/50">Maxsus uskuna</th>
                                                 <th className="py-0.5">dvigatel</th>
                                             </tr>
-                                            <tr className="bg-slate-950/40 text-[9px] text-slate-500 border-b border-slate-700/60">
+                                            <tr className="bg-slate-950/40 text-[10px] text-slate-500 border-b border-slate-700/60">
                                                 <th className="py-0.5 border-r border-slate-700/50">7</th>
                                                 <th className="py-0.5 border-r border-slate-700/50">8</th>
                                                 <th className="py-0.5 border-r border-slate-700/50">9</th>
@@ -585,61 +741,61 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                             {/* Fuel Row 1 */}
                                             <tr>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelType" value={formData.fuelType || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelType" value={formData.fuelType || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelCode" value={formData.fuelCode || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelCode" value={formData.fuelCode || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelGiven" value={formData.fuelGiven || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 font-bold text-blue-400" />
+                                                    <input type="text" name="fuelGiven" value={formData.fuelGiven || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 font-bold text-blue-400 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelOut" value={formData.fuelOut || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelOut" value={formData.fuelOut || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelIn" value={formData.fuelIn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelIn" value={formData.fuelIn || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelNormCoef" value={formData.fuelNormCoef || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelNormCoef" value={formData.fuelNormCoef || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="specialEquipmentHours" value={formData.specialEquipmentHours || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="specialEquipmentHours" value={formData.specialEquipmentHours || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1">
-                                                    <input type="text" name="engineHours" value={formData.engineHours || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="engineHours" value={formData.engineHours || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                             </tr>
 
                                             {/* Fuel Row 2 */}
                                             <tr className="border-t border-slate-700/40">
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelType2" value={formData.fuelType2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelType2" value={formData.fuelType2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelCode2" value={formData.fuelCode2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelCode2" value={formData.fuelCode2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelGiven2" value={formData.fuelGiven2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 font-bold text-blue-400" />
+                                                    <input type="text" name="fuelGiven2" value={formData.fuelGiven2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 font-bold text-blue-400 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelOut2" value={formData.fuelOut2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelOut2" value={formData.fuelOut2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelIn2" value={formData.fuelIn2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelIn2" value={formData.fuelIn2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="fuelNormCoef2" value={formData.fuelNormCoef2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="fuelNormCoef2" value={formData.fuelNormCoef2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="specialEquipmentHours2" value={formData.specialEquipmentHours2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="specialEquipmentHours2" value={formData.specialEquipmentHours2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                                 <td className="p-1">
-                                                    <input type="text" name="engineHours2" value={formData.engineHours2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200" />
+                                                    <input type="text" name="engineHours2" value={formData.engineHours2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-sm" />
                                                 </td>
                                             </tr>
 
                                             {/* Signatures Role Header Row */}
-                                            <tr className="bg-slate-950/80 text-[10px] font-semibold text-slate-400 border-t border-slate-700/60">
+                                            <tr className="bg-slate-950/80 text-[11px] font-semibold text-slate-300 border-t border-slate-700/60">
                                                 <td className="p-1 border-r border-slate-700/50 italic">imzolar</td>
                                                 <td className="p-1 border-r border-slate-700/50" colSpan={2}>Yonilg'i quyuvchi</td>
                                                 <td className="p-1 border-r border-slate-700/50">Nav.mex</td>
@@ -651,16 +807,16 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                             <tr className="border-t border-slate-700/40 bg-slate-950/40">
                                                 <td className="p-1 border-r border-slate-700/50"></td>
                                                 <td className="p-1 border-r border-slate-700/50" colSpan={2}>
-                                                    <input type="text" name="fuelerSignature" value={formData.fuelerSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-[11px]" />
+                                                    <input type="text" name="fuelerSignature" value={formData.fuelerSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-xs" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="mechanicOutSignature" value={formData.mechanicOutSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-[11px]" />
+                                                    <input type="text" name="mechanicOutSignature" value={formData.mechanicOutSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-xs" />
                                                 </td>
                                                 <td className="p-1 border-r border-slate-700/50">
-                                                    <input type="text" name="mechanicInSignature" value={formData.mechanicInSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-[11px]" />
+                                                    <input type="text" name="mechanicInSignature" value={formData.mechanicInSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-xs" />
                                                 </td>
                                                 <td className="p-1" colSpan={3}>
-                                                    <input type="text" name="dispatcherSignature" value={formData.dispatcherSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-[11px]" />
+                                                    <input type="text" name="dispatcherSignature" value={formData.dispatcherSignature || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-slate-200 text-xs" />
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -672,15 +828,15 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
 
                     {/* MIDDLE SECTION: XAYDOVCHIGA TOPSHIRIQ TABLE (Columns 15-22) */}
                     <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
-                        <div className="bg-slate-800/80 px-4 py-2 font-bold text-slate-200 text-center border-b border-slate-700/60 flex items-center justify-center gap-2">
+                        <div className="bg-slate-800/80 px-4 py-2 font-bold text-slate-200 text-sm text-center border-b border-slate-700/60 flex items-center justify-center gap-2">
                             <span>XAYDOVCHIGA TOPSHIRIQ</span>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-center border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-950/60 text-[11px] text-slate-300 border-b border-slate-700/60">
+                                    <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
                                         <th className="p-2 border-r border-slate-700/50 min-w-[140px]">Kimning ixtiyoriga</th>
-                                        <th className="p-2 border-r border-slate-700/50 min-w-[110px]">Kelish vaqti<br/><span className="text-[9px] text-slate-400 font-normal">(soat, daqiqa)</span></th>
+                                        <th className="p-2 border-r border-slate-700/50 min-w-[110px]">Kelish vaqti<br/><span className="text-[10px] text-slate-400 font-normal">(soat, daqiqa)</span></th>
                                         <th className="p-2 border-r border-slate-700/50 min-w-[140px]">Yuk qayerdan olinadi</th>
                                         <th className="p-2 border-r border-slate-700/50 min-w-[160px]">Yuk qayerga yetkaziladi</th>
                                         <th className="p-2 border-r border-slate-700/50 min-w-[130px]">Yukning nomi</th>
@@ -688,7 +844,7 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                         <th className="p-2 border-r border-slate-700/50 min-w-[90px]">Masofa, km</th>
                                         <th className="p-2 min-w-[130px]">Tashilishi kerak yuk hajmi, tonna</th>
                                     </tr>
-                                    <tr className="bg-slate-900/40 text-[10px] text-slate-400 border-b border-slate-700/60">
+                                    <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
                                         <th className="py-0.5 border-r border-slate-700/50">15</th>
                                         <th className="py-0.5 border-r border-slate-700/50">16</th>
                                         <th className="py-0.5 border-r border-slate-700/50">17</th>
@@ -703,140 +859,140 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                                     {/* Row 1 */}
                                     <tr className="hover:bg-white/5 transition-colors">
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="customer" value={formData.customer || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="customer" value={formData.customer || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="arrivalTime" value={formData.arrivalTime || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="text" name="arrivalTime" value={formData.arrivalTime || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="pickupLoc" value={formData.pickupLoc || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="pickupLoc" value={formData.pickupLoc || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="route" value={formData.route || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold" />
+                                            <input type="text" name="route" value={formData.route || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="cargo" value={formData.cargo || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="cargo" value={formData.cargo || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="number" name="tripsCount" value={formData.tripsCount || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="number" name="tripsCount" value={formData.tripsCount || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="distance" value={formData.distance || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="distance" value={formData.distance || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                         <td className="p-1">
-                                            <input type="text" name="weight" value={formData.weight || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="weight" value={formData.weight || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                     </tr>
 
                                     {/* Row 2 */}
                                     <tr className="hover:bg-white/5 transition-colors border-t border-slate-700/40">
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="customer2" value={formData.customer2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="customer2" value={formData.customer2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="arrivalTime2" value={formData.arrivalTime2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="text" name="arrivalTime2" value={formData.arrivalTime2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="pickupLoc2" value={formData.pickupLoc2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="pickupLoc2" value={formData.pickupLoc2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="route2" value={formData.route2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold" />
+                                            <input type="text" name="route2" value={formData.route2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="cargo2" value={formData.cargo2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="cargo2" value={formData.cargo2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="number" name="tripsCount2" value={formData.tripsCount2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="number" name="tripsCount2" value={formData.tripsCount2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="distance2" value={formData.distance2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="distance2" value={formData.distance2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                         <td className="p-1">
-                                            <input type="text" name="weight2" value={formData.weight2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="weight2" value={formData.weight2 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                     </tr>
 
                                     {/* Row 3 */}
                                     <tr className="hover:bg-white/5 transition-colors border-t border-slate-700/40">
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="customer3" value={formData.customer3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="customer3" value={formData.customer3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="arrivalTime3" value={formData.arrivalTime3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="text" name="arrivalTime3" value={formData.arrivalTime3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="pickupLoc3" value={formData.pickupLoc3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="pickupLoc3" value={formData.pickupLoc3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="route3" value={formData.route3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold" />
+                                            <input type="text" name="route3" value={formData.route3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="cargo3" value={formData.cargo3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="cargo3" value={formData.cargo3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="number" name="tripsCount3" value={formData.tripsCount3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="number" name="tripsCount3" value={formData.tripsCount3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="distance3" value={formData.distance3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="distance3" value={formData.distance3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                         <td className="p-1">
-                                            <input type="text" name="weight3" value={formData.weight3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="weight3" value={formData.weight3 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                     </tr>
 
                                     {/* Row 4 */}
                                     <tr className="hover:bg-white/5 transition-colors border-t border-slate-700/40">
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="customer4" value={formData.customer4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="customer4" value={formData.customer4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="arrivalTime4" value={formData.arrivalTime4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="text" name="arrivalTime4" value={formData.arrivalTime4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="pickupLoc4" value={formData.pickupLoc4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="pickupLoc4" value={formData.pickupLoc4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="route4" value={formData.route4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold" />
+                                            <input type="text" name="route4" value={formData.route4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="cargo4" value={formData.cargo4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="cargo4" value={formData.cargo4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="number" name="tripsCount4" value={formData.tripsCount4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="number" name="tripsCount4" value={formData.tripsCount4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="distance4" value={formData.distance4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="distance4" value={formData.distance4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                         <td className="p-1">
-                                            <input type="text" name="weight4" value={formData.weight4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="weight4" value={formData.weight4 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                     </tr>
 
                                     {/* Row 5 */}
                                     <tr className="hover:bg-white/5 transition-colors border-t border-slate-700/40">
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="customer5" value={formData.customer5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="customer5" value={formData.customer5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="arrivalTime5" value={formData.arrivalTime5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="text" name="arrivalTime5" value={formData.arrivalTime5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="pickupLoc5" value={formData.pickupLoc5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="pickupLoc5" value={formData.pickupLoc5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="route5" value={formData.route5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold" />
+                                            <input type="text" name="route5" value={formData.route5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 font-semibold text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="cargo5" value={formData.cargo5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200" />
+                                            <input type="text" name="cargo5" value={formData.cargo5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="number" name="tripsCount5" value={formData.tripsCount5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200" />
+                                            <input type="number" name="tripsCount5" value={formData.tripsCount5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 text-sm" />
                                         </td>
                                         <td className="p-1 border-r border-slate-700/50">
-                                            <input type="text" name="distance5" value={formData.distance5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="distance5" value={formData.distance5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                         <td className="p-1">
-                                            <input type="text" name="weight5" value={formData.weight5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold" />
+                                            <input type="text" name="weight5" value={formData.weight5 || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-0.5 text-center text-slate-200 font-bold text-sm" />
                                         </td>
                                     </tr>
                                 </tbody>
@@ -844,79 +1000,623 @@ export const WaybillDetailsModal = ({ open, onClose, data, onSave }: WaybillDeta
                         </div>
                     </div>
 
-                {/* BOTTOM SECTION: Signatures, Technical Status, TTN & Notes */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
-                    {/* Technical Status & Clearances */}
-                    <div className="lg:col-span-6 border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3 shadow-md">
-                        <div className="font-bold text-slate-200 border-b border-slate-700/40 pb-1 text-xs">
-                            Texnik sozlik va ruxsatnomalar
+                {/* BOTTOM SECTION: Replaced to match sample (image_2.png / yo'l_varaqasi.pdf) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 pt-2">
+                    {/* Column 1: Driver License, Fuel Order, Dispatcher & Medical */}
+                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3.5 shadow-md flex flex-col justify-between">
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300">Haydovchi guvohnomasini</span>
+                                <input
+                                    type="text"
+                                    name="licenseCheck"
+                                    value={formData.licenseCheck || ''}
+                                    onChange={handleChange}
+                                    className="flex-1 min-w-[100px] bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                                <span className="font-medium text-slate-300">tekshirdim,</span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-1.5 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300">topshiruv berdim:</span>
+                                <input
+                                    type="text"
+                                    name="fuelToGive"
+                                    value={formData.fuelToGive || formData.fuelGiven || ''}
+                                    onChange={handleChange}
+                                    className="w-24 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 font-semibold text-center text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                                <span className="font-medium text-slate-300">litr yonilg'i berilsin</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-200 pt-1">
+                                <span className="font-medium text-slate-300 shrink-0">Dispetcher imzosi</span>
+                                <input
+                                    type="text"
+                                    name="dispatcherSignature"
+                                    value={formData.dispatcherSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <span className="text-slate-400 text-[11px]">Texnik holat (Chiqishda):</span>
-                                <select name="techOutStatus" value={formData.techOutStatus || 'Soz'} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-1">
-                                    <option value="Soz" className="bg-slate-900 text-emerald-400">Soz (Ruxsat berildi)</option>
-                                    <option value="Nosoz" className="bg-slate-900 text-rose-400">Nosoz</option>
-                                </select>
+                        <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                            <div className="text-sm font-medium text-slate-200 leading-snug">
+                                Haydovchi sog'ligi holatiga ko'ra boshqarishga qo'yiladi
                             </div>
-                            <div>
-                                <span className="text-slate-400 text-[11px]">Texnik holat (Qaytishda):</span>
-                                <select name="techInStatus" value={formData.techInStatus || 'Soz'} onChange={handleChange} className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-1">
-                                    <option value="Soz" className="bg-slate-900 text-emerald-400">Soz (Qabul qilindi)</option>
-                                    <option value="Nosoz" className="bg-slate-900 text-rose-400">Nosoz</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div>
-                            <span className="text-slate-400 text-[11px]">Ilova qilingan TTN nakladnoy raqamlari (24):</span>
-                            <input type="text" name="ttnNumbers" value={formData.ttnNumbers || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-1" />
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Imzo:</span>
+                                <input
+                                    type="text"
+                                    name="doctorSignature"
+                                    value={formData.doctorSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
+
+                            <div className="text-center pt-1">
+                                <div className="inline-block border-t border-slate-600 px-6 pt-0.5 text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                                    Shtamp
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Special Notes & Delays */}
-                    <div className="lg:col-span-6 border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3 shadow-md">
-                        <div className="font-bold text-slate-200 border-b border-slate-700/40 pb-1 text-xs">
-                            Alohida qaydlar va liniyada turib qolishlar
+                    {/* Column 2: Vehicle Technical Condition & Signatures */}
+                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3.5 shadow-md flex flex-col justify-between">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Avtomobil texnik soz</span>
+                                <input
+                                    type="text"
+                                    name="mechanicOutApproval"
+                                    value={formData.mechanicOutApproval || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Chiqishga ruxsat berildi. nav,mex, imzo</span>
+                                <input
+                                    type="text"
+                                    name="mechanicOutSignature"
+                                    value={formData.mechanicOutSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Avtomobilni qabul qildim, haydovchi imzosi</span>
+                                <input
+                                    type="text"
+                                    name="driverOutSignature"
+                                    value={formData.driverOutSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                            <span className="text-slate-400 text-[11px]">Alohida qaydlar:</span>
-                            <textarea name="specialNotes" value={formData.specialNotes || ''} onChange={handleChange} rows={2} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-1 resize-none" />
+                        <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                            <div className="flex items-center justify-between gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Qaytishda avtomobil</span>
+                                <div className="flex items-center gap-4 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-700/60">
+                                    <label className="flex items-center gap-1.5 cursor-pointer text-sm font-semibold text-emerald-400">
+                                        <input
+                                            type="radio"
+                                            name="techInStatus"
+                                            value="Soz"
+                                            checked={formData.techInStatus === 'Soz' || !formData.techInStatus}
+                                            onChange={handleChange}
+                                            className="accent-emerald-500"
+                                        />
+                                        Soz
+                                    </label>
+                                    <label className="flex items-center gap-1.5 cursor-pointer text-sm font-semibold text-rose-400">
+                                        <input
+                                            type="radio"
+                                            name="techInStatus"
+                                            value="Nosoz"
+                                            checked={formData.techInStatus === 'Nosoz'}
+                                            onChange={handleChange}
+                                            className="accent-rose-500"
+                                        />
+                                        Nosoz
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Haydovchi topshirdi</span>
+                                <input
+                                    type="text"
+                                    name="driverInSignature"
+                                    value={formData.driverInSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-200">
+                                <span className="font-medium text-slate-300 shrink-0">Qabul qildim nav mex</span>
+                                <input
+                                    type="text"
+                                    name="mechanicInSignature"
+                                    value={formData.mechanicInSignature || ''}
+                                    onChange={handleChange}
+                                    className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80 transition-colors"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Column 3: Alohida Qaydlar */}
+                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-3 shadow-md flex flex-col">
+                        <div className="flex items-center gap-2 text-sm text-slate-200">
+                            <span className="font-bold text-slate-200 shrink-0">Alohida qaydlar</span>
+                        </div>
+                        <textarea
+                            name="specialNotes"
+                            value={formData.specialNotes || ''}
+                            onChange={handleChange}
+                            rows={8}
+                            placeholder=""
+                            className="w-full flex-1 bg-slate-950/60 border border-slate-700/60 focus:border-blue-400 rounded-lg p-2.5 text-slate-200 text-sm resize-none outline-none transition-colors"
+                        />
+                    </div>
+                </div>
+
+                {/* NEW SECTION: TOPSHIRIWNI BAJARILISHI IZCHILLIGI & LINIYADA TURIB QOLISHLAR */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
+                    {/* LEFT TABLE: TOPSHIRIWNI BAJARILISHI IZCHILLIGI (Cols 24-25) */}
+                    <div className="lg:col-span-6 border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md flex flex-col">
+                        <div className="bg-slate-800/80 px-3 py-2 font-bold text-slate-200 text-center border-b border-slate-700/60 text-sm tracking-wide uppercase">
+                            TOPSHIRIWNI BAJARILISHI IZCHILLIGI
+                        </div>
+                        <div className="overflow-x-auto flex-1">
+                            <table className="w-full text-center border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
+                                        <th className="p-2 border-r border-slate-700/50 min-w-[200px]">
+                                            Ilova qilingan tovar-transport nakladnoylar raqamlari
+                                        </th>
+                                        <th className="p-2 min-w-[200px]">
+                                            yukni jo'natuvchining imzosi va muxri
+                                        </th>
+                                    </tr>
+                                    <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
+                                        <th className="py-0.5 border-r border-slate-700/50">24</th>
+                                        <th className="py-0.5">25</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700/40">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8].map((rowNum) => {
+                                        const noKey = `ttnNo${rowNum}` as keyof typeof formData;
+                                        const sigKey = `ttnSig${rowNum}` as keyof typeof formData;
+                                        return (
+                                            <tr key={rowNum} className="hover:bg-white/5 transition-colors">
+                                                <td className="p-1 border-r border-slate-700/50">
+                                                    <input
+                                                        type="text"
+                                                        name={noKey}
+                                                        value={(formData[noKey] as string) || ''}
+                                                        onChange={handleChange}
+                                                        placeholder=""
+                                                        className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                    />
+                                                </td>
+                                                <td className="p-1">
+                                                    <input
+                                                        type="text"
+                                                        name={sigKey}
+                                                        value={(formData[sigKey] as string) || ''}
+                                                        onChange={handleChange}
+                                                        placeholder=""
+                                                        className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                    />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: LINIYADA TURIB QOLISHLAR & TAKSIROFKA */}
+                    <div className="lg:col-span-6 space-y-4 flex flex-col justify-between">
+                        {/* Table: LINIYADA TURIB QOLISHLAR (Cols 26-30) */}
+                        <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
+                            <div className="bg-slate-800/80 px-3 py-2 font-bold text-slate-200 text-center border-b border-slate-700/60 text-sm tracking-wide uppercase">
+                                LINIYADA TURIB QOLISHLAR
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-center border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
+                                            <th className="p-1.5 border-r border-slate-700/50 min-w-[100px]" rowSpan={2}>Nomi</th>
+                                            <th className="p-1.5 border-r border-slate-700/50 min-w-[60px]" rowSpan={2}>kod</th>
+                                            <th className="p-1 border-r border-slate-700/50" colSpan={2}>sana va vaqt</th>
+                                            <th className="p-1.5 min-w-[120px]" rowSpan={2}>Mas'ul shaxs imzosi</th>
+                                        </tr>
+                                        <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
+                                            <th className="py-0.5 border-r border-slate-700/50 min-w-[90px]">boshlanishi</th>
+                                            <th className="py-0.5 border-r border-slate-700/50 min-w-[90px]">tugallash</th>
+                                        </tr>
+                                        <tr className="bg-slate-950/40 text-[10px] text-slate-500 border-b border-slate-700/60">
+                                            <th className="py-0.5 border-r border-slate-700/50">26</th>
+                                            <th className="py-0.5 border-r border-slate-700/50">27</th>
+                                            <th className="py-0.5 border-r border-slate-700/50">28</th>
+                                            <th className="py-0.5 border-r border-slate-700/50">29</th>
+                                            <th className="py-0.5">30</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700/40">
+                                        {[1, 2, 3, 4].map((rowNum) => {
+                                            const nameKey = `delayName${rowNum}` as keyof typeof formData;
+                                            const codeKey = `delayCode${rowNum}` as keyof typeof formData;
+                                            const startKey = `delayStart${rowNum}` as keyof typeof formData;
+                                            const endKey = `delayEnd${rowNum}` as keyof typeof formData;
+                                            const sigKey = `delaySig${rowNum}` as keyof typeof formData;
+                                            return (
+                                                <tr key={rowNum} className="hover:bg-white/5 transition-colors">
+                                                    <td className="p-1 border-r border-slate-700/50">
+                                                        <input
+                                                            type="text"
+                                                            name={nameKey}
+                                                            value={(formData[nameKey] as string) || ''}
+                                                            onChange={handleChange}
+                                                            className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                        />
+                                                    </td>
+                                                    <td className="p-1 border-r border-slate-700/50">
+                                                        <input
+                                                            type="text"
+                                                            name={codeKey}
+                                                            value={(formData[codeKey] as string) || ''}
+                                                            onChange={handleChange}
+                                                            className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                        />
+                                                    </td>
+                                                    <td className="p-1 border-r border-slate-700/50">
+                                                        <input
+                                                            type="text"
+                                                            name={startKey}
+                                                            value={(formData[startKey] as string) || ''}
+                                                            onChange={handleChange}
+                                                            className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                        />
+                                                    </td>
+                                                    <td className="p-1 border-r border-slate-700/50">
+                                                        <input
+                                                            type="text"
+                                                            name={endKey}
+                                                            value={(formData[endKey] as string) || ''}
+                                                            onChange={handleChange}
+                                                            className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-center text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                        />
+                                                    </td>
+                                                    <td className="p-1">
+                                                        <input
+                                                            type="text"
+                                                            name={sigKey}
+                                                            value={(formData[sigKey] as string) || ''}
+                                                            onChange={handleChange}
+                                                            className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1.5 py-0.5 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
-                        <div>
-                            <span className="text-slate-400 text-[11px]">Liniyada turib qolishlar (26-30):</span>
-                            <input type="text" name="delaysInfo" value={formData.delaysInfo || ''} onChange={handleChange} placeholder="" className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 mt-1" />
+                        {/* TAKSIROFKA */}
+                        <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 space-y-2 shadow-md flex-1 flex flex-col">
+                            <div className="font-bold text-slate-200 text-sm uppercase tracking-wide">
+                                TAKSIROFKA
+                            </div>
+                            <textarea
+                                name="taksirofkaNotes"
+                                value={formData.taksirofkaNotes || ''}
+                                onChange={handleChange}
+                                rows={3}
+                                placeholder=""
+                                className="w-full flex-1 bg-slate-950/60 border border-slate-700/60 rounded-lg p-2.5 text-slate-200 text-sm resize-none outline-none focus:border-blue-500/80 transition-colors"
+                            />
                         </div>
                     </div>
                 </div>
-            </div>
+
+                {/* NEW SECTION: TTX Header, Avtomobilning ish natijalari & ish haqi Table (Cols 31-47) */}
+                <div className="space-y-4 pt-2">
+                    {/* Header Bar: TTX Soni & Signatures */}
+                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 shadow-md flex flex-wrap items-center justify-between gap-4 text-sm text-slate-200">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-slate-200">TTX soni:</span>
+                            <input
+                                type="text"
+                                name="ttxCount"
+                                value={formData.ttxCount || ''}
+                                onChange={handleChange}
+                                placeholder=""
+                                className="w-20 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center text-slate-100 font-semibold text-sm focus:outline-none focus:border-blue-500/80"
+                            />
+                            <input
+                                type="text"
+                                name="ttxCountInWords"
+                                value={formData.ttxCountInWords || ''}
+                                onChange={handleChange}
+                                placeholder="(yozuv bilan)"
+                                className="w-48 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                            />
+                            <span className="text-slate-300">ta</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-300">Topshirdi haydovchi:</span>
+                                <input
+                                    type="text"
+                                    name="driverHandoverSig"
+                                    value={formData.driverHandoverSig || ''}
+                                    onChange={handleChange}
+                                    placeholder="(imzo)"
+                                    className="w-36 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-300">Qabul qildim dispetcher:</span>
+                                <input
+                                    type="text"
+                                    name="dispatcherReceiveSig"
+                                    value={formData.dispatcherReceiveSig || ''}
+                                    onChange={handleChange}
+                                    placeholder="(imzo)"
+                                    className="w-36 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table: Avtomobilning ish natijalari & ish haqi (Cols 31-47) */}
+                    <div className="border border-slate-700/60 rounded-xl overflow-hidden bg-slate-900/60 shadow-md">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-center border-collapse">
+                                <thead>
+                                    {/* Main Group Headers */}
+                                    <tr className="bg-slate-800/90 text-sm font-bold text-slate-200 border-b border-slate-700/60">
+                                        <th colSpan={15} className="p-2 border-r border-slate-700/60 uppercase tracking-wide">
+                                            Avtomobilning ish natijalari
+                                        </th>
+                                        <th colSpan={2} className="p-2 uppercase tracking-wide">
+                                            ish haqi
+                                        </th>
+                                    </tr>
+                                    {/* Detailed Category Headers */}
+                                    <tr className="bg-slate-950/60 text-xs text-slate-300 border-b border-slate-700/60">
+                                        <th colSpan={2} className="p-1.5 border-r border-slate-700/50">Yonilg'i sarfi (litr, m.kub)</th>
+                                        <th colSpan={2} className="p-1.5 border-r border-slate-700/50"></th>
+                                        <th colSpan={4} className="p-1.5 border-r border-slate-700/50">Turib qolishlar</th>
+                                        <th rowSpan={3} className="p-1.5 border-r border-slate-700/50 min-w-[90px]">Yuk bilan qatnov soni</th>
+                                        <th colSpan={2} className="p-1.5 border-r border-slate-700/50">Bosib o'tilgan masofa</th>
+                                        <th colSpan={2} className="p-1.5 border-r border-slate-700/50">Tashilgan yuk hajmi tonnada</th>
+                                        <th colSpan={2} className="p-1.5 border-r border-slate-700/50">Bajarilgan tkm</th>
+                                        <th rowSpan={3} className="p-1.5 border-r border-slate-700/50 min-w-[50px]">kod</th>
+                                        <th rowSpan={3} className="p-1.5 min-w-[60px]">so'm</th>
+                                    </tr>
+                                    {/* Sub-column Title Row 1 */}
+                                    <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[65px]">Norma bo'yicha</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[60px]">Amalda</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[65px]">Xarakatda</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th colSpan={2} className="py-1 border-r border-slate-700/50">Ortish va tushirishda</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[75px]">Texnik nosozlik bo'yicha</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[75px]">Sh.j-yuk bilan</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[75px]">Sh.j tirkama bilan</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th rowSpan={2} className="py-1 border-r border-slate-700/50 min-w-[75px]">Sh.j tirkama bilan</th>
+                                    </tr>
+                                    {/* Sub-column Title Row 2 (Ortish va tushirishda sub-headers) */}
+                                    <tr className="bg-slate-900/40 text-[11px] text-slate-400 border-b border-slate-700/60">
+                                        <th className="py-1 border-r border-slate-700/50 min-w-[55px]">Jami</th>
+                                        <th className="py-1 border-r border-slate-700/50 min-w-[75px]">Normativdan ortiq</th>
+                                    </tr>
+                                    {/* Column Numbers 31-47 */}
+                                    <tr className="bg-slate-950/40 text-[11px] text-slate-400 border-b border-slate-700/60 font-semibold">
+                                        <th className="py-0.5 border-r border-slate-700/50">31</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">32</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">33</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">34</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">35</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">36</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">37</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">38</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">39</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">40</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">41</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">42</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">43</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">44</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">45</th>
+                                        <th className="py-0.5 border-r border-slate-700/50">46</th>
+                                        <th className="py-0.5">47</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700/40">
+                                    <tr className="hover:bg-white/5 transition-colors">
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="fuelNorm31" value={formData.fuelNorm31 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="fuelActual32" value={formData.fuelActual32 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="hoursTotal33" value={formData.hoursTotal33 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="hoursMoving34" value={formData.hoursMoving34 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="delaysTotal35" value={formData.delaysTotal35 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="loadingTotal36" value={formData.loadingTotal36 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="loadingOverNorm37" value={formData.loadingOverNorm37 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="techBreakdown38" value={formData.techBreakdown38 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="tripsWithCargo39" value={formData.tripsWithCargo39 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="distanceTotal40" value={formData.distanceTotal40 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="distanceLoaded41" value={formData.distanceLoaded41 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="cargoWeightTotal42" value={formData.cargoWeightTotal42 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="cargoWeightTrailer43" value={formData.cargoWeightTrailer43 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="tkmTotal44" value={formData.tkmTotal44 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+                                        <td className="p-1 border-r border-slate-700/50" rowSpan={2}>
+                                            <input type="text" name="tkmTrailer45" value={formData.tkmTrailer45 || ''} onChange={handleChange} className="w-full h-full min-h-[55px] bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80" />
+                                        </td>
+
+                                        <td className="p-1 border-r border-slate-700/50">
+                                            <input
+                                                type="text"
+                                                name="salaryCode46"
+                                                value={formData.salaryCode46 || ''}
+                                                onChange={handleChange}
+                                                className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80"
+                                            />
+                                        </td>
+                                        <td className="p-1">
+                                            <input
+                                                type="text"
+                                                name="salaryAmount47"
+                                                value={formData.salaryAmount47 || ''}
+                                                onChange={handleChange}
+                                                className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80"
+                                            />
+                                        </td>
+                                    </tr>
+                                    <tr className="hover:bg-white/5 transition-colors">
+                                        <td className="p-1 border-r border-slate-700/50">
+                                            <input
+                                                type="text"
+                                                name="salaryCode46_2"
+                                                value={formData.salaryCode46_2 || ''}
+                                                onChange={handleChange}
+                                                className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80"
+                                            />
+                                        </td>
+                                        <td className="p-1">
+                                            <input
+                                                type="text"
+                                                name="salaryAmount47_2"
+                                                value={formData.salaryAmount47_2 || ''}
+                                                onChange={handleChange}
+                                                className="w-full bg-slate-950/60 border border-slate-700/60 rounded px-1 py-0.5 text-center text-sm text-slate-200 focus:outline-none focus:border-blue-500/80"
+                                            />
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Bottom Footer Bar: Vehicle & Trailer Codes + Days worked */}
+                    <div className="border border-slate-700/60 rounded-xl p-4 bg-slate-900/60 shadow-md flex flex-wrap items-center justify-between gap-4 text-sm text-slate-200">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="font-bold text-slate-200">Rusumlar kodi:</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-300">Avtomobil</span>
+                                <input
+                                    type="text"
+                                    name="codeVehicleModel"
+                                    value={formData.codeVehicleModel || ''}
+                                    onChange={handleChange}
+                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-300">Tirkama</span>
+                                <input
+                                    type="text"
+                                    name="codeTrailer"
+                                    value={formData.codeTrailer || ''}
+                                    onChange={handleChange}
+                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-300">Yarimtirkama</span>
+                                <input
+                                    type="text"
+                                    name="codeSemiTrailer"
+                                    value={formData.codeSemiTrailer || ''}
+                                    onChange={handleChange}
+                                    className="w-28 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-slate-200 text-sm focus:outline-none focus:border-blue-500/80"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-200">Avtomobil-kun ishda:</span>
+                            <input
+                                type="text"
+                                name="autoDaysInWork"
+                                value={formData.autoDaysInWork || ''}
+                                onChange={handleChange}
+                                className="w-24 bg-slate-950/60 border border-slate-700/60 rounded px-2 py-1 text-center font-semibold text-slate-100 text-sm focus:outline-none focus:border-blue-500/80"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
 
             {/* Footer Controls */}
             <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-700/60 px-6 py-3.5 bg-slate-800/80">
                 <button
                     type="button"
-                    onClick={handleComplete}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20 mr-auto"
+                    onClick={() => setIsEditing(prev => !prev)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all flex items-center gap-2 shadow-lg ${
+                        isEditing
+                            ? 'bg-amber-500 hover:bg-amber-400 ring-2 ring-amber-400/50 shadow-amber-500/20'
+                            : 'bg-amber-600 hover:bg-amber-500 shadow-amber-600/20'
+                    }`}
                 >
-                    <CheckCircle2 size={16} />
-                    Yakunlash
-                </button>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-yellow-600 hover:bg-yellow-500 transition-colors shadow-lg shadow-yellow-500/20"
-                >
-                    Bekor qilish
+                    <Pencil size={18} />
+                    {isEditing ? 'Tahrirlanmoqda' : 'Tahrirlash'}
                 </button>
                 <button
                     type="button"
                     onClick={handleSave}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                    disabled={!isEditing}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Save size={16} />
+                    <Save size={18} />
                     Saqlash
                 </button>
             </div>

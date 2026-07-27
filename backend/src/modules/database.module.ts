@@ -21,6 +21,7 @@ import { WaybillTemplateCalibration } from '../waybill-pdf-editor/entities/waybi
 import { WaybillTemplateField } from '../waybill-pdf-editor/entities/waybill-template-field.entity';
 import { EimzoLoginLog } from '../entities/auth/eimzo-login-log.entity';
 import { ToolIssue } from '../entities/operations/tool-issue.entity';
+import { WaybillDetailRecord } from '../entities/operations/waybill-detail.entity';
 
 const backendRoot = __dirname.includes(`${sep}dist${sep}`)
   ? resolve(__dirname, '..', '..', '..')
@@ -55,6 +56,7 @@ const backendRoot = __dirname.includes(`${sep}dist${sep}`)
         WaybillDraftValue,
         EimzoLoginLog,
         ToolIssue,
+        WaybillDetailRecord,
       ],
       synchronize: true,
       logging: String(process.env.TYPEORM_LOGGING ?? 'false').toLowerCase() === 'true',
@@ -81,6 +83,7 @@ const backendRoot = __dirname.includes(`${sep}dist${sep}`)
       WaybillDraftValue,
       EimzoLoginLog,
       ToolIssue,
+      WaybillDetailRecord,
     ]),
   ],
   exports: [TypeOrmModule],

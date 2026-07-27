@@ -149,6 +149,20 @@ export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpe
     const [signedWaybills, setSignedWaybills] = useState<Record<string, { signedBy: string; signedAt: string }>>({});
 
     useEffect(() => {
+        fetch('/api/integrations/esmo/waybill-details')
+            .then(res => res.ok ? res.json() : null)
+            .then(serverDetails => {
+                if (serverDetails && typeof serverDetails === 'object') {
+                    setSavedDetails(prev => ({
+                        ...serverDetails,
+                        ...prev
+                    }));
+                }
+            })
+            .catch(() => {});
+    }, [setSavedDetails]);
+
+    useEffect(() => {
         if (autoOpenWaybillId && waybills.length > 0) {
             const target = waybills.find(w => w.id === autoOpenWaybillId);
             if (target) {
@@ -845,6 +859,7 @@ export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpe
                 } : null}
                 onSave={(data) => {
                     if (detailsTargetRow) {
+                        const key = getDriverKey(detailsTargetRow);
                         let dispatcherName = 'Dispetcher';
                         try {
                             const sessionStr = localStorage.getItem('smartroute-auth-session');
@@ -856,14 +871,23 @@ export const WaybillManager = ({ autoOpenWaybillId, onClearAutoOpen }: { autoOpe
                             // ignore
                         }
                         
+                        const updatedData = {
+                            ...data,
+                            securityStatus: savedDetails[key]?.securityStatus || 'pending',
+                            dispatcherName
+                        };
+
                         setSavedDetails(prev => ({
                             ...prev,
-                            [getDriverKey(detailsTargetRow)]: {
-                                ...data,
-                                securityStatus: prev[getDriverKey(detailsTargetRow)]?.securityStatus || 'pending',
-                                dispatcherName
-                            }
+                            [key]: updatedData
                         }));
+
+                        // Persist to backend database.sqlite
+                        fetch('/api/integrations/esmo/waybill-details', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ driverKey: key, data: updatedData })
+                        }).catch(() => {});
                     }
                 }}
             />

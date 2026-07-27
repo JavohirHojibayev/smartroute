@@ -10,6 +10,7 @@ import { load } from 'cheerio';
 import { Driver } from '../entities/people/driver.entity';
 import { Trip } from '../entities/fleet/trip.entity';
 import { CheckStatus, MedicalCheck } from '../entities/people/medical.entity';
+import { WaybillDetailRecord } from '../entities/operations/waybill-detail.entity';
 import {
   SMARTROUTE_ESMO_TERMINALS,
   getSmartRouteTerminalInlineRegex,
@@ -938,6 +939,8 @@ export class EsmoController {
     private readonly driverRepo: Repository<Driver>,
     @InjectRepository(Trip)
     private readonly tripRepo: Repository<Trip>,
+    @InjectRepository(WaybillDetailRecord)
+    private readonly waybillDetailRepo: Repository<WaybillDetailRecord>,
   ) {}
 
   private normalizeWhitespace(value: unknown): string {
@@ -1765,6 +1768,33 @@ export class EsmoController {
     return resultRows;
   }
 
+  @Get('waybill-details')
+  async getWaybillDetails() {
+    const rows = await this.waybillDetailRepo.find();
+    const map: Record<string, any> = {};
+    rows.forEach(r => {
+      if (r.driver_key && r.data_json) {
+        map[r.driver_key] = r.data_json;
+      }
+    });
+    return map;
+  }
+
+  @Post('waybill-details')
+  async saveWaybillDetail(
+    @Body() body: { driverKey: string; data: any }
+  ) {
+    const { driverKey, data } = body;
+    if (!driverKey || !data) {
+      throw new HttpException('Missing driverKey or data', HttpStatus.BAD_REQUEST);
+    }
+    const existing = await this.waybillDetailRepo.findOne({ where: { driver_key: driverKey } });
+    const record = existing ?? this.waybillDetailRepo.create({ driver_key: driverKey });
+    record.data_json = data;
+    await this.waybillDetailRepo.save(record);
+    return { success: true };
+  }
+
   @Post('sign')
   async signWaybill(
     @Body() body: { id: number; signedBy: string; signedAt: string }
@@ -1788,7 +1818,7 @@ export class EsmoController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MedicalCheck, Driver, Trip])],
+  imports: [TypeOrmModule.forFeature([MedicalCheck, Driver, Trip, WaybillDetailRecord])],
   controllers: [EsmoController],
 })
 export class EsmoModule {}
