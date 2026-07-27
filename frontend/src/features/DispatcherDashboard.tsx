@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Car, Navigation, Wrench, Clock, Pickaxe, FileText, Table2, MapPin } from 'lucide-react';
+import { Search, Car, Navigation, Wrench, Clock, Pickaxe, FileText, Table2, MapPin, Trash2 } from 'lucide-react';
 import { useI18n } from '../i18n';
 import { LocalizedDateInput } from '../components/shared/LocalizedDateInput';
 import { resolveApiBaseUrl } from '../utils/apiBase';
@@ -42,7 +42,7 @@ export const DispatcherDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const { savedDetails } = useWaybillStore();
+  const { savedDetails, setSavedDetails } = useWaybillStore();
   const [gpsData, setGpsData] = useState<Record<string, { address: string; lat: number; lng: number }>>({});
 
   useEffect(() => {
@@ -121,9 +121,10 @@ export const DispatcherDashboard = () => {
   }, [savedDetails, gpsData, lang]);
 
   const filteredRows = useMemo(() => {
+    let rows = dispatchData;
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return dispatchData;
-      return dispatchData.filter(
+    if (query) {
+      rows = rows.filter(
         (row) =>
           row.plate.toLowerCase().includes(query) ||
           row.driver.toLowerCase().includes(query) ||
@@ -133,7 +134,32 @@ export const DispatcherDashboard = () => {
           row.timeRange.ret.toLowerCase().includes(query) ||
           row.location.toLowerCase().includes(query)
       );
-  }, [searchTerm, dispatchData]);
+    }
+    if (dateFrom) {
+      const fromTime = new Date(`${dateFrom}T00:00:00`).getTime();
+      rows = rows.filter((r) => r.rawDepartureTime >= fromTime);
+    }
+    if (dateTo) {
+      const toTime = new Date(`${dateTo}T23:59:59`).getTime();
+      rows = rows.filter((r) => r.rawDepartureTime <= toTime);
+    }
+    return rows;
+  }, [searchTerm, dateFrom, dateTo, dispatchData]);
+
+  const handleDeleteRow = (id: string) => {
+    const confirmMessage = 
+      lang === 'uz' ? "Ushbu ma'lumotni o'chirishni tasdiqlaysizmi?" :
+      lang === 'ru' ? "Вы уверены, что хотите удалить эту запись?" :
+      "Are you sure you want to delete this record?";
+
+    if (window.confirm(confirmMessage)) {
+      setSavedDetails((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
 
   const stats = useMemo(() => {
     return {
@@ -201,6 +227,7 @@ export const DispatcherDashboard = () => {
     timeRange: lang === 'uz' ? 'Vaqt (Chiqish \u2014 Qaytish)' : lang === 'ru' ? 'Время (Выезд \u2014 Возврат)' : 'Time (Out \u2014 In)',
     status: lang === 'uz' ? 'Status' : lang === 'ru' ? 'Статус' : 'Status',
     location: lang === 'uz' ? 'Geopozitsiya' : lang === 'ru' ? 'Геопозиция' : 'Location',
+    actions: lang === 'uz' ? 'Amallar' : lang === 'ru' ? 'Действия' : 'Actions',
   };
 
   return (
@@ -294,12 +321,13 @@ export const DispatcherDashboard = () => {
                 <th className="px-4 py-3 text-left">{headers.timeRange}</th>
                 <th className="px-4 py-3 text-left">{headers.status}</th>
                 <th className="px-4 py-3 text-left">{headers.location}</th>
+                <th className="px-4 py-3 text-center">{headers.actions}</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-500 text-sm">
+                  <td colSpan={8} className="px-4 py-10 text-center text-slate-500 text-sm">
                     {t('dataNotFound')}
                   </td>
                 </tr>
@@ -340,6 +368,16 @@ export const DispatcherDashboard = () => {
                     ) : (
                       row.location
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRow(row.id)}
+                      title={lang === 'uz' ? "O'chirish" : lang === 'ru' ? "Удалить" : "Delete"}
+                      className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 border border-red-500/20 transition-all inline-flex items-center justify-center"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </motion.tr>
               ))}
