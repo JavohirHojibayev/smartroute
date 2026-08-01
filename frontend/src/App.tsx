@@ -1383,10 +1383,10 @@ function App() {
 
         {/* Top Header */}
         <header className="h-16 sm:h-20 glass-panel flex items-center justify-between z-10">
-          <div className={`flex items-center min-w-0 shrink-0 pl-3 sm:pl-6 md:pl-8 ${hideHeaderTitle ? 'lg:pl-0 lg:gap-0' : 'gap-1.5 sm:gap-3 pr-2 lg:pr-4'}`}>
+          <div className="flex items-center min-w-0 shrink-0 pl-3 sm:pl-6 md:pl-8 gap-2 sm:gap-3 pr-2 lg:pr-4">
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="md:hidden h-8 w-8 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0"
+              className="md:hidden h-8 w-8 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0 mr-1.5 sm:mr-2"
               aria-label={t('menuOpen')}
             >
               <Menu className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
@@ -1394,16 +1394,13 @@ function App() {
             <button
               type="button"
               onClick={() => setActiveTab('dashboard')}
-              className="md:hidden flex items-center gap-1.5 sm:gap-2 text-left min-w-0"
+              className="md:hidden flex items-center gap-1.5 sm:gap-2 text-left shrink-0"
             >
               <img
                 src="/logo1.png"
                 alt="MainTrack logo"
                 className="h-6 w-auto sm:h-7 object-contain shrink-0"
               />
-              <span className="brand-title text-blue-500 font-extrabold text-sm sm:text-base tracking-wide uppercase truncate max-w-[80px] min-[380px]:max-w-[140px]">
-                MainTrack
-              </span>
             </button>
             {hideHeaderTitle ? <div className="hidden md:block" /> : <h2 className="hidden md:block text-2xl font-semibold">{t(activeTab as any)}</h2>}
           </div>

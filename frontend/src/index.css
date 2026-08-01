@@ -755,7 +755,7 @@
   text-shadow: none;
   will-change: transform;
   transform: translateY(-50%) translateX(100cqw);
-  animation: test-mode-inline-scroll 7s linear infinite;
+  animation: test-mode-inline-scroll 15s linear infinite;
 }
 
 @keyframes test-mode-inline-scroll {
