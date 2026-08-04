@@ -208,7 +208,74 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
   return fallback;
 };
 
+
+// --- MarqueeText: header bo'ylab to'liq harakat qiladi (sidebar chegarasigacha) ---
+function MarqueeText({ text, durationMs = 14000, theme = 'dark' }: { text: string; durationMs?: number; theme?: 'dark' | 'light' }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const rafRef = useRef<number>(0);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    const span = spanRef.current;
+    if (!track || !span) return;
+
+    const animate = (timestamp: number) => {
+      if (startTimeRef.current === null) startTimeRef.current = timestamp;
+      const trackW = track.offsetWidth;   // = header to'liq kengligi
+      const spanW = span.offsetWidth;
+      const total = trackW + spanW;       // o'ng chekkadan chap chekkagacha masofa
+      const elapsed = (timestamp - startTimeRef.current) % durationMs;
+      const progress = elapsed / durationMs;
+      // progress=0 → x=trackW (matn o'ng tashqarisida)
+      // progress=1 → x=-spanW (matn chap tashqarisida, sidebar orqasida)
+      const x = trackW - progress * total;
+      span.style.transform = `translateY(-50%) translateX(${x}px)`;
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      startTimeRef.current = null;
+    };
+  }, [durationMs, text]);
+
+  return (
+    <div
+      ref={trackRef}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'visible',   // header o'zi clip qiladi
+        pointerEvents: 'none',
+      }}
+    >
+      <span
+        ref={spanRef}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          color: theme === 'light' ? '#ea580c' : '#facc15',
+          fontSize: '20px',
+          fontWeight: 700,
+          letterSpacing: '0.03em',
+          transform: 'translateY(-50%) translateX(100%)',
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+// --- end MarqueeText ---
+
 function App() {
+
   const { t, lang, setLang } = useI18n();
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1321,7 +1388,7 @@ function App() {
   return (
     <div className={`app-shell min-h-screen w-full overflow-x-hidden flex text-slate-100 bg-slate-900 ${theme === 'light' ? 'theme-light' : 'theme-dark'}`}>
       {/* Sidebar Navigation */}
-      <aside className={`glass-panel border-r border-slate-700/50 h-screen flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`glass-panel border-r-0 h-screen flex-shrink-0 flex flex-col hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <button
           type="button"
           onClick={() => setActiveTab('dashboard')}
@@ -1382,8 +1449,30 @@ function App() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10 animate-float-delay-minus3"></div>
 
         {/* Top Header */}
-        <header className="h-16 sm:h-20 glass-panel flex items-center justify-between z-10">
-          <div className="flex items-center min-w-0 shrink-0 pl-3 sm:pl-6 md:pl-8 gap-2 sm:gap-3 pr-2 lg:pr-4">
+        <header className="h-16 sm:h-20 glass-panel flex items-center z-10">
+
+          {/* Chap+o'rta zona: marquee shu container ichida sidebar chegarasigacha harakat qiladi */}
+          <div className="flex-1 min-w-0 flex items-center h-full relative overflow-hidden">
+            {/* Marquee: absolute, ota container bo'ylab to'liq harakat qiladi */}
+            <div
+              role="status"
+              aria-live="polite"
+              className="hidden lg:block"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            >
+              <MarqueeText text={t('platformTestMode')} theme={theme} />
+            </div>
+
+            {/* Logo/title: marquee ustida */}
+            <div className="flex items-center min-w-0 shrink-0 pl-3 sm:pl-6 md:pl-8 gap-2 sm:gap-3 pr-2 lg:pr-4" style={{position:'relative', zIndex:1}}>
             <button
               onClick={() => setMobileNavOpen(true)}
               className="md:hidden h-8 w-8 sm:h-10 sm:w-10 inline-flex items-center justify-center rounded-lg bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 transition-colors shrink-0 mr-1.5 sm:mr-2"
@@ -1404,13 +1493,7 @@ function App() {
             </button>
             {hideHeaderTitle ? <div className="hidden md:block" /> : <h2 className="hidden md:block text-2xl font-semibold">{t(activeTab as any)}</h2>}
           </div>
-
-          {/* Platforma test mode indicator restored */}
-          <div className="hidden lg:flex flex-1 min-w-0 overflow-hidden items-center h-full" role="status" aria-live="polite">
-            <div className="test-mode-inline-track">
-              <span>{t('platformTestMode')}</span>
-            </div>
-          </div>
+          </div>{/* /flex-1 chap+o'rta zona */}
 
           <div className="flex items-center gap-1.5 sm:gap-4 md:gap-6 shrink-0 pr-3 sm:pr-6 md:pr-8">
             <button
@@ -1522,7 +1605,7 @@ function App() {
             <button
               type="button"
               onClick={openRoleManagement}
-              className="hidden lg:flex items-center gap-3 pl-6 border-l border-slate-700 text-left hover:opacity-90 transition-opacity"
+              className="hidden lg:flex items-center gap-3 pl-2 text-left hover:opacity-90 transition-opacity"
               title="Rollar va huquqlar sahifasiga o'tish"
             >
               <div className="smartroute-profile-badge-ring w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 p-[2px]">

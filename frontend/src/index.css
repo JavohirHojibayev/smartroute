@@ -29,6 +29,7 @@
 }
 
 @layer base {
+
   html,
   body,
   #root {
@@ -58,7 +59,8 @@
 }
 
 .brand-title {
-  color: #3b82f6; /* Tailwind blue-500 to match icon */
+  color: #3b82f6;
+  /* Tailwind blue-500 to match icon */
 }
 
 
@@ -208,9 +210,17 @@
 }
 
 @keyframes login-btn-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 
@@ -604,6 +614,8 @@
   width: 100%;
   height: 42px;
   overflow: hidden;
+  clip-path: inset(0);
+  container-type: inline-size;
 }
 
 .fleet-row-selected {
@@ -739,6 +751,7 @@
   width: 100%;
   height: 42px;
   overflow: hidden;
+  clip-path: inset(0);
   container-type: inline-size;
 }
 
@@ -753,7 +766,6 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   text-shadow: none;
-  will-change: transform;
   transform: translateY(-50%) translateX(100cqw);
   animation: test-mode-inline-scroll 15s linear infinite;
 }
@@ -762,13 +774,15 @@
   0% {
     transform: translateY(-50%) translateX(100cqw);
   }
+
   100% {
-    transform: translateY(-50%) translateX(-100%);
+    transform: translateY(-50%) translateX(calc(-100% - 100cqw));
   }
 }
 
 .theme-light .test-mode-inline-track span {
-  color: #ea580c !important; /* Tailwind orange-600 */
+  color: #ea580c !important;
+  /* Tailwind orange-600 */
 }
 
 
@@ -825,12 +839,15 @@
 .theme-light [class*="text-slate-200"] {
   color: #1e293b !important;
 }
+
 .theme-light [class*="text-slate-300"] {
   color: #475569 !important;
 }
+
 .theme-light [class*="text-slate-400"] {
   color: #64748b !important;
 }
+
 .theme-light [class*="text-slate-500"],
 .theme-light [class*="text-slate-600"] {
   color: #94a3b8 !important;
@@ -904,6 +921,7 @@
 .theme-light [class~="bg-slate-800/80"] {
   background-color: #e2e8f0 !important;
 }
+
 .theme-light [class~="border-slate-600/55"] {
   border-color: #cbd5e1 !important;
 }
@@ -940,6 +958,7 @@
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
 }
+
 .theme-light aside button[class*="bg-blue-500/20"] span,
 .theme-light aside button[class*="bg-blue-500/20"] svg {
   color: #ffffff !important;
@@ -949,12 +968,15 @@
 .theme-light aside nav button span {
   color: #64748b !important;
 }
+
 .theme-light aside nav button svg {
   color: #94a3b8 !important;
 }
+
 .theme-light aside nav button:not([class*="bg-blue-500/20"]):hover {
   background-color: #f1f5f9 !important;
 }
+
 .theme-light aside button[class*="bg-blue-500/20"]:hover {
   background-color: #4338ca !important;
   border-color: #4338ca !important;
@@ -962,40 +984,60 @@
 
 /* Stat Cards Pastel Backgrounds (Matching the Dabang Image) */
 .theme-light .glass-panel:has(.from-purple-500.to-pink-400) {
-  background-color: #fff1f2 !important; /* pink-50 */
-  border-color: #ffe4e6 !important; /* pink-100 */
+  background-color: #fff1f2 !important;
+  /* pink-50 */
+  border-color: #ffe4e6 !important;
+  /* pink-100 */
 }
+
 .theme-light .glass-panel:has(.from-orange-500.to-amber-400) {
-  background-color: #fff7ed !important; /* orange-50 */
-  border-color: #ffedd5 !important; /* orange-100 */
+  background-color: #fff7ed !important;
+  /* orange-50 */
+  border-color: #ffedd5 !important;
+  /* orange-100 */
 }
+
 .theme-light .glass-panel:has(.from-blue-500.to-cyan-400) {
-  background-color: #f0fdf4 !important; /* green-50 */
-  border-color: #dcfce7 !important; /* green-100 */
+  background-color: #f0fdf4 !important;
+  /* green-50 */
+  border-color: #dcfce7 !important;
+  /* green-100 */
 }
+
 .theme-light .glass-panel:has(.from-emerald-500.to-teal-400) {
-  background-color: #faf5ff !important; /* purple-50 */
-  border-color: #f3e8ff !important; /* purple-100 */
+  background-color: #faf5ff !important;
+  /* purple-50 */
+  border-color: #f3e8ff !important;
+  /* purple-100 */
 }
 
 /* Icon Colors within the pastel cards */
 .theme-light .glass-panel [class*="bg-gradient-to-br"] {
   color: #ffffff !important;
 }
+
 .theme-light .glass-panel [class*="bg-gradient-to-br"] svg {
   color: #ffffff !important;
 }
+
 .theme-light .glass-panel [class*="from-purple-500"][class*="to-pink-400"] {
-  background-image: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important; /* Red */
+  background-image: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  /* Red */
 }
+
 .theme-light .glass-panel [class*="from-orange-500"][class*="to-amber-400"] {
-  background-image: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important; /* Orange */
+  background-image: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  /* Orange */
 }
+
 .theme-light .glass-panel [class*="from-blue-500"][class*="to-cyan-400"] {
-  background-image: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important; /* Green */
+  background-image: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+  /* Green */
 }
+
 .theme-light .glass-panel [class*="from-emerald-500"][class*="to-teal-400"] {
-  background-image: linear-gradient(135deg, #a855f7 0%, #9333ea 100%) !important; /* Purple */
+  background-image: linear-gradient(135deg, #a855f7 0%, #9333ea 100%) !important;
+  /* Purple */
 }
 
 /* Buttons */
@@ -1029,40 +1071,46 @@
   background-color: #f1f5f9 !important;
   color: #1e293b !important;
 }
+
 .theme-light button[class~="hover:bg-slate-800/40"]:hover * {
   color: #1e293b !important;
 }
 
 /* Fix download button (passed) in Day mode */
 .theme-light button[class~="bg-emerald-500/10"] {
-  background-color: #dcfce7 !important; /* light green background */
-  color: #16a34a !important; /* text-green-600 */
+  background-color: #dcfce7 !important;
+  /* light green background */
+  color: #16a34a !important;
+  /* text-green-600 */
 }
+
 .theme-light button[class~="bg-emerald-500/10"]:hover,
 .theme-light button[class~="hover:bg-emerald-500/20"]:hover {
-  background-color: #bbf7d0 !important; 
+  background-color: #bbf7d0 !important;
   color: #15803d !important;
 }
 
 /* Fix download button (failed) in Day mode */
 .theme-light button[class~="bg-red-500/10"] {
-  background-color: #fee2e2 !important; 
-  color: #dc2626 !important; 
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
 }
+
 .theme-light button[class~="bg-red-500/10"]:hover,
 .theme-light button[class~="hover:bg-red-500/20"]:hover {
-  background-color: #fecaca !important; 
+  background-color: #fecaca !important;
   color: #b91c1c !important;
 }
 
 /* Fix download button (review) in Day mode */
 .theme-light button[class~="bg-amber-500/10"] {
-  background-color: #ffedd5 !important; 
-  color: #ea580c !important; 
+  background-color: #ffedd5 !important;
+  color: #ea580c !important;
 }
+
 .theme-light button[class~="bg-amber-500/10"]:hover,
 .theme-light button[class~="hover:bg-amber-500/20"]:hover {
-  background-color: #fed7aa !important; 
+  background-color: #fed7aa !important;
   color: #c2410c !important;
 }
 
@@ -1070,6 +1118,7 @@
 .theme-light tbody tr:hover {
   background-color: var(--fleet-row-hover-bg) !important;
 }
+
 .theme-light .table-pagination-bar {
   background-color: #ffffff !important;
   border-top-color: var(--glass-border) !important;
@@ -1080,11 +1129,13 @@
 :root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
+
 :root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-thumb,
 :root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-color: #f1f5f9;
 }
+
 :root[data-theme='light'] .dark-scrollbar::-webkit-scrollbar-thumb:hover,
 :root[data-theme='light'] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
@@ -1099,8 +1150,8 @@
 }
 
 /* Search inputs */
-.theme-light input[type="text"], 
-.theme-light input[type="date"], 
+.theme-light input[type="text"],
+.theme-light input[type="date"],
 .theme-light select {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
@@ -1132,16 +1183,19 @@
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
+
 .theme-light .fuel-tooltip-pos [class*="text-slate-100"],
 .theme-light .mileage-chart-tooltip [class*="text-slate-100"] {
   color: #1e293b !important;
 }
+
 .theme-light .fuel-tooltip-pos [class*="text-slate-300"],
 .theme-light .mileage-chart-tooltip [class*="text-slate-300"],
 .theme-light .fuel-tooltip-pos [class*="text-slate-400"],
 .theme-light .mileage-chart-tooltip [class*="text-slate-400"] {
   color: #64748b !important;
 }
+
 .theme-light .fuel-tooltip-pos [class*="text-white"],
 .theme-light .mileage-chart-tooltip [class*="text-white"] {
   color: #0f172a !important;
@@ -1174,6 +1228,7 @@
 .theme-light .sr-sidebar-search input {
   color: #1e293b !important;
 }
+
 .theme-light .sr-sidebar-search input::placeholder {
   color: #94a3b8 !important;
 }
@@ -1216,16 +1271,19 @@
   border-color: #c7d2fe !important;
   color: #4f46e5 !important;
 }
+
 .theme-light .sr-group-status-badge.is-moving.is-active {
   background: #dcfce7 !important;
   border-color: #bbf7d0 !important;
   color: #16a34a !important;
 }
+
 .theme-light .sr-group-status-badge.is-stopped.is-active {
   background: #ffedd5 !important;
   border-color: #fed7aa !important;
   color: #ea580c !important;
 }
+
 .theme-light .sr-group-status-badge.is-offline.is-active {
   background: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
@@ -1277,77 +1335,95 @@
 .theme-light.login-page {
   background: linear-gradient(135deg, #e6f0f9 0%, #d8eaf6 100%) !important;
 }
+
 .theme-light.login-page .login-blobs {
   display: none !important;
 }
+
 .theme-light.login-page .login-glass-panel {
   background: #ffffff !important;
   border-color: #ffffff !important;
-  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08) !important;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08) !important;
 }
+
 .theme-light.login-page .brand-title {
   color: #4f46e5 !important;
   background-image: none !important;
   -webkit-text-fill-color: #4f46e5 !important;
 }
+
 .theme-light.login-page .login-toolbar-toggle {
   background: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
   color: #64748b !important;
 }
+
 .theme-light.login-page .login-toolbar-toggle:hover {
   background: #e2e8f0 !important;
   border-color: #cbd5e1 !important;
 }
+
 .theme-light.login-page .login-toolbar-toggle svg {
   color: #64748b !important;
 }
+
 .theme-light.login-page .auth-switcher-container {
   background: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
+
 .theme-light.login-page .auth-switcher-btn {
   color: #64748b !important;
 }
+
 .theme-light.login-page .auth-switcher-btn svg {
   color: inherit !important;
 }
+
 .theme-light.login-page .auth-switcher-btn:hover {
   background: #e2e8f0 !important;
   color: #334155 !important;
 }
+
 .theme-light.login-page .auth-switcher-btn.active-password,
 .theme-light.login-page .auth-switcher-btn.active-eimzo {
   background: #ffffff !important;
   color: #4f46e5 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 0 0 1px #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 1px #e2e8f0 !important;
 }
+
 .theme-light.login-page .login-input-label {
   color: #94a3b8 !important;
   font-weight: 700 !important;
 }
+
 .theme-light.login-page .login-input-container {
   background: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
+
 .theme-light.login-page .login-input-container:focus-within {
   border-color: #93c5fd !important;
 }
+
 .theme-light.login-page .login-input-container input,
 .theme-light.login-page .login-input-container select {
   color: #1e293b !important;
   -webkit-text-fill-color: #1e293b !important;
 }
+
 .theme-light.login-page .login-input-container input::placeholder {
   color: #94a3b8 !important;
   -webkit-text-fill-color: #94a3b8 !important;
 }
+
 .theme-light.login-page .login-submit-btn {
   background: #5a4fcf !important;
   color: #ffffff !important;
   box-shadow: none !important;
 }
+
 .theme-light.login-page .login-auth-input:-webkit-autofill {
   -webkit-text-fill-color: #1e293b !important;
 }
@@ -1357,21 +1433,26 @@
   border-color: #e2e8f0 !important;
   box-shadow: none !important;
 }
+
 .theme-light.login-page .login-eimzo-info span.font-bold {
   color: #64748b !important;
 }
+
 .theme-light.login-page .login-eimzo-info span.text-slate-300 {
   color: #1e293b !important;
 }
+
 .theme-light.login-page .login-eimzo-info p.text-slate-500 {
   color: #94a3b8 !important;
   border-top-color: #e2e8f0 !important;
 }
+
 .theme-light.login-page .login-eimzo-refresh-btn {
   background: #ffffff !important;
   border-color: #e2e8f0 !important;
   color: #64748b !important;
 }
+
 .theme-light.login-page .login-eimzo-refresh-btn:hover {
   border-color: #93c5fd !important;
   color: #3b82f6 !important;
@@ -1383,25 +1464,30 @@
   border-color: #e2e8f0 !important;
   color: #eab308 !important;
 }
+
 .theme-light .tools-filter-btn.inactive:hover {
   border-color: #cbd5e1 !important;
   background: #f8fafc !important;
 }
+
 .theme-light .tools-filter-btn.active {
   background: #fef08a !important;
   border-color: #fde047 !important;
   color: #ca8a04 !important;
 }
+
 .theme-light .tools-filter-dropdown {
   background: #ffffff !important;
   border-color: #e2e8f0 !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
   color: #475569 !important;
 }
+
 .theme-light .tools-filter-item:hover {
   background: #f1f5f9 !important;
   color: #1e293b !important;
 }
+
 .theme-light .tools-filter-item.active {
   background: #eff6ff !important;
   color: #2563eb !important;
@@ -1414,14 +1500,17 @@
   color: #1e293b !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
 }
+
 .theme-light .waybill-esmo-tooltip .text-slate-400 {
   color: #64748b !important;
 }
+
 .theme-light .waybill-esmo-tooltip-inner {
   background: #f8fafc !important;
   border-color: #e2e8f0 !important;
   color: #1e293b !important;
 }
+
 .theme-light .waybill-esmo-tooltip-inner .text-slate-400 {
   color: #64748b !important;
 }
@@ -1475,13 +1564,16 @@
   background: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
+
 .theme-light .tools-filter-item {
   color: #334155 !important;
 }
+
 .theme-light .tools-filter-item:hover {
   background: #f8fafc !important;
   color: #0f172a !important;
 }
+
 .theme-light .tools-filter-item.active {
   background: #eff6ff !important;
   color: #2563eb !important;
@@ -1491,8 +1583,10 @@
 .theme-light .role-permission-track {
   background: #cbd5e1 !important;
 }
-.theme-light input:checked + .role-permission-track {
-  background: #3b82f6 !important; /* checked bg remains blue */
+
+.theme-light input:checked+.role-permission-track {
+  background: #3b82f6 !important;
+  /* checked bg remains blue */
 }
 
 /* Day Mode EIMZO Modal (UserManager) */
@@ -1570,17 +1664,26 @@
 
 /* Day Mode overrides for UserManager table & roles */
 :root[data-theme='light'] .user-manager-name {
-  color: #0f172a !important; /* slate-900 */
+  color: #0f172a !important;
+  /* slate-900 */
 }
 
 :root[data-theme='light'] .user-status-text {
-  color: #475569 !important; /* slate-600 */
+  color: #475569 !important;
+  /* slate-600 */
 }
 
 :root[data-theme='light'] .role-name-text.text-slate-100 {
-  color: #334155 !important; /* slate-700 */
+  color: #334155 !important;
+  /* slate-700 */
 }
 
 :root[data-theme='light'] .permission-name-text.text-slate-200 {
-  color: #1e293b !important; /* slate-800 */
+  color: #1e293b !important;
+  /* slate-800 */
+}
+
+root[data-theme='light'] .permission-name-text.text-slate-200 {
+  color: #1e293b !important;
+  /* slate-800 */
 }
