@@ -210,7 +210,7 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
 
 
 // --- MarqueeText: header bo'ylab to'liq harakat qiladi (sidebar chegarasigacha) ---
-function MarqueeText({ text, durationMs = 14000, theme = 'dark' }: { text: string; durationMs?: number; theme?: 'dark' | 'light' }) {
+function MarqueeText({ text, durationMs = 9000, theme = 'dark' }: { text: string; durationMs?: number; theme?: 'dark' | 'light' }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const spanRef = useRef<HTMLSpanElement>(null);
   const rafRef = useRef<number>(0);
