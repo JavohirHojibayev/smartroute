@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { getEffectiveTurnstileDeviceIpMap } from '../utils/turnstile-daily-access-kpis.util';
-import { fetchLatestAcsEvents, type AcsEventRow } from './hikvision-acsevent-fetcher';
+import { fetchLatestAcsEvents, syncDeviceTime, type AcsEventRow } from './hikvision-acsevent-fetcher';
 
 /**
  * Webhookdan tashqari ISAPI orqali oxirgi hodisalarni o‘qib, shu backenddagi
@@ -15,6 +15,8 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
   private running = false;
   private readonly recentPostedEventKeys = new Map<string, number>();
   private readonly initializedDeviceIps = new Set<string>();
+  private lastTimeSyncAt = 0;
+  private readonly TIME_SYNC_INTERVAL_MS = 30 * 60 * 1000;
 
   private get enabled(): boolean {
     return String(process.env.HIKVISION_POLLER_ENABLED ?? '').toLowerCase() === 'true';
@@ -193,8 +195,9 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
     }, this.intervalMs);
 
     setTimeout(() => {
+      void this.syncClocksIfDue(targetEntries);
       void this.runSafe();
-    }, 3000);
+    }, 2000);
   }
 
   onModuleDestroy(): void {
@@ -202,6 +205,26 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
       clearInterval(this.interval);
       this.interval = null;
     }
+  }
+
+  private async syncClocksIfDue(targetEntries: Array<[string, any]>): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastTimeSyncAt < this.TIME_SYNC_INTERVAL_MS) return;
+    this.lastTimeSyncAt = now;
+    await Promise.all(
+      targetEntries.map(async ([ip]) => {
+        try {
+          await syncDeviceTime({
+            deviceIp: ip,
+            devicePort: this.devicePort,
+            username: this.username,
+            password: this.password,
+          });
+        } catch {
+          // Offline qurilmalar uchun xatolikni e'tiborsiz qoldiramiz
+        }
+      }),
+    );
   }
 
   private async runSafe(): Promise<void> {
@@ -222,6 +245,8 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
     const start = new Date(end.getTime() - this.lookbackMinutes * 60 * 1000);
     const targetEntries = this.resolveTargetDeviceEntries();
     if (targetEntries.length === 0) return;
+
+    void this.syncClocksIfDue(targetEntries);
 
     if (!this.importEvents) {
       await Promise.all(targetEntries.map(([ip, mapped]) => this.pushHeartbeatToWebhook(ip, mapped)));
@@ -244,6 +269,7 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
           start,
           end,
           maxResults: this.maxPerDevice,
+          minor: this.recordAllEvents ? 0 : 75,
         });
 
         if (!this.initializedDeviceIps.has(ip)) {
@@ -254,7 +280,7 @@ export class HikvisionPollerService implements OnApplicationBootstrap, OnModuleD
           const rowTimeMs = this.parseRowTimeMs(row);
           if (rowTimeMs != null) {
             const now = Date.now();
-            if (rowTimeMs < now - this.maxEventAgeMs || rowTimeMs > now + 2 * 60 * 1000) {
+            if (rowTimeMs < now - this.maxEventAgeMs || rowTimeMs > now + 15 * 60 * 1000) {
               const eventKey = this.buildEventKey(ip, row);
               if (eventKey) this.rememberEventKey(eventKey);
               skipped += 1;

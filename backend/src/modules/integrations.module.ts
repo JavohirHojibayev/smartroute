@@ -168,10 +168,10 @@ export class HikvisionController implements OnModuleInit {
    * `HIKVISION_LOGS_DEFAULT_RANGE_DAYS=0` — cheklov yo‘q (eski xatti-harakat).
    */
   private readonly logsDefaultRangeDays = (() => {
-    const raw = (process.env.HIKVISION_LOGS_DEFAULT_RANGE_DAYS ?? '120').trim();
+    const raw = (process.env.HIKVISION_LOGS_DEFAULT_RANGE_DAYS ?? '0').trim();
     if (raw === '' || raw === '0') return 0;
     const n = Number.parseInt(raw, 10);
-    if (!Number.isFinite(n) || n < 1) return 120;
+    if (!Number.isFinite(n) || n < 1) return 0;
     return Math.min(n, 3650);
   })();
 
@@ -1768,12 +1768,23 @@ export class HikvisionController implements OnModuleInit {
 
     const normalizedExternalId = this.normalizeExternalId(faceIdHash || employeeNo);
 
+    const cardNo = this.normalizeWhitespace(normalizedPayload?.cardNo);
+    const normalizedCardId = this.normalizeExternalId(cardNo);
+
     if (normalizedExternalId && this.isLikelyValidPersonName(personName)) {
       await this.upsertIdentity(normalizedExternalId, personName, payloadIp ?? requestIp, departmentFromPayload);
     }
 
-    const identityName = await this.resolveIdentityName(normalizedExternalId);
-    const identityDepartment = await this.resolveIdentityDepartment(normalizedExternalId);
+    let identityName = await this.resolveIdentityName(normalizedExternalId);
+    let identityDepartment = await this.resolveIdentityDepartment(normalizedExternalId);
+
+    if (!identityName && normalizedCardId) {
+      identityName = await this.resolveIdentityName(normalizedCardId);
+      if (!identityDepartment) {
+        identityDepartment = await this.resolveIdentityDepartment(normalizedCardId);
+      }
+    }
+
     if (identityName && !this.isLikelyValidPersonName(personName)) {
       personName = identityName;
     } else if (identityName && personName && this.personNamesCompatibleForDedupe(personName, identityName)) {
@@ -1784,8 +1795,8 @@ export class HikvisionController implements OnModuleInit {
       );
     }
 
-    if (!personName && (faceIdHash || employeeNo)) {
-      const identityCandidates = this.buildIdentityCandidates([faceIdHash, employeeNo]);
+    if (!personName && (faceIdHash || employeeNo || cardNo)) {
+      const identityCandidates = this.buildIdentityCandidates([faceIdHash, employeeNo, cardNo]);
       if (identityCandidates.raw.length > 0 || identityCandidates.normalized.length > 0) {
         const knownPerson = await this.accessRepo
           .createQueryBuilder('log')
@@ -2293,11 +2304,11 @@ export class HikvisionController implements OnModuleInit {
         ? this.normalizePersonName(row.person_name)
         : '';
 
-      const merged = this.pickPreferredPersonName(this.pickPreferredPersonName(nameFromRow || null, rawPayloadName), nameFromDriver);
+      const merged = this.pickPreferredPersonName(nameFromDriver, this.pickPreferredPersonName(rawPayloadName, nameFromRow || null));
       const resolvedName =
+        (this.isLikelyValidPersonName(nameFromRow) ? nameFromRow : '') ||
         (merged && this.isLikelyValidPersonName(merged) ? merged : '') ||
         (this.isLikelyValidPersonName(rawPayloadName) ? rawPayloadName : '') ||
-        (this.isLikelyValidPersonName(nameFromRow) ? nameFromRow : '') ||
         (this.isLikelyValidPersonName(nameFromDriver) ? nameFromDriver : '') ||
         '';
       const resolvedEventType = this.resolveNormalizedEventType(
@@ -2469,7 +2480,29 @@ export class HikvisionController implements OnModuleInit {
       }
     }
 
-    const todayRows = await kpiRowsQuery.orderBy('log.access_time', 'DESC').getMany();
+    let todayRows = await kpiRowsQuery.orderBy('log.access_time', 'DESC').getMany();
+
+    if (!useJournalDates && todayRows.length === 0) {
+      const latestRow = await this.accessRepo
+        .createQueryBuilder('log')
+        .select('MAX(log.access_time)', 'latest_time')
+        .getRawOne();
+      const latestMs = this.parseTimestampMs(latestRow?.latest_time);
+      if (latestMs != null) {
+        const fallbackBounds = getAccessKpisTashkentDayBounds(new Date(latestMs));
+        kpiBounds = { start: fallbackBounds.start, end: fallbackBounds.end };
+        todayRows = await this.accessRepo
+          .createQueryBuilder('log')
+          .where(`datetime(log.access_time) >= datetime(:start)`, {
+            start: fallbackBounds.start.toISOString(),
+          })
+          .andWhere(`datetime(log.access_time) < datetime(:end)`, {
+            end: fallbackBounds.end.toISOString(),
+          })
+          .orderBy('log.access_time', 'DESC')
+          .getMany();
+      }
+    }
 
     const { 
       entrancesToday: totalToday, 

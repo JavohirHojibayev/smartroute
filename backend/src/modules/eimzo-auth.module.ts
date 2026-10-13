@@ -29,6 +29,8 @@ const OPENSSL_CANDIDATES = [
   'openssl',
   'C:\\Program Files\\Git\\usr\\bin\\openssl.exe',
   'C:\\Program Files\\Git\\mingw64\\bin\\openssl.exe',
+  'C:\\Users\\hojibayev.j\\AppData\\Local\\GitHubDesktop\\app-3.6.7\\resources\\app\\git\\mingw64\\bin\\openssl.exe',
+  'C:\\Users\\hojibayev.j\\AppData\\Local\\GitHubDesktop\\app-3.6.7\\resources\\app\\git\\usr\\bin\\openssl.exe',
   'C:\\OpenSSL-Win64\\bin\\openssl.exe',
 ].filter(Boolean);
 

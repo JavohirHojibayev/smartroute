@@ -10,6 +10,8 @@ import {
   Post,
   Query,
   Body,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -42,8 +44,9 @@ type OneCConfig = {
 };
 
 @Injectable()
-export class OneCWeightsService {
+export class OneCWeightsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OneCWeightsService.name);
+  private scheduler: ReturnType<typeof setInterval> | null = null;
   private syncInFlight: Promise<any> | null = null;
   private lastSyncAt = 0;
   private lastSyncError: string | null = null;
@@ -55,6 +58,23 @@ export class OneCWeightsService {
     @InjectRepository(OneCWeightEntry)
     private readonly onecWeightRepo: Repository<OneCWeightEntry>,
   ) {}
+
+  onModuleInit(): void {
+    const config = this.getConfig();
+    if (!config.enabled) return;
+    this.logger.log(`1C background auto-sync yoqildi: interval=${config.autoSyncEveryMs}ms`);
+    this.scheduler = setInterval(() => {
+      void this.syncNow().catch(() => undefined);
+    }, config.autoSyncEveryMs);
+    void this.syncNow().catch(() => undefined);
+  }
+
+  onModuleDestroy(): void {
+    if (this.scheduler) {
+      clearInterval(this.scheduler);
+      this.scheduler = null;
+    }
+  }
 
   private normalizeWhitespace(value: unknown): string {
     return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -208,11 +228,12 @@ export class OneCWeightsService {
     return 'online';
   }
 
-  private resolveEntitySet(config: OneCConfig, discovered: string[]): string {
+  private resolveEntitySet(config: OneCConfig, discovered: string[]): string | null {
     if (config.entitySet) return config.entitySet;
     if (discovered.length === 1) return discovered[0];
+    if (discovered.length === 0) return null;
     throw new BadRequestException(
-      `ONEC_WEIGHT_ENTITY_SET aniqlanmadi. Topilgan EntitySet lar: ${discovered.length ? discovered.join(', ') : 'yo\'q'}`,
+      `ONEC_WEIGHT_ENTITY_SET aniqlanmadi. Topilgan EntitySet lar: ${discovered.join(', ')}`,
     );
   }
 
@@ -325,6 +346,9 @@ export class OneCWeightsService {
   private async fetchRawOneCRows(config: OneCConfig) {
     const discoveredEntitySets = await this.discoverEntitySets(config);
     const entitySet = this.resolveEntitySet(config, discoveredEntitySets);
+    if (!entitySet) {
+      return { entitySet: null, rows: [], discoveredEntitySets };
+    }
 
     const path = `${entitySet}?$format=json&$top=${config.top}`;
     const response = await this.onecFetch(config, path);
@@ -598,6 +622,7 @@ export class OneCWeightsService {
   }
 
   async getHealth() {
+    await this.ensureFreshData();
     const config = this.getConfig();
     const discoveredEntitySets = config.enabled && config.username && config.password
       ? await this.discoverEntitySets(config).catch(() => this.lastDiscoveredEntitySets)

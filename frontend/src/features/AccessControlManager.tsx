@@ -170,17 +170,9 @@ export const AccessControlManager = () => {
         );
     };
 
-    const loadData = useCallback(async (options?: { incremental?: boolean }) => {
+    const loadData = useCallback(async () => {
         if (isFetchingRef.current) return;
         isFetchingRef.current = true;
-
-        const useIncremental =
-            options?.incremental === true &&
-            currentPage === 1 &&
-            !searchQuery.trim() &&
-            !dateFrom &&
-            !dateTo &&
-            latestLogIdRef.current > 0;
 
         try {
             const summaryParams = new URLSearchParams();
@@ -189,16 +181,13 @@ export const AccessControlManager = () => {
             const summaryQs = summaryParams.toString();
 
             const logsParams = new URLSearchParams({
-                limit: String(useIncremental ? 100 : rowsPerPage),
-                page: String(useIncremental ? 1 : currentPage),
+                limit: String(rowsPerPage),
+                page: String(currentPage),
             });
             const searchValue = searchQuery.trim();
             if (searchValue) logsParams.set('search', searchValue);
             if (dateFrom) logsParams.set('dateFrom', dateFrom);
             if (dateTo) logsParams.set('dateTo', dateTo);
-            if (useIncremental) {
-                logsParams.set('sinceId', String(latestLogIdRef.current));
-            }
             if (filterType !== 'all') {
                 logsParams.set('eventType', filterType);
             }
@@ -227,26 +216,12 @@ export const AccessControlManager = () => {
                 turnstiles: Array.isArray(summaryData?.turnstiles) ? summaryData.turnstiles : [],
             });
 
-            if (!Array.isArray(logsData) && logsData?.incremental && Array.isArray(logsData?.items)) {
-                const incoming = normalizeLogRows(logsData.items);
-                if (incoming.length > 0) {
-                    setLogs((prev) => mergeLogRowsById(incoming, prev).slice(0, rowsPerPage));
-                    setTotalRows((prev) => prev + incoming.length);
-                    latestLogIdRef.current = Math.max(
-                        latestLogIdRef.current,
-                        Number(logsData.latestId ?? 0),
-                        ...incoming.map((r) => r.id),
-                    );
-                }
-            } else {
-                const pageData = parseLogsPayload(logsData);
-                const normalized = normalizeLogRows(pageData.items);
-                setLogs(normalized);
-                setTotalRows(pageData.total);
-                if (pageData.page !== currentPage) {
-                    setCurrentPage(pageData.page);
-                }
-                latestLogIdRef.current = normalized.reduce((max, row) => Math.max(max, row.id), 0);
+            const pageData = parseLogsPayload(logsData);
+            const normalized = normalizeLogRows(pageData.items);
+            setLogs(normalized);
+            setTotalRows(pageData.total);
+            if (pageData.page !== currentPage && pageData.totalPages >= pageData.page) {
+                setCurrentPage(pageData.page);
             }
 
             setError(null);
@@ -287,7 +262,7 @@ export const AccessControlManager = () => {
         if (!tabVisible) return;
         if (searchQuery.trim() || dateFrom || dateTo) return;
         const interval = setInterval(() => {
-            void loadData({ incremental: true });
+            void loadData();
         }, TURNSTILE_POLL_MS);
         return () => clearInterval(interval);
     }, [dateFrom, dateTo, loadData, searchQuery, tabVisible]);
@@ -688,9 +663,20 @@ export const AccessControlManager = () => {
 
             <div className="glass-panel rounded-2xl overflow-hidden border border-slate-700/50">
                 <div className="p-4 sm:p-6 border-b border-slate-700/50 space-y-7">
-                    <h3 className="app-module-heading">
-                        {t('turnstileJournalTitle')}
-                    </h3>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="app-module-heading">
+                            {t('turnstileJournalTitle')}
+                        </h3>
+                        {isLive && !searchQuery.trim() && !dateFrom && !dateTo && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                Real vaqt / Live
+                            </span>
+                        )}
+                    </div>
 
                     <div className="flex flex-wrap xl:flex-nowrap items-center gap-2.5 sm:gap-3">
                         <div className="relative mt-4 flex w-full min-h-12 min-w-0 items-center sm:w-[300px] md:w-[330px] lg:w-[360px]">

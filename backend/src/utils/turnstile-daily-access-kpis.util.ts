@@ -73,13 +73,17 @@ export function getEffectiveTurnstileDeviceIpMap(): Record<string, TurnstileDevi
   return cachedEffectiveDeviceIpMap;
 }
 
-export function getAccessKpisTashkentDayBounds(): { dayKey: string; start: Date; end: Date } {
+export function getAccessKpisTashkentDayBounds(referenceDate: Date = new Date()): {
+  dayKey: string;
+  start: Date;
+  end: Date;
+} {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Tashkent',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).formatToParts(new Date());
+  }).formatToParts(referenceDate);
 
   const year = parts.find((p) => p.type === 'year')?.value ?? '1970';
   const month = parts.find((p) => p.type === 'month')?.value ?? '01';

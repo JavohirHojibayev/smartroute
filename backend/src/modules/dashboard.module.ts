@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Injectable, Module } from '@nestjs/common';
+import { Controller, Get, Injectable, Module } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Vehicle } from '../entities/fleet/vehicle.entity';
@@ -237,7 +237,32 @@ export class DashboardService {
         .getMany(),
     ]);
 
-    const accessKpis = computeTurnstileDailyAccessKpis(accessRowsToday, { start, end });
+    let effectiveAccessRows = accessRowsToday;
+    let effectiveAccessBounds = { start, end };
+    let effectiveAccessDayKey = dayKey;
+    if (effectiveAccessRows.length === 0) {
+      const latestAccess = await this.accessRepo
+        .createQueryBuilder('log')
+        .orderBy('log.access_time', 'DESC')
+        .limit(1)
+        .getOne();
+      if (latestAccess?.access_time) {
+        const latestDate = new Date(latestAccess.access_time);
+        if (!Number.isNaN(latestDate.getTime())) {
+          const fallbackBounds = getAccessKpisTashkentDayBounds(latestDate);
+          effectiveAccessBounds = { start: fallbackBounds.start, end: fallbackBounds.end };
+          effectiveAccessDayKey = fallbackBounds.dayKey;
+          effectiveAccessRows = await this.accessRepo
+            .createQueryBuilder('log')
+            .where('datetime(log.access_time) >= datetime(:start)', { start: fallbackBounds.start.toISOString() })
+            .andWhere('datetime(log.access_time) < datetime(:end)', { end: fallbackBounds.end.toISOString() })
+            .orderBy('log.access_time', 'DESC')
+            .getMany();
+        }
+      }
+    }
+
+    const accessKpis = computeTurnstileDailyAccessKpis(effectiveAccessRows, effectiveAccessBounds);
     const entrancesToday = accessKpis.entrancesToday;
     const exitsToday = accessKpis.exitsToday;
     const accessFailedToday = accessKpis.flaggedToday;
@@ -346,10 +371,12 @@ export class DashboardService {
     const telemetrySeries = Array.from({ length: 7 }, (_, idx) => 8 + idx * 2).map((hour) => {
       const windowStart = new Date(`${dayKey}T${String(hour).padStart(2, '0')}:00:00+05:00`);
       const windowEnd = new Date(windowStart.getTime() + 2 * 60 * 60 * 1000);
+      const accessWindowStart = new Date(`${effectiveAccessDayKey}T${String(hour).padStart(2, '0')}:00:00+05:00`);
+      const accessWindowEnd = new Date(accessWindowStart.getTime() + 2 * 60 * 60 * 1000);
 
       const accessRowsInWindow = movementRows.filter((row) => {
         const ms = new Date(row.access_time).getTime();
-        return !Number.isNaN(ms) && ms >= windowStart.getTime() && ms < windowEnd.getTime();
+        return !Number.isNaN(ms) && ms >= accessWindowStart.getTime() && ms < accessWindowEnd.getTime();
       });
       const turnstileEntrances = accessRowsInWindow.filter((row) => resolveTurnstileMovementType(row) === 'entrance').length;
       const turnstileExits = accessRowsInWindow.filter((row) => resolveTurnstileMovementType(row) === 'exit').length;

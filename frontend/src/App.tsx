@@ -210,7 +210,7 @@ const extractErrorMessage = (payload: any, fallback: string): string => {
 
 
 // --- MarqueeText: header bo'ylab to'liq harakat qiladi (sidebar chegarasigacha) ---
-function MarqueeText({ text, durationMs = 9000, theme = 'dark' }: { text: string; durationMs?: number; theme?: 'dark' | 'light' }) {
+function MarqueeText({ text, durationMs = 16000, theme = 'dark' }: { text: string; durationMs?: number; theme?: 'dark' | 'light' }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const spanRef = useRef<HTMLSpanElement>(null);
   const rafRef = useRef<number>(0);
@@ -260,7 +260,7 @@ function MarqueeText({ text, durationMs = 9000, theme = 'dark' }: { text: string
           left: 0,
           display: 'inline-block',
           whiteSpace: 'nowrap',
-          color: theme === 'light' ? '#ea580c' : '#facc15',
+          color: theme === 'light' ? '#c2410c' : '#facc15',
           fontSize: '20px',
           fontWeight: 700,
           letterSpacing: '0.03em',
@@ -722,18 +722,18 @@ function App() {
   const formatCount = (value: number | null | undefined) => numberFormat.format(Number(value ?? 0));
   const fuelChartTheme = theme === 'light'
     ? {
-      containerClass: 'rounded-xl border border-slate-300/80 bg-white/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]',
+      containerClass: 'rounded-xl border border-slate-300/90 bg-[#e6edf7]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]',
       titleClass: 'text-xs font-semibold uppercase tracking-wider text-slate-600 mb-3',
-      grid: '#9aaec6',
-      axis: '#6a82a3',
-      tick: '#607995',
-      tooltipBg: 'rgba(255, 255, 255, 0.96)',
+      grid: '#b8c7dc',
+      axis: '#64748b',
+      tick: '#475569',
+      tooltipBg: 'rgba(238, 242, 248, 0.98)',
       tooltipBorder: '#b6c7dc',
-      tooltipText: '#1f2f45',
-      tooltipLabel: '#294261',
-      tooltipShadow: '0 10px 22px rgba(31, 47, 69, 0.16)',
-      consumption: '#1d4ed8',
-      consumptionStopOpacity: 0.34,
+      tooltipText: '#1e293b',
+      tooltipLabel: '#334155',
+      tooltipShadow: '0 10px 22px rgba(31, 47, 69, 0.14)',
+      consumption: '#2563eb',
+      consumptionStopOpacity: 0.28,
       syncClass: 'mt-3 text-xs text-slate-600',
     }
     : {

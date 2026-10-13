@@ -142,13 +142,13 @@ export function smartrouteDatePickerSlotProps(minWidth: number) {
     };
 }
 
-/** Kun rejimi: oq maydon + oq kalenda (ESMO jurnal filtri uslubi). */
+/** Kun rejimi: ko'zni charchatmaydigan yumshoq kulrang-moviy maydon va kalendar. */
 export const smartrouteLightDayDatePickerTheme = createTheme({
     palette: {
         mode: 'light',
-        primary: { main: '#059669' },
-        text: { primary: '#0f172a', secondary: '#64748b' },
-        background: { default: '#ffffff', paper: '#ffffff' },
+        primary: { main: '#4f46e5' },
+        text: { primary: '#1e293b', secondary: '#475569' },
+        background: { default: '#e3eaf4', paper: '#eef2f8' },
         divider: 'rgba(15, 23, 42, 0.12)',
     },
     shape: { borderRadius: 12 },
@@ -159,10 +159,10 @@ export const smartrouteLightDayDatePickerTheme = createTheme({
         MuiOutlinedInput: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#ffffff',
-                    '& fieldset': { borderColor: 'rgba(15, 23, 42, 0.14)' },
-                    '&:hover fieldset': { borderColor: 'rgba(15, 23, 42, 0.28)' },
-                    '&.Mui-focused fieldset': { borderColor: '#059669' },
+                    backgroundColor: '#e3eaf4',
+                    '& fieldset': { borderColor: '#bdcada' },
+                    '&:hover fieldset': { borderColor: '#94a3b8' },
+                    '&.Mui-focused fieldset': { borderColor: '#4f46e5' },
                 },
             },
         },
@@ -180,23 +180,23 @@ export function smartrouteLightDayDatePickerSlotProps(minWidth: number) {
                 minWidth,
                 '& .MuiOutlinedInput-root': {
                     borderRadius: '12px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#e3eaf4',
                 },
                 '& .MuiInputBase-input': {
-                    color: '#0f172a',
+                    color: '#1e293b',
                 },
                 '& .MuiInputLabel-root': {
-                    color: '#64748b',
+                    color: '#475569',
                     fontSize: '0.8rem',
                 },
                 '& .MuiPickersInputBase-sectionsContainer': {
                     minWidth: Math.max(96, minWidth - 40),
                 },
                 '& .MuiPickersSectionList-sectionContent': {
-                    color: '#334155',
+                    color: '#1e293b',
                 },
                 '& .MuiSvgIcon-root': {
-                    color: '#64748b',
+                    color: '#475569',
                 },
             },
         },
@@ -205,26 +205,26 @@ export function smartrouteLightDayDatePickerSlotProps(minWidth: number) {
                 '& .MuiPaper-root': {
                     borderRadius: '16px',
                     backgroundImage: 'none',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid rgba(15, 23, 42, 0.1)',
-                    boxShadow: '0 12px 40px rgba(15, 23, 42, 0.12)',
+                    backgroundColor: '#eef2f8',
+                    border: '1px solid #c5d1e0',
+                    boxShadow: '0 12px 36px rgba(15, 23, 42, 0.14)',
                 },
                 '& .MuiDateCalendar-root': {
                     width: 300,
                     maxHeight: 352,
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#eef2f8',
                 },
                 '& .MuiPickersCalendarHeader-root': {
                     minHeight: 40,
                     marginTop: 0.5,
                     marginBottom: 0.5,
                     paddingInline: 1.25,
-                    color: '#0f172a',
+                    color: '#1e293b',
                 },
                 '& .MuiPickersCalendarHeader-label': {
                     fontSize: '1.02rem',
                     fontWeight: 600,
-                    color: '#0f172a',
+                    color: '#1e293b',
                 },
                 '& .MuiPickersArrowSwitcher-button': {
                     color: '#475569',
@@ -233,31 +233,34 @@ export function smartrouteLightDayDatePickerSlotProps(minWidth: number) {
                     width: 34,
                     height: 24,
                     fontSize: '0.82rem',
-                    color: '#64748b',
+                    color: '#475569',
                 },
                 '& .MuiPickersDay-root': {
                     width: 32,
                     height: 32,
                     fontSize: '0.9rem',
                     margin: '0 2px',
-                    color: '#0f172a',
+                    color: '#1e293b',
+                    '&:hover': {
+                        backgroundColor: '#dbe4f0',
+                    },
                 },
                 '& .MuiPickersDay-root.Mui-selected': {
                     color: '#ffffff',
-                    backgroundColor: '#059669 !important',
+                    backgroundColor: '#4f46e5 !important',
                 },
                 '& .MuiPickersDay-root.Mui-selected:hover': {
-                    backgroundColor: '#10b981 !important',
+                    backgroundColor: '#4338ca !important',
                 },
                 '& .MuiPickersLayout-actionBar': {
                     padding: '4px 12px 10px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#e6ecf5',
                 },
                 '& .MuiPickersLayout-actionBar .MuiButton-root': {
                     fontSize: '0.88rem',
                     minWidth: 'auto',
                     padding: '4px 8px',
-                    color: '#059669',
+                    color: '#4f46e5',
                 },
             },
         },

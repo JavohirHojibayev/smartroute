@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Module, Post, Query, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Logger, Module, Post, Query, Body, HttpException, HttpStatus, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as http from 'http';
@@ -906,8 +906,9 @@ class EsmoPortalClient {
 }
 
 @Controller('integrations/esmo')
-export class EsmoController {
+export class EsmoController implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EsmoController.name);
+  private scheduler: ReturnType<typeof setInterval> | null = null;
   private syncInFlight: Promise<any> | null = null;
   private lastSyncAt = 0;
   private terminalStatesCache: EsmoTerminalStateRow[] = [];
@@ -942,6 +943,22 @@ export class EsmoController {
     @InjectRepository(WaybillDetailRecord)
     private readonly waybillDetailRepo: Repository<WaybillDetailRecord>,
   ) {}
+
+  onModuleInit(): void {
+    if (!this.esmoEnabled || !this.esmoBaseUrl || !this.esmoUser || !this.esmoPass) return;
+    this.logger.log(`ESMO background auto-sync yoqildi: interval=${this.autoSyncEveryMs}ms`);
+    this.scheduler = setInterval(() => {
+      void this.runSync().catch(() => undefined);
+    }, this.autoSyncEveryMs);
+    void this.runSync().catch(() => undefined);
+  }
+
+  onModuleDestroy(): void {
+    if (this.scheduler) {
+      clearInterval(this.scheduler);
+      this.scheduler = null;
+    }
+  }
 
   private normalizeWhitespace(value: unknown): string {
     return String(value ?? '').replace(/\s+/g, ' ').trim();

@@ -1,9 +1,11 @@
 @echo off
 setlocal EnableExtensions
 set "APP_ROOT=%~dp0"
+set "PATH=C:\Users\hojibayev.j\AppData\Local\Programs\nodejs\node-v22.14.0-win-x64;C:\Users\hojibayev.j\AppData\Local\GitHubDesktop\app-3.6.7\resources\app\git\cmd;%PATH%"
+set "NODE_TLS_REJECT_UNAUTHORIZED=0"
 
 echo Starting SmartRoute System [SQLite Mode]...
-if "%HOST_IP%"=="" set "HOST_IP=localhost"
+if "%HOST_IP%"=="" set "HOST_IP=192.168.12.47"
 
 if not exist "%APP_ROOT%backend\.env" (
     if exist "%APP_ROOT%backend\.env.example" (
