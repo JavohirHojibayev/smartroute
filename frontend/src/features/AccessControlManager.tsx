@@ -138,7 +138,6 @@ export const AccessControlManager = () => {
     );
     const [filterType, setFilterType] = useState<'all' | 'entrance' | 'exit' | 'zavod-entrance' | 'zavod-exit' | 'mine-entrance' | 'mine-exit'>('all');
     const isFetchingRef = useRef(false);
-    const latestLogIdRef = useRef(0);
     const normalizeLogRows = (rows: AccessLogRow[]) =>
         rows.map((row) => ({
             ...row,
@@ -158,16 +157,6 @@ export const AccessControlManager = () => {
         const parsedPage = Number.parseInt(String(payload?.page ?? 1), 10);
         const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
         return { items, totalPages, total, page };
-    };
-
-    const mergeLogRowsById = (incoming: AccessLogRow[], existing: AccessLogRow[]) => {
-        const byId = new Map<number, AccessLogRow>();
-        for (const row of [...incoming, ...existing]) {
-            byId.set(row.id, row);
-        }
-        return Array.from(byId.values()).sort(
-            (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
-        );
     };
 
     const loadData = useCallback(async () => {
